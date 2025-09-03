@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+sqlalchemy>=2.0
+psycopg[binary]
+alembic
+pydantic
+python-jose
+bcrypt
+loguru
+requests
