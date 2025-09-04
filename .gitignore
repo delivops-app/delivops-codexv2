@@ -6,3 +6,9 @@ frontend/.env.local
 node_modules/
 backend/storage/
 .venv/
+
+# Next.js build
+frontend/.next/
+**/.next/
+frontend/out/
+frontend/.vercel/
