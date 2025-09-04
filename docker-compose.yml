@@ -32,6 +32,8 @@ services:
     command: npm run dev
     volumes:
       - ./frontend:/app
+    env_file:
+      - ./frontend/.env.local
     environment:
       - PORT=3000
     ports:

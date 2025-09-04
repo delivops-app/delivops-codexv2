@@ -18,7 +18,7 @@ AUTH0_ALGORITHMS=RS256
 TENANT_HEADER_NAME=X-Tenant-Id
 ```
 
-Frontend (`frontend/.env.local`):
+Frontend (`frontend/.env.local` — copier depuis `frontend/.env.example`):
 ```
 AUTH0_SECRET=CHANGEME
 AUTH0_BASE_URL=http://localhost:3000
@@ -28,6 +28,8 @@ AUTH0_CLIENT_SECRET=CHANGEME
 NEXT_PUBLIC_API_BASE=http://localhost:8000
 NEXT_PUBLIC_AUTH0_AUDIENCE=https://delivops-codex.api/
 ```
+
+Le fichier `.env.local` est automatiquement chargé par `docker-compose`.
 
 ## Lancement
 
