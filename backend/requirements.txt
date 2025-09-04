@@ -3,7 +3,8 @@ uvicorn
 sqlalchemy>=2.0
 psycopg[binary]
 alembic
-pydantic
+pydantic>=2.0
+pydantic-settings>=2.0
 python-jose
 bcrypt
 loguru

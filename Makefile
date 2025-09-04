@@ -1,4 +1,5 @@
 .RECIPEPREFIX := >
+.PHONY: dev migrate seed test fmt lint
 
 dev:
 >docker compose up --build
