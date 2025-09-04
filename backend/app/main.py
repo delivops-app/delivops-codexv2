@@ -40,3 +40,7 @@ def read_me(user: dict = Depends(auth_dependency), tenant_id: str = Depends(get_
 @app.get("/")
 def root():
     return {"status": "ok"}
+
+@app.get("/healthz")
+def healthz():
+    return {"status": "ok"}
