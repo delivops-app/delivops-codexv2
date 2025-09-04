@@ -8,5 +8,7 @@
    - Allowed Callback URLs: `http://localhost:3000/api/auth/callback`
    - Allowed Logout URLs: `http://localhost:3000/`
    - Allowed Web Origins: `http://localhost:3000`
-6. Récupérer Domain, Client ID, Client Secret et remplir les fichiers `.env`.
-7. Tester login/logout sur le front puis appel d'API protégée.
+6. Vérifier que l'algorithme affiché est **RS256** (par défaut).
+   Le backend récupère automatiquement la clé publique via JWKS (aucun certificat à télécharger).
+7. Récupérer Domain, Client ID, Client Secret et remplir les fichiers `.env`.
+8. Tester login/logout sur le front puis appel d'API protégée.

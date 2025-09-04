@@ -14,21 +14,28 @@ class JWKSCache:
     _jwks = None
 
     @classmethod
-    def get_jwks(cls):
-        if cls._jwks is None:
+    def get_jwks(cls, force_refresh: bool = False):
+        if cls._jwks is None or force_refresh:
             jwks_url = f"https://{settings.auth0_domain}/.well-known/jwks.json"
-            response = requests.get(jwks_url)
+            response = requests.get(jwks_url, timeout=5)
             response.raise_for_status()
             cls._jwks = response.json()
         return cls._jwks
 
 
 def decode_token(token: str) -> dict:
-    jwks = JWKSCache.get_jwks()
     header = jwt.get_unverified_header(token)
-    key = next((k for k in jwks["keys"] if k["kid"] == header["kid"]), None)
+    jwks = JWKSCache.get_jwks()
+    key = next((k for k in jwks.get("keys", []) if k.get("kid") == header.get("kid")), None)
+
+    # Si la clé n'est pas trouvée, on force un refresh du JWKS (rotation de clés)
+    if key is None:
+        jwks = JWKSCache.get_jwks(force_refresh=True)
+        key = next((k for k in jwks.get("keys", []) if k.get("kid") == header.get("kid")), None)
+
     if key is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
     return jwt.decode(
         token,
         key,
