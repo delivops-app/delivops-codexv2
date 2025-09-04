@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+sqlalchemy>=2.0
+psycopg[binary]
+alembic
+pydantic
+pydantic-settings
+python-jose
+bcrypt
+loguru
+requests
+pytest
+httpx
