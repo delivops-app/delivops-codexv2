@@ -38,6 +38,7 @@ export default function ClientCard({
           </button>
         </div>
       </div>
+
       <div className="mt-2">
         <button
           onClick={() => onAddCategory(client)}
@@ -46,6 +47,7 @@ export default function ClientCard({
           Ajouter une catégorie de groupe tarifaire
         </button>
       </div>
+
       {client.categories.length > 0 && (
         <div className="mt-4 flex flex-col gap-2">
           {client.categories.map((cat) => (

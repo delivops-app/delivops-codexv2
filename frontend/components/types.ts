@@ -1,13 +1,13 @@
 export type TariffCategory = {
-  id: string;
-  name: string;
-  price: string;
-  enseignes: string[];
-  color: string;
-};
+  id: string
+  name: string
+  price: string
+  enseignes: string[]
+  color: string
+}
 
 export type Client = {
-  id: string;
-  name: string;
-  categories: TariffCategory[];
-};
+  id: string
+  name: string
+  categories: TariffCategory[]
+}

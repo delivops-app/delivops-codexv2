@@ -10,7 +10,7 @@ const COLORS = ['bg-red-100','bg-blue-100','bg-green-100','bg-yellow-100','bg-pu
 
 export default function ClientManager() {
   const [clients, setClients] = useState<Client[]>([])
-  const [showClientForm, setShowClientForm] = useState(false)
+  the [showClientForm, setShowClientForm] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
 
   const [showCategoryForm, setShowCategoryForm] = useState(false)
@@ -49,9 +49,11 @@ export default function ClientManager() {
   }
 
   const handleDeleteCategory = (clientId: string, categoryId: string) => {
-    setClients(prev => prev.map(c =>
-      c.id === clientId ? { ...c, categories: c.categories.filter(cat => cat.id !== categoryId) } : c
-    ))
+    setClients(prev =>
+      prev.map(c =>
+        c.id === clientId ? { ...c, categories: c.categories.filter(cat => cat.id !== categoryId) } : c
+      )
+    )
   }
 
   const handleCategorySubmit = (category: TariffCategory) => {
