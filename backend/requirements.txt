@@ -11,3 +11,4 @@ loguru
 requests
 pytest
 httpx
+jinja2
