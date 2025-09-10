@@ -1,6 +1,8 @@
 from secrets import token_urlsafe
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -11,6 +13,13 @@ from app.schemas.chauffeur import ChauffeurCreate, ChauffeurRead
 from app.core.email import send_activation_email
 
 router = APIRouter(prefix="/chauffeurs", tags=["chauffeurs"])
+
+templates = Jinja2Templates(directory="app/templates")
+
+
+@router.get("/invite", response_class=HTMLResponse)
+def invite_chauffeur_form(request: Request):
+    return templates.TemplateResponse("invite_chauffeur.html", {"request": request})
 
 
 @router.get("/count")
