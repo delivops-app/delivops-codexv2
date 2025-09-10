@@ -10,7 +10,7 @@ const COLORS = ['bg-red-100','bg-blue-100','bg-green-100','bg-yellow-100','bg-pu
 
 export default function ClientManager() {
   const [clients, setClients] = useState<Client[]>([])
-  the [showClientForm, setShowClientForm] = useState(false)
+  const [showClientForm, setShowClientForm] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
 
   const [showCategoryForm, setShowCategoryForm] = useState(false)
