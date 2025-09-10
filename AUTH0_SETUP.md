@@ -4,10 +4,13 @@
 2. Activer **RBAC** et "Add Permissions in the Access Token".
 3. Créer une API avec l'Identifier `https://delivops-codex.api/`.
 4. Ajouter les rôles `ADMIN` et `CHAUFFEUR` et une Action pour injecter le claim `https://delivops/roles`.
-5. Dans l'application, renseigner:
-   - Allowed Callback URLs: `http://localhost:3000/api/auth/callback`
-   - Allowed Logout URLs: `http://localhost:3000/`
-   - Allowed Web Origins: `http://localhost:3000`
+5. Dans l'application Auth0, renseigner les URLs autorisées :
+   - **Allowed Callback URLs** : `http://localhost:3000/api/auth/callback`
+   - **Allowed Logout URLs** : `http://localhost:3000/`
+   - **Allowed Web Origins** : `http://localhost:3000`
+   - **Allowed Origins (CORS)** : `http://localhost:3000`
+   
+   Remplacez `localhost:3000` par votre domaine de production si nécessaire.
 6. Vérifier que l'algorithme affiché est **RS256** (par défaut).
    Le backend récupère automatiquement la clé publique via JWKS (aucun certificat à télécharger).
 7. Récupérer Domain, Client ID, Client Secret et remplir les fichiers `.env`.
