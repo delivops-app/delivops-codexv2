@@ -1,14 +1,24 @@
 'use client'
 
-import { Client } from './types'
+import { Client, TariffCategory } from './types'
 
 type Props = {
   client: Client
   onEdit: (client: Client) => void
   onDelete: (id: string) => void
+  onAddCategory: (client: Client) => void
+  onEditCategory: (client: Client, category: TariffCategory) => void
+  onDeleteCategory: (clientId: string, categoryId: string) => void
 }
 
-export default function ClientCard({ client, onEdit, onDelete }: Props) {
+export default function ClientCard({
+  client,
+  onEdit,
+  onDelete,
+  onAddCategory,
+  onEditCategory,
+  onDeleteCategory,
+}: Props) {
   return (
     <div className="mb-4 rounded border p-4">
       <div className="flex items-center justify-between">
@@ -29,25 +39,51 @@ export default function ClientCard({ client, onEdit, onDelete }: Props) {
         </div>
       </div>
 
-      {client.enseignes.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-2">
-          {client.enseignes.map((tag, i) => (
-            <span
-              key={i}
-              className="rounded bg-gray-200 px-2 py-1 text-sm"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
+      <div className="mt-2">
+        <button
+          onClick={() => onAddCategory(client)}
+          className="rounded bg-green-600 px-3 py-1 text-sm text-white"
+        >
+          Ajouter une catégorie de groupe tarifaire
+        </button>
+      </div>
 
       {client.categories.length > 0 && (
         <div className="mt-4 flex flex-col gap-2">
           {client.categories.map((cat) => (
             <div key={cat.id} className={`rounded p-2 ${cat.color}`}>
-              <p className="font-medium">{cat.name}</p>
-              <p>{parseFloat(cat.price).toFixed(2)} €</p>
+              <div className="flex justify-between">
+                <div>
+                  <p className="font-medium">{cat.name}</p>
+                  <p>{parseFloat(cat.price).toFixed(2)} €</p>
+                  {cat.enseignes.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-2">
+                      {cat.enseignes.map((tag, i) => (
+                        <span
+                          key={i}
+                          className="rounded bg-gray-200 px-2 py-1 text-xs"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="space-x-2 text-sm">
+                  <button
+                    onClick={() => onEditCategory(client, cat)}
+                    className="text-blue-600 hover:underline"
+                  >
+                    Modifier
+                  </button>
+                  <button
+                    onClick={() => onDeleteCategory(client.id, cat.id)}
+                    className="text-red-600 hover:underline"
+                  >
+                    Supprimer
+                  </button>
+                </div>
+              </div>
             </div>
           ))}
         </div>
