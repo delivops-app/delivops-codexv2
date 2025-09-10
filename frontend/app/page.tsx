@@ -1,11 +1,13 @@
 'use client'
 
 import { useUser } from '@auth0/nextjs-auth0/client'
+import Link from 'next/link'
 import AuthButton from '../components/AuthButton'
 import ClientManager from '../components/ClientManager'
 
 export default function Home() {
   const { user, error, isLoading } = useUser()
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000'
 
   return (
     <main className="flex min-h-screen flex-col items-center p-8">
@@ -15,6 +17,14 @@ export default function Home() {
       {error && <p>Erreur: {error.message}</p>}
       {user && <p className="mb-4">Bonjour {user.name}</p>}
       <AuthButton />
+      {user && (
+        <Link
+          href={`${apiBase}/chauffeurs/invite`}
+          className="mt-4 rounded bg-green-600 px-4 py-2 text-white"
+        >
+          Inviter un chauffeur
+        </Link>
+      )}
       {user && <ClientManager />}
     </main>
   )
