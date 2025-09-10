@@ -1,6 +1,7 @@
 'use client'
 
 import { useUser } from '@auth0/nextjs-auth0/client'
+import Link from 'next/link'
 import AuthButton from '../components/AuthButton'
 import ClientManager from '../components/ClientManager'
 
@@ -15,6 +16,14 @@ export default function Home() {
       {error && <p>Erreur: {error.message}</p>}
       {user && <p className="mb-4">Bonjour {user.name}</p>}
       <AuthButton />
+      {user && (
+        <Link
+          href="/chauffeurs/invite"
+          className="mt-4 rounded bg-green-600 px-4 py-2 text-white"
+        >
+          Inviter un chauffeur
+        </Link>
+      )}
       {user && <ClientManager />}
     </main>
   )
