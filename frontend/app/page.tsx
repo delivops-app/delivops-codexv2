@@ -7,6 +7,7 @@ import ClientManager from '../components/ClientManager'
 
 export default function Home() {
   const { user, error, isLoading } = useUser()
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000'
 
   return (
     <main className="flex min-h-screen flex-col items-center p-8">
@@ -18,7 +19,7 @@ export default function Home() {
       <AuthButton />
       {user && (
         <Link
-          href="/chauffeurs/invite"
+          href={`${apiBase}/chauffeurs/invite`}
           className="mt-4 rounded bg-green-600 px-4 py-2 text-white"
         >
           Inviter un chauffeur
