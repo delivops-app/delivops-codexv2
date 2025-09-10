@@ -19,9 +19,13 @@
     <p id="message"></p>
 
     <script>
+    const tenantId = "{{ tenant_id }}";
+
     async function loadQuota() {
         try {
-            const res = await fetch('/chauffeurs/count');
+            const res = await fetch('/chauffeurs/count', {
+                headers: { 'X-Tenant-Id': tenantId }
+            });
             if (res.ok) {
                 const data = await res.json();
                 document.getElementById('quota').textContent = `${data.count}/${data.subscribed}`;
@@ -43,7 +47,10 @@
         try {
             const res = await fetch(form.action, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Tenant-Id': tenantId
+                },
                 body: JSON.stringify(body)
             });
             if (res.ok) {

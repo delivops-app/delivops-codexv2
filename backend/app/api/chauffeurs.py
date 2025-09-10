@@ -18,8 +18,10 @@ templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/invite", response_class=HTMLResponse)
-def invite_chauffeur_form(request: Request):
-    return templates.TemplateResponse("invite_chauffeur.html", {"request": request})
+def invite_chauffeur_form(request: Request, tenant_id: str = Depends(get_tenant_id)):
+    return templates.TemplateResponse(
+        "invite_chauffeur.html", {"request": request, "tenant_id": tenant_id}
+    )
 
 
 @router.get("/count")
