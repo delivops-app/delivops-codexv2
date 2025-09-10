@@ -8,3 +8,4 @@ class Tenant(Base):
     slug = Column(String, unique=True, nullable=False)
     timezone = Column(String, default="UTC")
     locale = Column(String, default="fr")
+    max_chauffeurs = Column(Integer, default=0)
