@@ -4,7 +4,7 @@ services:
     image: postgres:15
     environment:
       POSTGRES_USER: delivops
-      POSTGRES_PASSWORD: delivops_pw
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
       POSTGRES_DB: delivops
     volumes:
       - db_data:/var/lib/postgresql/data
