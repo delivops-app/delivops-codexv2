@@ -26,7 +26,14 @@ def synthese_tournees(
         .order_by(Tournee.date)
         .all()
     )
-    groups = sorted({s.groupe_colis for t in tournees for s in t.saisies})
+    groups = sorted(
+        {
+            s.groupe_colis
+            for t in tournees
+            for s in t.saisies
+            if s.groupe_colis is not None
+        }
+    )
     data = []
     for t in tournees:
         row_groups = {g: 0 for g in groups}

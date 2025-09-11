@@ -14,4 +14,4 @@ class Saisie(Base):
     commentaire = Column(String, nullable=True)
 
     tenant = relationship("Tenant")
-    tournee = relationship("Tournee")
+    tournee = relationship("Tournee", back_populates="saisies")
