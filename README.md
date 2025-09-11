@@ -16,6 +16,7 @@ AUTH0_AUDIENCE=https://delivops-codex.api/
 AUTH0_ISSUER=https://dev-or3c4n80x1rba26g.eu.auth0.com/
 AUTH0_ALGORITHMS=RS256
 TENANT_HEADER_NAME=X-Tenant-Id
+LOKI_URL=http://loki:3100/loki/api/v1/push
 ```
 
 Frontend (`frontend/.env.local` — copier depuis `frontend/.env.example`):
@@ -39,6 +40,12 @@ make dev
 
 API: http://localhost:8000
 Web: http://localhost:3000
+
+### Observabilité
+
+Une stack Grafana/Loki est fournie pour consulter les `AuditLog`.
+- Grafana: http://localhost:3001
+- Dashboard "Chauffeurs par utilisateur" pré‑provisionné.
 
 ### Migrations
 

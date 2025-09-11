@@ -22,6 +22,8 @@ services:
       - ./backend:/app
     env_file:
       - ./backend/.env.example
+    environment:
+      - LOKI_URL=http://loki:3100/loki/api/v1/push
     depends_on:
       db:
         condition: service_healthy
@@ -40,5 +42,19 @@ services:
       - "3000:3000"
     depends_on:
       - api
+  loki:
+    image: grafana/loki:2.9.1
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+  grafana:
+    image: grafana/grafana:10.1.0
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - loki
 volumes:
   db_data:

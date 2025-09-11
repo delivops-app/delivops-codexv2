@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     auth0_algorithms: str = "RS256"
     tenant_header_name: str = "X-Tenant-Id"
     dev_fake_auth: bool = False
+    loki_url: str | None = None
 
 
 settings = Settings()
