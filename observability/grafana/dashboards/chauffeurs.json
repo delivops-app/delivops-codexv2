@@ -1,0 +1,18 @@
+{
+  "title": "Chauffeurs par utilisateur",
+  "uid": "chauffeurs-volume",
+  "schemaVersion": 37,
+  "version": 1,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Créations de chauffeurs par utilisateur (jour)",
+      "targets": [
+        {
+          "expr": "sum by (user_id) (count_over_time({entity=\"/chauffeurs\", action=\"post\"}[1d]))",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}
