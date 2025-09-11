@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -9,6 +10,7 @@ from app.models.base import Base
 from app.models.tenant import Tenant
 from app.models.chauffeur import Chauffeur
 from app.models.user import User
+from app.core.config import settings
 
 
 def override_get_db():
@@ -28,6 +30,7 @@ engine = create_engine(
 TestingSessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False, future=True)
 Base.metadata.create_all(bind=engine)
 app.dependency_overrides[get_db] = override_get_db
+settings.dev_fake_auth = True
 
 
 def test_create_chauffeur_and_limit(monkeypatch):

@@ -6,6 +6,12 @@ class ChauffeurCreate(BaseModel):
     display_name: str
 
 
+class ChauffeurUpdate(BaseModel):
+    email: str | None = None
+    display_name: str | None = None
+    is_active: bool | None = None
+
+
 class ChauffeurRead(BaseModel):
     id: int
     email: str
