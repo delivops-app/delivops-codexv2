@@ -1,7 +1,7 @@
 """Seed the database with a demo tenant, users and chauffeurs.
 
 This script is meant to be executed from the repository root without any
-additional environment configuration.  It ensures the backend code is on the
+additional environment configuration. It ensures the backend code is on the
 ``PYTHONPATH`` and that a reasonable default ``DATABASE_URL`` is provided when
 none is defined.
 """
@@ -11,7 +11,6 @@ import os
 import random
 import sys
 from pathlib import Path
-
 
 # Allow running the script without manually setting PYTHONPATH
 ROOT = Path(__file__).resolve().parent
