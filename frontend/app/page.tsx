@@ -4,14 +4,13 @@ import { useUser } from '@auth0/nextjs-auth0/client'
 import AuthButton from '../components/AuthButton'
 import ClientManager from '../components/ClientManager'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-
 export default function Home() {
   const { user, error, isLoading } = useUser()
-  const router = useRouter()
 
   const handleInvite = () => {
-    router.push('/chauffeurs/invite')
+    const apiBase =
+      process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000'
+    window.location.href = `${apiBase}/chauffeurs/invite`
   }
 
   return (
