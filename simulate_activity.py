@@ -21,11 +21,11 @@ os.environ.setdefault(
     "DATABASE_URL", "postgresql+psycopg://delivops:changeme@localhost:5432/delivops"
 )
 
-from app.db.session import SessionLocal
-from app.models.audit import AuditLog
-from app.models.chauffeur import Chauffeur
-from app.models.tenant import Tenant
-from app.models.user import User
+from app.db.session import SessionLocal  # noqa: E402
+from app.models.audit import AuditLog  # noqa: E402
+from app.models.chauffeur import Chauffeur  # noqa: E402
+from app.models.tenant import Tenant  # noqa: E402
+from app.models.user import User  # noqa: E402
 
 
 def run() -> None:

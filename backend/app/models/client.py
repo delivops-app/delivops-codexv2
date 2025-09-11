@@ -5,8 +5,8 @@ from .base import Base
 
 
 class Client(Base):
-    tenant_id = Column(Integer, ForeignKey('tenant.id'), nullable=False, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenant.id"), nullable=False, index=True)
     name = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
 
-    tenant = relationship('Tenant', backref='clients')
+    tenant = relationship("Tenant", backref="clients")
