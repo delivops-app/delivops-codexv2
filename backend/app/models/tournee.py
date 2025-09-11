@@ -19,4 +19,4 @@ class Tournee(Base):
     tenant = relationship("Tenant", backref="tournees")
     chauffeur = relationship("Chauffeur", backref="tournees")
     client = relationship("Client", backref="tournees")
-    saisies = relationship("Saisie", backref="tournee")
+    saisies = relationship("Saisie", back_populates="tournee")
