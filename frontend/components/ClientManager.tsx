@@ -6,7 +6,14 @@ import CategoryForm from './CategoryForm'
 import ClientCard from './ClientCard'
 import { Client, TariffCategory } from './types'
 
-const COLORS = ['bg-red-100','bg-blue-100','bg-green-100','bg-yellow-100','bg-purple-100','bg-pink-100']
+const COLORS = [
+  'bg-red-100',
+  'bg-blue-100',
+  'bg-green-100',
+  'bg-yellow-100',
+  'bg-purple-100',
+  'bg-pink-100',
+]
 
 export default function ClientManager() {
   const [clients, setClients] = useState<Client[]>([])
@@ -15,13 +22,15 @@ export default function ClientManager() {
 
   const [showCategoryForm, setShowCategoryForm] = useState(false)
   const [categoryClient, setCategoryClient] = useState<Client | null>(null)
-  const [editingCategory, setEditingCategory] = useState<TariffCategory | null>(null)
+  const [editingCategory, setEditingCategory] = useState<TariffCategory | null>(
+    null,
+  )
 
   const handleClientSubmit = (client: Client) => {
     if (editingClient) {
-      setClients(prev => prev.map(c => c.id === client.id ? client : c))
+      setClients((prev) => prev.map((c) => (c.id === client.id ? client : c)))
     } else {
-      setClients(prev => [client, ...prev])
+      setClients((prev) => [client, ...prev])
     }
     setEditingClient(null)
     setShowClientForm(false)
@@ -33,7 +42,7 @@ export default function ClientManager() {
   }
 
   const handleDeleteClient = (id: string) => {
-    setClients(prev => prev.filter(c => c.id !== id))
+    setClients((prev) => prev.filter((c) => c.id !== id))
   }
 
   const handleAddCategory = (client: Client) => {
@@ -49,22 +58,39 @@ export default function ClientManager() {
   }
 
   const handleDeleteCategory = (clientId: string, categoryId: string) => {
-    setClients(prev =>
-      prev.map(c =>
-        c.id === clientId ? { ...c, categories: c.categories.filter(cat => cat.id !== categoryId) } : c
-      )
+    setClients((prev) =>
+      prev.map((c) =>
+        c.id === clientId
+          ? {
+              ...c,
+              categories: c.categories.filter((cat) => cat.id !== categoryId),
+            }
+          : c,
+      ),
     )
   }
 
   const handleCategorySubmit = (category: TariffCategory) => {
     if (!categoryClient) return
-    setClients(prev => prev.map(c => {
-      if (c.id !== categoryClient.id) return c
-      const categories = editingCategory
-        ? c.categories.map(cat => cat.id === category.id ? { ...category, color: editingCategory.color } : cat)
-        : [...c.categories, { ...category, color: COLORS[c.categories.length % COLORS.length] }]
-      return { ...c, categories }
-    }))
+    setClients((prev) =>
+      prev.map((c) => {
+        if (c.id !== categoryClient.id) return c
+        const categories = editingCategory
+          ? c.categories.map((cat) =>
+              cat.id === category.id
+                ? { ...category, color: editingCategory.color }
+                : cat,
+            )
+          : [
+              ...c.categories,
+              {
+                ...category,
+                color: COLORS[c.categories.length % COLORS.length],
+              },
+            ]
+        return { ...c, categories }
+      }),
+    )
     setEditingCategory(null)
     setCategoryClient(null)
     setShowCategoryForm(false)
@@ -108,8 +134,10 @@ export default function ClientManager() {
 
       {!showClientForm && !showCategoryForm && clients.length > 0 && (
         <>
-          <h2 className="mb-2 text-2xl font-semibold">Récapitulatif des clients</h2>
-          {clients.map(client => (
+          <h2 className="mb-2 text-2xl font-semibold">
+            Récapitulatif des clients
+          </h2>
+          {clients.map((client) => (
             <ClientCard
               key={client.id}
               client={client}

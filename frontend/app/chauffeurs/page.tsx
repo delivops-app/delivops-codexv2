@@ -37,22 +37,20 @@ export default function ChauffeursPage() {
           </tr>
         </thead>
         <tbody>
-          {chauffeurs.map(c => (
+          {chauffeurs.map((c) => (
             <tr key={c.id}>
               <td className="border px-4 py-2">{c.display_name}</td>
               <td className="border px-4 py-2">{c.email}</td>
-              <td className="border px-4 py-2">{c.is_active ? 'Oui' : 'Non'}</td>
+              <td className="border px-4 py-2">
+                {c.is_active ? 'Oui' : 'Non'}
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
-      <Link
-        href="/"
-        className="mt-4 rounded bg-gray-600 px-4 py-2 text-white"
-      >
+      <Link href="/" className="mt-4 rounded bg-gray-600 px-4 py-2 text-white">
         Retour
       </Link>
     </main>
   )
 }
-

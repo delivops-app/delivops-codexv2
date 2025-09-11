@@ -45,11 +45,7 @@ def list_chauffeurs(
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ):
     tenant_id_int = int(tenant_id)
-    chauffeurs = (
-        db.query(Chauffeur)
-        .filter(Chauffeur.tenant_id == tenant_id_int)
-        .all()
-    )
+    chauffeurs = db.query(Chauffeur).filter(Chauffeur.tenant_id == tenant_id_int).all()
     return chauffeurs
 
 

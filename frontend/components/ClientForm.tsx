@@ -9,7 +9,11 @@ type Props = {
   onCancel: () => void
 }
 
-export default function ClientForm({ initialClient, onSubmit, onCancel }: Props) {
+export default function ClientForm({
+  initialClient,
+  onSubmit,
+  onCancel,
+}: Props) {
   const [name, setName] = useState(initialClient?.name ?? '')
 
   const handleSubmit = (e: React.FormEvent) => {

@@ -26,15 +26,24 @@ class JWKSCache:
 def decode_token(token: str) -> dict:
     header = jwt.get_unverified_header(token)
     jwks = JWKSCache.get_jwks()
-    key = next((k for k in jwks.get("keys", []) if k.get("kid") == header.get("kid")), None)
+    key = next(
+        (k for k in jwks.get("keys", []) if k.get("kid") == header.get("kid")),
+        None,
+    )
 
     # Si la clé n'est pas trouvée, on force un refresh du JWKS (rotation de clés)
     if key is None:
         jwks = JWKSCache.get_jwks(force_refresh=True)
-        key = next((k for k in jwks.get("keys", []) if k.get("kid") == header.get("kid")), None)
+        key = next(
+            (k for k in jwks.get("keys", []) if k.get("kid") == header.get("kid")),
+            None,
+        )
 
     if key is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+        )
 
     return jwt.decode(
         token,
@@ -45,12 +54,16 @@ def decode_token(token: str) -> dict:
     )
 
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),  # noqa: B008
+) -> dict:
     token = credentials.credentials
     try:
         payload = decode_token(token)
     except JWTError as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)
+        ) from exc
     return payload
 
 

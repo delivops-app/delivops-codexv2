@@ -9,15 +9,19 @@ type Props = {
   onCancel: () => void
 }
 
-export default function CategoryForm({ initialCategory, onSubmit, onCancel }: Props) {
+export default function CategoryForm({
+  initialCategory,
+  onSubmit,
+  onCancel,
+}: Props) {
   const [name, setName] = useState(initialCategory?.name ?? '')
   const [price, setPrice] = useState(initialCategory?.price ?? '')
-  const [enseignes, setEnseignes] = useState<string[]>(initialCategory?.enseignes ?? [])
+  const [enseignes, setEnseignes] = useState<string[]>(
+    initialCategory?.enseignes ?? [],
+  )
   const [enseigneInput, setEnseigneInput] = useState('')
 
-  const handleEnseigneKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>
-  ) => {
+  const handleEnseigneKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && enseigneInput.trim()) {
       e.preventDefault()
       setEnseignes([...enseignes, enseigneInput.trim()])
@@ -66,7 +70,9 @@ export default function CategoryForm({ initialCategory, onSubmit, onCancel }: Pr
           value={price}
           onChange={(e) => setPrice(e.target.value)}
           onBlur={(e) =>
-            setPrice(e.target.value ? parseFloat(e.target.value).toFixed(2) : '0.00')
+            setPrice(
+              e.target.value ? parseFloat(e.target.value).toFixed(2) : '0.00',
+            )
           }
           className="w-full rounded border p-2"
           placeholder="Tarif en €"
