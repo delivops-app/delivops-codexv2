@@ -1,5 +1,5 @@
 from decimal import Decimal
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class TarifBase(BaseModel):
@@ -29,5 +29,5 @@ class TarifUpdate(BaseModel):
 class TarifRead(TarifBase):
     id: int
 
-    class Config:
-        orm_mode = True
+    # Allow reading data from ORM objects with Pydantic v2
+    model_config = ConfigDict(from_attributes=True)
