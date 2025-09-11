@@ -1,12 +1,16 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
+import { getAccessToken, withApiAuthRequired } from '@auth0/nextjs-auth0'
 import { apiFetch } from '../../../lib/api'
 
-export default async function handler(
+export default withApiAuthRequired(async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
   try {
-    const response = await apiFetch('/chauffeurs/invite')
+    const { accessToken } = await getAccessToken(req, res)
+    const response = await apiFetch('/chauffeurs/invite', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
     const text = await response.text()
     res.status(response.status)
     res.setHeader(
@@ -17,4 +21,4 @@ export default async function handler(
   } catch (error) {
     res.status(502).json({ detail: 'Failed to fetch invite page' })
   }
-}
+})
