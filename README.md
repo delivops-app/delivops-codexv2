@@ -68,6 +68,18 @@ make migrate
 make seed
 ```
 
+### Simulation d'activité
+
+Permet d'injecter un tenant de démonstration, deux utilisateurs et quelques
+chauffeurs afin de tester rapidement l'application.
+
+```bash
+python simulate_activity.py
+```
+
+Le script ajoute automatiquement `backend` au `PYTHONPATH` et se connecte par
+défaut à la base locale (`localhost:5432`) si `DATABASE_URL` n'est pas défini.
+
 ### Tests
 
 ```bash
