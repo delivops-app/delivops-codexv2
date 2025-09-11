@@ -1,5 +1,6 @@
-from fastapi import Header, HTTPException
+from fastapi import Header, HTTPException, status
 
+from app.core.auth import get_current_user, dev_fake_auth
 from app.core.config import settings
 
 
@@ -7,3 +8,22 @@ def get_tenant_id(x_tenant_id: str = Header(..., alias=settings.tenant_header_na
     if not x_tenant_id:
         raise HTTPException(status_code=400, detail="Missing tenant header")
     return x_tenant_id
+
+
+def auth_dependency(
+    authorization: str = Header(None),
+    x_dev_role: str = Header(None, alias="X-Dev-Role"),
+    x_dev_sub: str = Header(None, alias="X-Dev-Sub"),
+):
+    if settings.dev_fake_auth:
+        return dev_fake_auth(x_dev_role, x_dev_sub)
+    if authorization is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Authorization"
+        )
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() != "bearer":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid scheme"
+        )
+    return get_current_user(token)

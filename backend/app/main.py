@@ -1,10 +1,8 @@
-from fastapi import Depends, FastAPI, Header, HTTPException, status
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.core.config import settings
-from app.core.auth import get_current_user, dev_fake_auth
 from app.api.chauffeurs import router as chauffeurs_router
-from app.api.deps import get_tenant_id
+from app.api.deps import get_tenant_id, auth_dependency
 
 app = FastAPI()
 
@@ -17,21 +15,6 @@ app.add_middleware(
 )
 
 app.include_router(chauffeurs_router)
-
-
-def auth_dependency(
-    authorization: str = Header(None),
-    x_dev_role: str = Header(None, alias="X-Dev-Role"),
-    x_dev_sub: str = Header(None, alias="X-Dev-Sub"),
-):
-    if settings.dev_fake_auth:
-        return dev_fake_auth(x_dev_role, x_dev_sub)
-    if authorization is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Authorization")
-    scheme, _, token = authorization.partition(" ")
-    if scheme.lower() != "bearer":
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid scheme")
-    return get_current_user(token)
 
 
 @app.get("/auth/me")
