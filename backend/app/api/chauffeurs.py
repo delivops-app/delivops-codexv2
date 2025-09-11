@@ -38,6 +38,21 @@ def count_chauffeurs(
     return {"count": count, "subscribed": subscribed}
 
 
+@router.get("/", response_model=list[ChauffeurRead])
+def list_chauffeurs(
+    db: Session = Depends(get_db),  # noqa: B008
+    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+):
+    tenant_id_int = int(tenant_id)
+    chauffeurs = (
+        db.query(Chauffeur)
+        .filter(Chauffeur.tenant_id == tenant_id_int)
+        .all()
+    )
+    return chauffeurs
+
+
 @router.post("/", response_model=ChauffeurRead, status_code=201)
 def create_chauffeur(
     chauffeur_in: ChauffeurCreate,

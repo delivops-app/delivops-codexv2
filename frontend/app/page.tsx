@@ -4,6 +4,7 @@ import { useUser } from '@auth0/nextjs-auth0/client'
 import AuthButton from '../components/AuthButton'
 import ClientManager from '../components/ClientManager'
 import { apiFetch } from '../lib/api'
+import Link from 'next/link'
 
 export default function Home() {
   const { user, error, isLoading } = useUser()
@@ -25,12 +26,20 @@ export default function Home() {
       {user && <p className="mb-4">Bonjour {user.name}</p>}
       <AuthButton />
       {user && (
-        <button
-          onClick={handleInvite}
-          className="mt-4 rounded bg-green-600 px-4 py-2 text-white"
-        >
-          Inviter un chauffeur
-        </button>
+        <div className="mt-4 flex flex-col items-center">
+          <button
+            onClick={handleInvite}
+            className="rounded bg-green-600 px-4 py-2 text-white"
+          >
+            Inviter un chauffeur
+          </button>
+          <Link
+            href="/chauffeurs"
+            className="mt-2 rounded bg-blue-600 px-4 py-2 text-white"
+          >
+            Voir les chauffeurs
+          </Link>
+        </div>
       )}
       {user && <ClientManager />}
     </main>

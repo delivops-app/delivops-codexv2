@@ -100,3 +100,35 @@ def test_create_chauffeur_requires_admin():
         headers=headers,
     )
     assert response.status_code == 403
+
+
+def test_list_chauffeurs():
+    client = TestClient(app)
+
+    # create tenant
+    with TestingSessionLocal() as db:
+        tenant = Tenant(name="Acme", slug="acme3", max_chauffeurs=5)
+        db.add(tenant)
+        db.commit()
+        db.refresh(tenant)
+        tenant_id = tenant.id
+
+    headers = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+
+    client.post(
+        "/chauffeurs/",
+        json={"email": "driver4@example.com", "display_name": "Driver Four"},
+        headers=headers,
+    )
+    client.post(
+        "/chauffeurs/",
+        json={"email": "driver5@example.com", "display_name": "Driver Five"},
+        headers=headers,
+    )
+
+    response = client.get("/chauffeurs/", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    emails = {c["email"] for c in data}
+    assert {"driver4@example.com", "driver5@example.com"} <= emails
