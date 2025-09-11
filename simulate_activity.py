@@ -1,10 +1,31 @@
+"""Seed the database with a demo tenant, users and chauffeurs.
+
+This script is meant to be executed from the repository root without any
+additional environment configuration. It ensures the backend code is on the
+``PYTHONPATH`` and that a reasonable default ``DATABASE_URL`` is provided when
+none is defined.
+"""
+
+import json
+import os
+import random
+import sys
+from pathlib import Path
+
+# Allow running the script without manually setting PYTHONPATH
+ROOT = Path(__file__).resolve().parent
+sys.path.append(str(ROOT / "backend"))
+
+# Default to connecting to the local database if DATABASE_URL isn't set
+os.environ.setdefault(
+    "DATABASE_URL", "postgresql+psycopg://delivops:changeme@localhost:5432/delivops"
+)
+
 from app.db.session import SessionLocal
+from app.models.audit import AuditLog
+from app.models.chauffeur import Chauffeur
 from app.models.tenant import Tenant
 from app.models.user import User
-from app.models.chauffeur import Chauffeur
-from app.models.audit import AuditLog
-import json
-import random
 
 
 def run() -> None:
