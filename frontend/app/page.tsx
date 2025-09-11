@@ -8,9 +8,7 @@ export default function Home() {
   const { user, error, isLoading } = useUser()
 
   const handleInvite = () => {
-    const apiBase =
-      process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000'
-    window.location.href = `${apiBase}/chauffeurs/invite`
+    window.location.href = '/api/chauffeurs/invite'
   }
 
   return (
