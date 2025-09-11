@@ -2,6 +2,7 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.chauffeurs import router as chauffeurs_router
+from app.api.tarifs import router as tarifs_router
 from app.api.deps import get_tenant_id, auth_dependency
 from app.middleware.audit import AuditMiddleware
 from app.core.logging import setup_logging
@@ -19,6 +20,7 @@ app.add_middleware(
 app.add_middleware(AuditMiddleware)
 
 app.include_router(chauffeurs_router)
+app.include_router(tarifs_router)
 
 
 @app.get("/auth/me")

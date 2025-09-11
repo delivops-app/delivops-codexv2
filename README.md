@@ -41,6 +41,15 @@ make dev
 API: http://localhost:8000
 Web: http://localhost:3000
 
+### Rôles et permissions
+
+| Rôle      | Permissions principales |
+|-----------|------------------------|
+| `ADMIN`   | Gestion des chauffeurs et des tarifs |
+| `CHAUFFEUR` | Accès restreint à son propre profil |
+
+Les routes sensibles utilisent la dépendance `require_roles` qui vérifie le claim `roles` du JWT.
+
 ### Observabilité
 
 Une stack Grafana/Loki est fournie pour consulter les `AuditLog`.

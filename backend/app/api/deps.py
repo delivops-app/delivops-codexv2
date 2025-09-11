@@ -1,4 +1,4 @@
-from fastapi import Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 
 from app.core.auth import get_current_user, dev_fake_auth
 from app.core.config import settings
@@ -27,3 +27,18 @@ def auth_dependency(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid scheme"
         )
     return get_current_user(token)
+
+
+def require_roles(*required_roles: str):
+    """Dependency ensuring current user has at least one of required roles."""
+
+    def _role_dependency(user: dict = Depends(auth_dependency)):  # noqa: B008
+        roles = user.get("roles", [])
+        if not any(role in roles for role in required_roles):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient role",
+            )
+        return user
+
+    return _role_dependency
