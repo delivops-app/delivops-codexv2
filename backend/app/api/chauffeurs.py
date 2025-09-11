@@ -6,7 +6,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.api.deps import get_tenant_id, auth_dependency
+from app.api.deps import get_tenant_id, require_roles
 from app.models.audit import AuditLog
 from app.models.chauffeur import Chauffeur
 from app.models.tenant import Tenant
@@ -28,8 +28,8 @@ def invite_chauffeur_form(request: Request, tenant_id: str = Depends(get_tenant_
 
 @router.get("/count")
 def count_chauffeurs(
-    db: Session = Depends(get_db),
-    tenant_id: str = Depends(get_tenant_id),
+    db: Session = Depends(get_db),  # noqa: B008
+    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
 ):
     tenant_id_int = int(tenant_id)
     count = db.query(Chauffeur).filter(Chauffeur.tenant_id == tenant_id_int).count()
@@ -41,9 +41,9 @@ def count_chauffeurs(
 @router.post("/", response_model=ChauffeurRead, status_code=201)
 def create_chauffeur(
     chauffeur_in: ChauffeurCreate,
-    db: Session = Depends(get_db),
-    tenant_id: str = Depends(get_tenant_id),
-    user: dict = Depends(auth_dependency),
+    db: Session = Depends(get_db),  # noqa: B008
+    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ):
     tenant_id_int = int(tenant_id)
     tenant = db.get(Tenant, tenant_id_int)
@@ -84,9 +84,9 @@ def create_chauffeur(
 def update_chauffeur(
     chauffeur_id: int,
     chauffeur_in: ChauffeurUpdate,
-    db: Session = Depends(get_db),
-    tenant_id: str = Depends(get_tenant_id),
-    user: dict = Depends(auth_dependency),
+    db: Session = Depends(get_db),  # noqa: B008
+    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ):
     tenant_id_int = int(tenant_id)
     chauffeur = (
@@ -123,9 +123,9 @@ def update_chauffeur(
 @router.delete("/{chauffeur_id}", status_code=204)
 def delete_chauffeur(
     chauffeur_id: int,
-    db: Session = Depends(get_db),
-    tenant_id: str = Depends(get_tenant_id),
-    user: dict = Depends(auth_dependency),
+    db: Session = Depends(get_db),  # noqa: B008
+    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ):
     tenant_id_int = int(tenant_id)
     chauffeur = (

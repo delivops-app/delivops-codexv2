@@ -1,5 +1,4 @@
 from fastapi.testclient import TestClient
-from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -8,8 +7,10 @@ from app.main import app
 from app.db.session import get_db
 from app.models.base import Base
 from app.models.tenant import Tenant
-from app.models.chauffeur import Chauffeur
-from app.models.user import User
+from app.models.chauffeur import Chauffeur  # noqa: F401
+from app.models.user import User  # noqa: F401
+from app.models.client import Client  # noqa: F401
+from app.models.tarif import Tarif  # noqa: F401
 from app.core.config import settings
 
 
@@ -27,7 +28,9 @@ engine = create_engine(
     connect_args={"check_same_thread": False},
     poolclass=StaticPool,
 )
-TestingSessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False, future=True)
+TestingSessionLocal = sessionmaker(
+    bind=engine, autocommit=False, autoflush=False, future=True
+)
 Base.metadata.create_all(bind=engine)
 app.dependency_overrides[get_db] = override_get_db
 settings.dev_fake_auth = True
@@ -46,13 +49,13 @@ def test_create_chauffeur_and_limit(monkeypatch):
 
     # create tenant
     with TestingSessionLocal() as db:
-        tenant = Tenant(name="Acme", slug="acme", max_chauffeurs=1)
+        tenant = Tenant(name="Acme", slug="acme2", max_chauffeurs=1)
         db.add(tenant)
         db.commit()
         db.refresh(tenant)
         tenant_id = tenant.id
 
-    headers = {"X-Tenant-Id": str(tenant_id)}
+    headers = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
 
     # create first chauffeur
     response = client.post(
@@ -76,3 +79,24 @@ def test_create_chauffeur_and_limit(monkeypatch):
         headers=headers,
     )
     assert response.status_code == 400
+
+
+def test_create_chauffeur_requires_admin():
+    client = TestClient(app)
+
+    # create tenant
+    with TestingSessionLocal() as db:
+        tenant = Tenant(name="Acme", slug="acme", max_chauffeurs=1)
+        db.add(tenant)
+        db.commit()
+        db.refresh(tenant)
+        tenant_id = tenant.id
+
+    headers = {"X-Tenant-Id": str(tenant_id)}
+
+    response = client.post(
+        "/chauffeurs/",
+        json={"email": "driver3@example.com", "display_name": "Driver Three"},
+        headers=headers,
+    )
+    assert response.status_code == 403
