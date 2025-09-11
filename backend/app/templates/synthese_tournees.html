@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Synthèse des tournées</title>
+</head>
+<body>
+    <h1>Synthèse des tournées</h1>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Chauffeur</th>
+                <th>Client</th>
+                {% for g in groups %}
+                <th>{{ g }}</th>
+                {% endfor %}
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in data %}
+            <tr>
+                <td>{{ row.date }}</td>
+                <td>{{ row.chauffeur }}</td>
+                <td>{{ row.client }}</td>
+                {% for g in groups %}
+                <td>{{ row.groups[g] }}</td>
+                {% endfor %}
+                <td>{{ row.total }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Ajouter ou modifier une saisie</h2>
+    <form id="saisieForm" action="/saisies/" method="post">
+        <label for="saisie_id">ID (pour modification):</label>
+        <input type="number" id="saisie_id" name="saisie_id" />
+        <label for="tournee_id">Tournee ID:</label>
+        <input type="number" id="tournee_id" name="tournee_id" required />
+        <label for="type">Type:</label>
+        <input type="text" id="type" name="type" required />
+        <label for="groupe_colis">Groupe colis:</label>
+        <input type="text" id="groupe_colis" name="groupe_colis" required />
+        <label for="nb_recup">Nb récup:</label>
+        <input type="number" id="nb_recup" name="nb_recup" value="0" />
+        <label for="nb_livres">Nb livrés:</label>
+        <input type="number" id="nb_livres" name="nb_livres" value="0" />
+        <label for="commentaire">Commentaire:</label>
+        <input type="text" id="commentaire" name="commentaire" />
+        <button type="submit">Enregistrer</button>
+    </form>
+    <p id="saisieMessage"></p>
+
+    <script>
+    const tenantId = "{{ tenant_id }}";
+    document.getElementById('saisieForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const body = {
+            tournee_id: parseInt(form.tournee_id.value, 10),
+            type: form.type.value,
+            groupe_colis: form.groupe_colis.value,
+            nb_recup: parseInt(form.nb_recup.value || '0', 10),
+            nb_livres: parseInt(form.nb_livres.value || '0', 10),
+            commentaire: form.commentaire.value
+        };
+        const id = form.saisie_id.value;
+        const url = id ? `/saisies/${id}` : '/saisies/';
+        const method = id ? 'PUT' : 'POST';
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Tenant-Id': tenantId
+                },
+                body: JSON.stringify(body)
+            });
+            if (res.ok) {
+                document.getElementById('saisieMessage').textContent = 'Saisie enregistrée';
+                form.reset();
+                window.location.reload();
+            } else {
+                const data = await res.json();
+                document.getElementById('saisieMessage').textContent = data.detail || 'Erreur';
+            }
+        } catch (err) {
+            document.getElementById('saisieMessage').textContent = 'Erreur';
+        }
+    });
+    </script>
+</body>
+</html>
