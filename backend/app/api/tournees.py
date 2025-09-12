@@ -1,20 +1,16 @@
-from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_tenant_id, require_roles
 from app.db.session import get_db
 from app.models.tournee import Tournee
 
+
 router = APIRouter(prefix="/tournees", tags=["tournees"])
 
-templates = Jinja2Templates(directory="app/templates")
 
-
-@router.get("/synthese", response_class=HTMLResponse)
+@router.get("/synthese")
 def synthese_tournees(
-    request: Request,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: str = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
@@ -39,9 +35,10 @@ def synthese_tournees(
         row_groups = {g: 0 for g in groups}
         total = 0
         for s in t.saisies:
-            if s.groupe_colis in row_groups:
-                nb_livres = s.nb_livres if s.nb_livres is not None else 0
-                row_groups[s.groupe_colis] += nb_livres
+            g = s.groupe_colis
+            if g in row_groups:
+                nb_livres = s.nb_livres or 0
+                row_groups[g] += nb_livres
                 total += nb_livres
         data.append(
             {
@@ -52,7 +49,4 @@ def synthese_tournees(
                 "total": total,
             }
         )
-    return templates.TemplateResponse(
-        "synthese_tournees.html",
-        {"request": request, "data": data, "groups": groups, "tenant_id": tenant_id},
-    )
+    return {"data": data, "groups": groups}

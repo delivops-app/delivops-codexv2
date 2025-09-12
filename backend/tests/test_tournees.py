@@ -88,7 +88,9 @@ def test_synthese_handles_null_nb_livres(client):
     headers = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
     response = client.get("/tournees/synthese", headers=headers)
     assert response.status_code == 200
-    assert "Synthèse des tournées" in response.text
+    data = response.json()
+    assert data["data"][0]["groups"]["A"] == 0
+    assert data["data"][0]["total"] == 0
 
 
 def test_synthese_sums_saisies_same_group(client):
@@ -142,5 +144,6 @@ def test_synthese_sums_saisies_same_group(client):
     headers = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
     response = client.get("/tournees/synthese", headers=headers)
     assert response.status_code == 200
-    assert response.context["data"][0]["groups"]["A"] == 8
-    assert response.context["data"][0]["total"] == 8
+    data = response.json()
+    assert data["data"][0]["groups"]["A"] == 8
+    assert data["data"][0]["total"] == 8
