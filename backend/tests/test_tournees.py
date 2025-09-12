@@ -89,3 +89,58 @@ def test_synthese_handles_null_nb_livres(client):
     response = client.get("/tournees/synthese", headers=headers)
     assert response.status_code == 200
     assert "Synthèse des tournées" in response.text
+
+
+def test_synthese_sums_saisies_same_group(client):
+    with TestingSessionLocal() as db:
+        tenant = Tenant(name="Acme", slug="acme5")
+        db.add(tenant)
+        db.commit()
+        db.refresh(tenant)
+
+        chauffeur = Chauffeur(
+            tenant_id=tenant.id, email="driver2@example.com", display_name="Driver"
+        )
+        client_model = Client(tenant_id=tenant.id, name="Client A")
+        db.add_all([chauffeur, client_model])
+        db.commit()
+        db.refresh(chauffeur)
+        db.refresh(client_model)
+
+        tournee = Tournee(
+            tenant_id=tenant.id,
+            chauffeur_id=chauffeur.id,
+            client_id=client_model.id,
+            date=date(2023, 1, 2),
+            numero_ordre=1,
+        )
+        db.add(tournee)
+        db.commit()
+        db.refresh(tournee)
+
+        s1 = Saisie(
+            tenant_id=tenant.id,
+            tournee_id=tournee.id,
+            type="foo",
+            groupe_colis="A",
+            nb_recup=0,
+            nb_livres=3,
+        )
+        s2 = Saisie(
+            tenant_id=tenant.id,
+            tournee_id=tournee.id,
+            type="foo",
+            groupe_colis="A",
+            nb_recup=0,
+            nb_livres=5,
+        )
+        db.add_all([s1, s2])
+        db.commit()
+
+        tenant_id = tenant.id
+
+    headers = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    response = client.get("/tournees/synthese", headers=headers)
+    assert response.status_code == 200
+    assert response.context["data"][0]["groups"]["A"] == 8
+    assert response.context["data"][0]["total"] == 8

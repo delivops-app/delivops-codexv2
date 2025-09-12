@@ -41,7 +41,7 @@ def synthese_tournees(
         for s in t.saisies:
             if s.groupe_colis in row_groups:
                 nb_livres = s.nb_livres if s.nb_livres is not None else 0
-                row_groups[s.groupe_colis] = nb_livres
+                row_groups[s.groupe_colis] += nb_livres
                 total += nb_livres
         data.append(
             {
