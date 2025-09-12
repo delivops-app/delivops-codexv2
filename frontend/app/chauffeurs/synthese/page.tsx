@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useUser } from '@auth0/nextjs-auth0/client'
 import { apiFetch } from '../../../lib/api'
 
 interface DeclarationRow {
@@ -14,9 +15,13 @@ interface DeclarationRow {
 }
 
 export default function SyntheseChauffeursPage() {
+  const { user } = useUser()
+  const roles = (user?.['https://delivops/roles'] as string[]) || []
+  const isAdmin = roles.includes('ADMIN')
   const [rows, setRows] = useState<DeclarationRow[]>([])
 
   useEffect(() => {
+    if (!isAdmin) return
     const fetchDeclarations = async () => {
       const res = await apiFetch('/reports/declarations')
       if (res.ok) {
@@ -25,7 +30,18 @@ export default function SyntheseChauffeursPage() {
       }
     }
     fetchDeclarations()
-  }, [])
+  }, [isAdmin])
+
+  if (!isAdmin) {
+    return (
+      <main className="flex min-h-screen flex-col items-center p-8">
+        <p className="mb-4">Accès refusé</p>
+        <Link href="/" className="rounded bg-gray-600 px-4 py-2 text-white">
+          Retour
+        </Link>
+      </main>
+    )
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center p-8">
