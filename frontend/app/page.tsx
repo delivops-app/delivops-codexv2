@@ -35,6 +35,12 @@ export default function Home() {
           >
             Voir les chauffeurs
           </Link>
+          <Link
+            href="/chauffeurs/synthese"
+            className="mt-2 rounded bg-purple-600 px-4 py-2 text-white"
+          >
+            Synthèse des chauffeurs
+          </Link>
         </div>
       )}
       {user && <ClientManager />}
