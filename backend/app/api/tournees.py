@@ -40,8 +40,9 @@ def synthese_tournees(
         total = 0
         for s in t.saisies:
             if s.groupe_colis in row_groups:
-                row_groups[s.groupe_colis] = s.nb_livres
-                total += s.nb_livres
+                nb_livres = s.nb_livres if s.nb_livres is not None else 0
+                row_groups[s.groupe_colis] = nb_livres
+                total += nb_livres
         data.append(
             {
                 "date": t.date,
