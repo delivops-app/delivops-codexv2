@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useUser } from '@auth0/nextjs-auth0/client'
 import { apiFetch } from '../../lib/api'
 
 interface Chauffeur {
@@ -12,9 +13,13 @@ interface Chauffeur {
 }
 
 export default function ChauffeursPage() {
+  const { user } = useUser()
+  const roles = (user?.['https://delivops/roles'] as string[]) || []
+  const isAdmin = roles.includes('ADMIN')
   const [chauffeurs, setChauffeurs] = useState<Chauffeur[]>([])
 
   useEffect(() => {
+    if (!isAdmin) return
     const fetchChauffeurs = async () => {
       const res = await apiFetch('/chauffeurs/')
       if (res.ok) {
@@ -23,7 +28,18 @@ export default function ChauffeursPage() {
       }
     }
     fetchChauffeurs()
-  }, [])
+  }, [isAdmin])
+
+  if (!isAdmin) {
+    return (
+      <main className="flex min-h-screen flex-col items-center p-8">
+        <p className="mb-4">Accès refusé</p>
+        <Link href="/" className="rounded bg-gray-600 px-4 py-2 text-white">
+          Retour
+        </Link>
+      </main>
+    )
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center p-8">
