@@ -11,10 +11,6 @@ export default function Home() {
     window.location.href = '/api/chauffeurs/invite'
   }
 
-  const handleSynthese = () => {
-    window.location.href = '/api/tournees/synthese'
-  }
-
   return (
     <main className="flex min-h-screen flex-col items-center p-8">
       <h1 className="mb-2 text-4xl font-bold">Delivops</h1>
@@ -39,12 +35,6 @@ export default function Home() {
           >
             Voir les chauffeurs
           </Link>
-          <button
-            onClick={handleSynthese}
-            className="mt-2 rounded bg-purple-600 px-4 py-2 text-white"
-          >
-            Synthèse des tournées
-          </button>
         </div>
       )}
       {user && <ClientManager />}
