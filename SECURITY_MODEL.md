@@ -7,5 +7,5 @@
 
 ## Rôles
 
-- `ADMIN` : gestion des chauffeurs, gestion des tarifs.
-- `CHAUFFEUR` : accès restreint à son propre profil.
+- `ADMIN` : gestion des chauffeurs, gestion des tarifs. (rôle Auth0 : `Admin Codex`)
+- `CHAUFFEUR` : accès restreint à son propre profil. (rôle Auth0 : `Chauffeur Codex`)

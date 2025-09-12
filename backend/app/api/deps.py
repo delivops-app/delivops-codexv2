@@ -4,6 +4,12 @@ from app.core.auth import get_current_user, dev_fake_auth
 from app.core.config import settings
 
 
+ROLE_ALIASES = {
+    "Admin Codex": "ADMIN",
+    "Chauffeur Codex": "CHAUFFEUR",
+}
+
+
 def get_tenant_id(x_tenant_id: str = Header(..., alias=settings.tenant_header_name)):
     if not x_tenant_id:
         raise HTTPException(status_code=400, detail="Missing tenant header")
@@ -33,7 +39,7 @@ def require_roles(*required_roles: str):
     """Dependency ensuring current user has at least one of required roles."""
 
     def _role_dependency(user: dict = Depends(auth_dependency)):  # noqa: B008
-        roles = user.get("roles", [])
+        roles = [ROLE_ALIASES.get(r, r) for r in user.get("roles", [])]
         if not any(role in roles for role in required_roles):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

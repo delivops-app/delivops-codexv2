@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useUser } from '@auth0/nextjs-auth0/client'
 import { apiFetch } from '../../lib/api'
+import { normalizeRoles } from '../../lib/roles'
 
 interface Chauffeur {
   id: number
@@ -14,7 +15,9 @@ interface Chauffeur {
 
 export default function ChauffeursPage() {
   const { user } = useUser()
-  const roles = (user?.['https://delivops/roles'] as string[]) || []
+  const roles = normalizeRoles(
+    ((user?.['https://delivops/roles'] as string[]) || [])
+  )
   const isAdmin = roles.includes('ADMIN')
   const [chauffeurs, setChauffeurs] = useState<Chauffeur[]>([])
 
