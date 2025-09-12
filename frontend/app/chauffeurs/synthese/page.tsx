@@ -4,28 +4,27 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { apiFetch } from '../../../lib/api'
 
-interface SyntheseRow {
+interface DeclarationRow {
   date: string
-  chauffeur: string
-  client: string
-  groups: Record<string, number>
-  total: number
+  driverName: string
+  clientName: string
+  tariffGroupDisplayName: string
+  quantity: number
+  estimatedAmountEur: string
 }
 
 export default function SyntheseChauffeursPage() {
-  const [rows, setRows] = useState<SyntheseRow[]>([])
-  const [groups, setGroups] = useState<string[]>([])
+  const [rows, setRows] = useState<DeclarationRow[]>([])
 
   useEffect(() => {
-    const fetchSynthese = async () => {
-      const res = await apiFetch('/tournees/synthese')
+    const fetchDeclarations = async () => {
+      const res = await apiFetch('/reports/declarations')
       if (res.ok) {
         const json = await res.json()
-        setRows(json.data)
-        setGroups(json.groups)
+        setRows(json)
       }
     }
-    fetchSynthese()
+    fetchDeclarations()
   }, [])
 
   return (
@@ -36,27 +35,23 @@ export default function SyntheseChauffeursPage() {
           <tr>
             <th className="border px-4 py-2">Date</th>
             <th className="border px-4 py-2">Chauffeur</th>
-            <th className="border px-4 py-2">Client</th>
-            {groups.map((g) => (
-              <th key={g} className="border px-4 py-2">
-                {g}
-              </th>
-            ))}
-            <th className="border px-4 py-2">Total</th>
+            <th className="border px-4 py-2">Client donneur d&apos;ordre</th>
+            <th className="border px-4 py-2">Catégorie de groupe tarifaire</th>
+            <th className="border px-4 py-2">Nombre de colis livrés</th>
+            <th className="border px-4 py-2">Montant estimé (€)</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row, idx) => (
             <tr key={idx}>
               <td className="border px-4 py-2">{row.date}</td>
-              <td className="border px-4 py-2">{row.chauffeur}</td>
-              <td className="border px-4 py-2">{row.client}</td>
-              {groups.map((g) => (
-                <td key={g} className="border px-4 py-2">
-                  {row.groups[g] ?? 0}
-                </td>
-              ))}
-              <td className="border px-4 py-2">{row.total}</td>
+              <td className="border px-4 py-2">{row.driverName}</td>
+              <td className="border px-4 py-2">{row.clientName}</td>
+              <td className="border px-4 py-2">{row.tariffGroupDisplayName}</td>
+              <td className="border px-4 py-2">{row.quantity}</td>
+              <td className="border px-4 py-2">
+                {Number(row.estimatedAmountEur).toFixed(2)}
+              </td>
             </tr>
           ))}
         </tbody>
