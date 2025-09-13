@@ -69,3 +69,10 @@ def test_create_client_and_category_visible_to_driver(client):
         for c in data
     )
 
+
+def test_create_client_missing_tenant_returns_404(client):
+    headers_admin = {"X-Tenant-Id": "999", "X-Dev-Role": "ADMIN"}
+    resp = client.post("/clients/", json={"name": "Test"}, headers=headers_admin)
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "Tenant not found"
+

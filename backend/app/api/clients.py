@@ -9,6 +9,7 @@ from app.api.deps import get_tenant_id, require_roles
 from app.db.session import get_db
 from app.models.client import Client
 from app.models.tariff_group import TariffGroup
+from app.models.tenant import Tenant
 from app.schemas.client import (
     ClientWithCategories,
     CategoryRead,
@@ -67,6 +68,9 @@ def create_client(
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ) -> ClientWithCategories:
     tenant_id_int = int(tenant_id)
+    tenant = db.get(Tenant, tenant_id_int)
+    if tenant is None:
+        raise HTTPException(status_code=404, detail="Tenant not found")
     client = Client(tenant_id=tenant_id_int, name=payload.name, is_active=True)
     db.add(client)
     db.commit()
