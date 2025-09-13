@@ -5,9 +5,15 @@ type Props = {
   initialName?: string
   onSubmit: (name: string) => void
   onCancel: () => void
+  error?: string
 }
 
-export default function ClientForm({ initialName, onSubmit, onCancel }: Props) {
+export default function ClientForm({
+  initialName,
+  onSubmit,
+  onCancel,
+  error,
+}: Props) {
   const [name, setName] = useState(initialName ?? '')
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -17,6 +23,7 @@ export default function ClientForm({ initialName, onSubmit, onCancel }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="mb-6 w-full rounded border p-4">
+      {error && <p className="mb-4 text-red-600">{error}</p>}
       <div className="mb-4">
         <label htmlFor="name" className="mb-1 block font-medium">
           Nom du client donneur d&apos;ordre
