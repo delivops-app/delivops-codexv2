@@ -7,6 +7,7 @@ from app.api.tournees import router as tournees_router
 from app.api.saisies import router as saisies_router
 from app.api.tours import router as tours_router
 from app.api.reports import router as reports_router
+from app.api.clients import router as clients_router
 from app.api.deps import get_tenant_id, auth_dependency
 from app.middleware.audit import AuditMiddleware
 from app.core.logging import setup_logging
@@ -29,6 +30,7 @@ app.include_router(tournees_router)
 app.include_router(saisies_router)
 app.include_router(tours_router)
 app.include_router(reports_router)
+app.include_router(clients_router)
 
 
 @app.get("/auth/me")
