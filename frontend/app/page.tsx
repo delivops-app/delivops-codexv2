@@ -64,6 +64,12 @@ export default function Home() {
           >
             Je clôture une tournée
           </Link>
+          <Link
+            href="/declarer"
+            className="mt-2 rounded bg-green-600 px-4 py-2 text-white"
+          >
+            Je fais ma déclaration
+          </Link>
         </div>
       )}
       {isAdmin && <ClientManager />}
