@@ -12,7 +12,21 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
   } as Record<string, string>
 
   try {
-    const { accessToken } = await getAccessToken()
+    let accessToken: string | undefined
+
+    if (typeof window === 'undefined') {
+      // Server-side: fetch token directly from the session
+      const token = await getAccessToken()
+      accessToken = token.accessToken
+    } else {
+      // Client-side: retrieve access token through dedicated API route
+      const res = await fetch('/api/auth/token')
+      if (res.ok) {
+        const data = (await res.json()) as { accessToken?: string }
+        accessToken = data.accessToken
+      }
+    }
+
     if (accessToken) {
       headers['Authorization'] = `Bearer ${accessToken}`
     }
