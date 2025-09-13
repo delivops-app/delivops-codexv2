@@ -1,28 +1,18 @@
 'use client'
 
 import { useState } from 'react'
-import { Client } from './types'
-
 type Props = {
-  initialClient?: Client
-  onSubmit: (client: Client) => void
+  initialName?: string
+  onSubmit: (name: string) => void
   onCancel: () => void
 }
 
-export default function ClientForm({
-  initialClient,
-  onSubmit,
-  onCancel,
-}: Props) {
-  const [name, setName] = useState(initialClient?.name ?? '')
+export default function ClientForm({ initialName, onSubmit, onCancel }: Props) {
+  const [name, setName] = useState(initialName ?? '')
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSubmit({
-      id: initialClient?.id ?? crypto.randomUUID(),
-      name,
-      categories: initialClient?.categories ?? [],
-    })
+    onSubmit(name)
   }
 
   return (
@@ -51,7 +41,7 @@ export default function ClientForm({
           type="submit"
           className="rounded bg-blue-600 px-4 py-2 text-white"
         >
-          {initialClient ? 'Enregistrer' : 'Ajouter'}
+          {initialName ? 'Enregistrer' : 'Ajouter'}
         </button>
       </div>
     </form>

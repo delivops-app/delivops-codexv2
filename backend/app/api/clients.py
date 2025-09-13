@@ -1,15 +1,28 @@
 from typing import List
+import re
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.api.deps import get_tenant_id, require_roles
 from app.db.session import get_db
 from app.models.client import Client
 from app.models.tariff_group import TariffGroup
-from app.schemas.client import ClientWithCategories, CategoryRead
+from app.schemas.client import (
+    ClientWithCategories,
+    CategoryRead,
+    ClientCreate,
+    ClientUpdate,
+    CategoryCreate,
+    CategoryUpdate,
+)
 
 router = APIRouter(prefix="/clients", tags=["clients"])
+
+
+def slugify(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
 
 
 @router.get("/", response_model=List[ClientWithCategories])
@@ -44,3 +57,180 @@ def list_clients(
             ClientWithCategories(id=client.id, name=client.name, categories=categories)
         )
     return result
+
+
+@router.post("/", response_model=ClientWithCategories, status_code=201)
+def create_client(
+    payload: ClientCreate,
+    db: Session = Depends(get_db),  # noqa: B008
+    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+) -> ClientWithCategories:
+    tenant_id_int = int(tenant_id)
+    client = Client(tenant_id=tenant_id_int, name=payload.name, is_active=True)
+    db.add(client)
+    db.commit()
+    db.refresh(client)
+    return ClientWithCategories(id=client.id, name=client.name, categories=[])
+
+
+@router.patch("/{client_id}", response_model=ClientWithCategories)
+def update_client(
+    client_id: int,
+    payload: ClientUpdate,
+    db: Session = Depends(get_db),  # noqa: B008
+    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+) -> ClientWithCategories:
+    tenant_id_int = int(tenant_id)
+    client = (
+        db.query(Client)
+        .filter(
+            Client.tenant_id == tenant_id_int,
+            Client.id == client_id,
+            Client.is_active.is_(True),
+        )
+        .first()
+    )
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+    client.name = payload.name
+    db.commit()
+    db.refresh(client)
+
+    groups = (
+        db.query(TariffGroup)
+        .filter(
+            TariffGroup.tenant_id == tenant_id_int,
+            TariffGroup.client_id == client.id,
+            TariffGroup.is_active.is_(True),
+        )
+        .order_by(TariffGroup.order)
+        .all()
+    )
+    categories = [CategoryRead(id=g.id, name=g.display_name) for g in groups]
+    return ClientWithCategories(id=client.id, name=client.name, categories=categories)
+
+
+@router.delete("/{client_id}", status_code=204)
+def delete_client(
+    client_id: int,
+    db: Session = Depends(get_db),  # noqa: B008
+    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+) -> None:
+    tenant_id_int = int(tenant_id)
+    client = (
+        db.query(Client)
+        .filter(
+            Client.tenant_id == tenant_id_int,
+            Client.id == client_id,
+            Client.is_active.is_(True),
+        )
+        .first()
+    )
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+    db.delete(client)
+    db.commit()
+    return None
+
+
+@router.post("/{client_id}/categories", response_model=CategoryRead, status_code=201)
+def create_category(
+    client_id: int,
+    payload: CategoryCreate,
+    db: Session = Depends(get_db),  # noqa: B008
+    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+) -> CategoryRead:
+    tenant_id_int = int(tenant_id)
+    client = (
+        db.query(Client)
+        .filter(
+            Client.tenant_id == tenant_id_int,
+            Client.id == client_id,
+            Client.is_active.is_(True),
+        )
+        .first()
+    )
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+    max_order = (
+        db.query(func.max(TariffGroup.order))
+        .filter(
+            TariffGroup.tenant_id == tenant_id_int,
+            TariffGroup.client_id == client_id,
+        )
+        .scalar()
+    )
+    order = (max_order + 1) if max_order is not None else 0
+    group = TariffGroup(
+        tenant_id=tenant_id_int,
+        client_id=client_id,
+        code=slugify(payload.name),
+        display_name=payload.name,
+        unit="colis",
+        order=order,
+        is_active=True,
+    )
+    db.add(group)
+    db.commit()
+    db.refresh(group)
+    return CategoryRead(id=group.id, name=group.display_name)
+
+
+@router.patch(
+    "/{client_id}/categories/{category_id}", response_model=CategoryRead
+)
+def update_category(
+    client_id: int,
+    category_id: int,
+    payload: CategoryUpdate,
+    db: Session = Depends(get_db),  # noqa: B008
+    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+) -> CategoryRead:
+    tenant_id_int = int(tenant_id)
+    group = (
+        db.query(TariffGroup)
+        .filter(
+            TariffGroup.tenant_id == tenant_id_int,
+            TariffGroup.client_id == client_id,
+            TariffGroup.id == category_id,
+            TariffGroup.is_active.is_(True),
+        )
+        .first()
+    )
+    if not group:
+        raise HTTPException(status_code=404, detail="Category not found")
+    group.display_name = payload.name
+    db.commit()
+    db.refresh(group)
+    return CategoryRead(id=group.id, name=group.display_name)
+
+
+@router.delete("/{client_id}/categories/{category_id}", status_code=204)
+def delete_category(
+    client_id: int,
+    category_id: int,
+    db: Session = Depends(get_db),  # noqa: B008
+    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+) -> None:
+    tenant_id_int = int(tenant_id)
+    group = (
+        db.query(TariffGroup)
+        .filter(
+            TariffGroup.tenant_id == tenant_id_int,
+            TariffGroup.client_id == client_id,
+            TariffGroup.id == category_id,
+            TariffGroup.is_active.is_(True),
+        )
+        .first()
+    )
+    if not group:
+        raise HTTPException(status_code=404, detail="Category not found")
+    db.delete(group)
+    db.commit()
+    return None

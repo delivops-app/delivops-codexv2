@@ -1,5 +1,5 @@
 export type TariffCategory = {
-  id: string
+  id: number
   name: string
   price: string
   enseignes: string[]
@@ -7,7 +7,7 @@ export type TariffCategory = {
 }
 
 export type Client = {
-  id: string
+  id: number
   name: string
   categories: TariffCategory[]
 }

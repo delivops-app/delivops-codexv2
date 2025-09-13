@@ -36,7 +36,7 @@ export default function CategoryForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     onSubmit({
-      id: initialCategory?.id ?? crypto.randomUUID(),
+      id: initialCategory?.id ?? 0,
       name,
       price: price ? parseFloat(price).toFixed(2) : '0.00',
       enseignes,

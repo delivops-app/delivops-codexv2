@@ -5,10 +5,10 @@ import { Client, TariffCategory } from './types'
 type Props = {
   client: Client
   onEdit: (client: Client) => void
-  onDelete: (id: string) => void
+  onDelete: (id: number) => void
   onAddCategory: (client: Client) => void
   onEditCategory: (client: Client, category: TariffCategory) => void
-  onDeleteCategory: (clientId: string, categoryId: string) => void
+  onDeleteCategory: (clientId: number, categoryId: number) => void
 }
 
 export default function ClientCard({
