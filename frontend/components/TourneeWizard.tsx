@@ -1,46 +1,40 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { apiFetch } from '../lib/api'
 
 interface Category {
-  id: string
+  id: number
   name: string
 }
 
 interface Client {
-  id: string
+  id: number
   name: string
   categories: Category[]
 }
-
-const CLIENTS: Client[] = [
-  {
-    id: 'c1',
-    name: 'Client A',
-    categories: [
-      { id: 'cat1', name: 'Catégorie 1' },
-      { id: 'cat2', name: 'Catégorie 2' },
-    ],
-  },
-  {
-    id: 'c2',
-    name: 'Client B',
-    categories: [
-      { id: 'cat3', name: 'Catégorie 3' },
-      { id: 'cat4', name: 'Catégorie 4' },
-    ],
-  },
-]
 
 type Mode = 'pickup' | 'delivery'
 
 export default function TourneeWizard({ mode }: { mode: Mode }) {
   const [step, setStep] = useState(1)
+  const [clients, setClients] = useState<Client[]>([])
   const [client, setClient] = useState<Client | null>(null)
   const [selectedCats, setSelectedCats] = useState<Category[]>([])
-  const [quantities, setQuantities] = useState<Record<string, number>>({})
+  const [quantities, setQuantities] = useState<Record<number, number>>({})
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    const fetchClients = async () => {
+      const res = await apiFetch('/clients')
+      if (res.ok) {
+        const data = await res.json()
+        setClients(data)
+      }
+    }
+    fetchClients()
+  }, [])
 
   const labelQty =
     mode === 'pickup'
@@ -75,7 +69,7 @@ export default function TourneeWizard({ mode }: { mode: Mode }) {
     setStep(3)
   }
 
-  const changeQty = (id: string, value: number) => {
+  const changeQty = (id: number, value: number) => {
     setQuantities((prev) => ({ ...prev, [id]: value }))
   }
 
@@ -100,7 +94,7 @@ export default function TourneeWizard({ mode }: { mode: Mode }) {
       {step === 1 && (
         <>
           <h1 className="mb-6 text-3xl font-bold">Choisissez un client</h1>
-          {CLIENTS.map((c) => (
+          {clients.map((c) => (
             <button
               key={c.id}
               onClick={() => selectClient(c)}
