@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import ClientForm from './ClientForm'
 import CategoryForm from './CategoryForm'
 import ClientCard from './ClientCard'
 import { Client, TariffCategory } from './types'
+import { apiFetch } from '../lib/api'
 
 const COLORS = [
   'bg-red-100',
@@ -26,11 +27,48 @@ export default function ClientManager() {
     null,
   )
 
-  const handleClientSubmit = (client: Client) => {
+  useEffect(() => {
+    const load = async () => {
+      const res = await apiFetch('/clients')
+      if (res.ok) {
+        const data = await res.json()
+        const mapped: Client[] = data.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          categories: c.categories.map((cat: any, idx: number) => ({
+            id: cat.id,
+            name: cat.name,
+            price: '0.00',
+            enseignes: [],
+            color: COLORS[idx % COLORS.length],
+          })),
+        }))
+        setClients(mapped)
+      }
+    }
+    load()
+  }, [])
+
+  const handleClientSubmit = async (name: string) => {
     if (editingClient) {
-      setClients((prev) => prev.map((c) => (c.id === client.id ? client : c)))
+      await apiFetch(`/clients/${editingClient.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      })
+      setClients((prev) =>
+        prev.map((c) => (c.id === editingClient.id ? { ...c, name } : c)),
+      )
     } else {
-      setClients((prev) => [client, ...prev])
+      const res = await apiFetch('/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setClients((prev) => [ { ...data, categories: [] }, ...prev])
+      }
     }
     setEditingClient(null)
     setShowClientForm(false)
@@ -41,7 +79,8 @@ export default function ClientManager() {
     setShowClientForm(true)
   }
 
-  const handleDeleteClient = (id: string) => {
+  const handleDeleteClient = async (id: number) => {
+    await apiFetch(`/clients/${id}`, { method: 'DELETE' })
     setClients((prev) => prev.filter((c) => c.id !== id))
   }
 
@@ -57,7 +96,10 @@ export default function ClientManager() {
     setShowCategoryForm(true)
   }
 
-  const handleDeleteCategory = (clientId: string, categoryId: string) => {
+  const handleDeleteCategory = async (clientId: number, categoryId: number) => {
+    await apiFetch(`/clients/${clientId}/categories/${categoryId}`, {
+      method: 'DELETE',
+    })
     setClients((prev) =>
       prev.map((c) =>
         c.id === clientId
@@ -70,27 +112,60 @@ export default function ClientManager() {
     )
   }
 
-  const handleCategorySubmit = (category: TariffCategory) => {
+  const handleCategorySubmit = async (category: TariffCategory) => {
     if (!categoryClient) return
-    setClients((prev) =>
-      prev.map((c) => {
-        if (c.id !== categoryClient.id) return c
-        const categories = editingCategory
-          ? c.categories.map((cat) =>
-              cat.id === category.id
-                ? { ...category, color: editingCategory.color }
+    if (editingCategory) {
+      await apiFetch(
+        `/clients/${categoryClient.id}/categories/${editingCategory.id}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: category.name }),
+        },
+      )
+      setClients((prev) =>
+        prev.map((c) => {
+          if (c.id !== categoryClient.id) return c
+          return {
+            ...c,
+            categories: c.categories.map((cat) =>
+              cat.id === editingCategory.id
+                ? { ...cat, name: category.name }
                 : cat,
-            )
-          : [
-              ...c.categories,
-              {
-                ...category,
-                color: COLORS[c.categories.length % COLORS.length],
-              },
-            ]
-        return { ...c, categories }
-      }),
-    )
+            ),
+          }
+        }),
+      )
+    } else {
+      const res = await apiFetch(`/clients/${categoryClient.id}/categories`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: category.name }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setClients((prev) =>
+          prev.map((c) =>
+            c.id === categoryClient.id
+              ? {
+                  ...c,
+                  categories: [
+                    ...c.categories,
+                    {
+                      id: data.id,
+                      name: data.name,
+                      price: category.price,
+                      enseignes: category.enseignes,
+                      color:
+                        COLORS[c.categories.length % COLORS.length],
+                    },
+                  ],
+                }
+              : c,
+          ),
+        )
+      }
+    }
     setEditingCategory(null)
     setCategoryClient(null)
     setShowCategoryForm(false)
@@ -118,7 +193,7 @@ export default function ClientManager() {
 
       {showClientForm && (
         <ClientForm
-          initialClient={editingClient ?? undefined}
+          initialName={editingClient?.name}
           onSubmit={handleClientSubmit}
           onCancel={cancelForms}
         />
