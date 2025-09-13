@@ -20,6 +20,7 @@ export default function ClientManager() {
   const [clients, setClients] = useState<Client[]>([])
   const [showClientForm, setShowClientForm] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
+  const [clientError, setClientError] = useState<string | null>(null)
 
   const [showCategoryForm, setShowCategoryForm] = useState(false)
   const [categoryClient, setCategoryClient] = useState<Client | null>(null)
@@ -51,11 +52,15 @@ export default function ClientManager() {
 
   const handleClientSubmit = async (name: string) => {
     if (editingClient) {
-      await apiFetch(`/clients/${editingClient.id}`, {
+      const res = await apiFetch(`/clients/${editingClient.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),
       })
+      if (!res.ok) {
+        setClientError("Impossible d'enregistrer le client")
+        return
+      }
       setClients((prev) =>
         prev.map((c) => (c.id === editingClient.id ? { ...c, name } : c)),
       )
@@ -65,11 +70,14 @@ export default function ClientManager() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),
       })
-      if (res.ok) {
-        const data = await res.json()
-        setClients((prev) => [ { ...data, categories: [] }, ...prev])
+      if (!res.ok) {
+        setClientError("Impossible d'ajouter le client")
+        return
       }
+      const data = await res.json()
+      setClients((prev) => [{ ...data, categories: [] }, ...prev])
     }
+    setClientError(null)
     setEditingClient(null)
     setShowClientForm(false)
   }
@@ -172,6 +180,7 @@ export default function ClientManager() {
   }
 
   const cancelForms = () => {
+    setClientError(null)
     setEditingClient(null)
     setShowClientForm(false)
     setEditingCategory(null)
@@ -196,6 +205,7 @@ export default function ClientManager() {
           initialName={editingClient?.name}
           onSubmit={handleClientSubmit}
           onCancel={cancelForms}
+          error={clientError ?? undefined}
         />
       )}
 
