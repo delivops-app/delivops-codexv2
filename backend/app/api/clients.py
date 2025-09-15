@@ -1,13 +1,17 @@
 from typing import List
 import re
 
+from datetime import date
+from decimal import Decimal
+
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 
 from app.api.deps import get_tenant_id, require_roles
 from app.db.session import get_db
 from app.models.client import Client
+from app.models.tariff import Tariff
 from app.models.tariff_group import TariffGroup
 from app.models.tenant import Tenant
 from app.schemas.client import (
@@ -41,6 +45,7 @@ def list_clients(
         .all()
     )
 
+    today = date.today()
     result: List[ClientWithCategories] = []
     for client in clients:
         groups = (
@@ -53,7 +58,22 @@ def list_clients(
             .order_by(TariffGroup.order)
             .all()
         )
-        categories = [CategoryRead(id=g.id, name=g.display_name) for g in groups]
+        categories: list[CategoryRead] = []
+        for g in groups:
+            tariff = (
+                db.query(Tariff)
+                .filter(
+                    Tariff.tariff_group_id == g.id,
+                    Tariff.effective_from <= today,
+                    or_(Tariff.effective_to.is_(None), Tariff.effective_to >= today),
+                )
+                .order_by(Tariff.effective_from.desc())
+                .first()
+            )
+            price = tariff.price_ex_vat if tariff else Decimal("0")
+            categories.append(
+                CategoryRead(id=g.id, name=g.display_name, unit_price_ex_vat=price)
+            )
         result.append(
             ClientWithCategories(id=client.id, name=client.name, categories=categories)
         )

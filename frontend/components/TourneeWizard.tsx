@@ -7,6 +7,7 @@ import { apiFetch } from '../lib/api'
 interface Category {
   id: number
   name: string
+  unitPriceExVat?: string
 }
 
 interface Client {
@@ -24,6 +25,7 @@ export default function TourneeWizard({ mode }: { mode: Mode }) {
   const [selectedCats, setSelectedCats] = useState<Category[]>([])
   const [quantities, setQuantities] = useState<Record<number, number>>({})
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -85,8 +87,28 @@ export default function TourneeWizard({ mode }: { mode: Mode }) {
     setStep(4)
   }
 
-  const validate = () => {
-    setStep(5)
+  const validate = async () => {
+    if (!client) return
+    setSaving(true)
+    const items = selectedCats.map((cat) => ({
+      tariffGroupId: cat.id,
+      quantity: quantities[cat.id],
+    }))
+    const res = await apiFetch('/tours', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        date: new Date().toISOString().split('T')[0],
+        clientId: client.id,
+        items,
+      }),
+    })
+    setSaving(false)
+    if (res.ok) {
+      setStep(5)
+    } else {
+      setError("Erreur lors de l'enregistrement")
+    }
   }
 
   return (
@@ -191,11 +213,13 @@ export default function TourneeWizard({ mode }: { mode: Mode }) {
             </button>
             <button
               onClick={validate}
-              className="rounded bg-green-600 px-4 py-2 text-white"
+              disabled={saving}
+              className="rounded bg-green-600 px-4 py-2 text-white disabled:opacity-50"
             >
-              Valider
+              {saving ? 'Enregistrement...' : 'Valider'}
             </button>
           </div>
+          {error && <p className="mt-2 text-red-600">{error}</p>}
         </>
       )}
 
