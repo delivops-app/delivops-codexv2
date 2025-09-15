@@ -30,7 +30,7 @@ export default function ClientManager() {
 
   useEffect(() => {
     const load = async () => {
-      const res = await apiFetch('/clients')
+      const res = await apiFetch('/clients/')
       if (res.ok) {
         const data = await res.json()
         const mapped: Client[] = data.map((c: any) => ({
@@ -65,7 +65,7 @@ export default function ClientManager() {
         prev.map((c) => (c.id === editingClient.id ? { ...c, name } : c)),
       )
     } else {
-      const res = await apiFetch('/clients', {
+      const res = await apiFetch('/clients/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),

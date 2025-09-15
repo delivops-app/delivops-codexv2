@@ -29,7 +29,7 @@ export default function DeclarerPage() {
   useEffect(() => {
     if (!isDriver) return
     const fetchClients = async () => {
-      const res = await apiFetch('/clients')
+      const res = await apiFetch('/clients/')
       if (res.ok) {
         const data = await res.json()
         setClients(data)
@@ -43,7 +43,7 @@ export default function DeclarerPage() {
     if (!qtyStr) return
     const quantity = Number(qtyStr)
     if (isNaN(quantity)) return
-    const res = await apiFetch('/tours', {
+    const res = await apiFetch('/tours/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
