@@ -6,9 +6,10 @@ const API_BASE_INTERNAL = process.env.API_BASE_INTERNAL || 'http://localhost:800
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || '1'
 
 const rawDevRole = process.env.NEXT_PUBLIC_DEV_ROLE
+const normalizedDevRole = rawDevRole?.trim().toUpperCase()
 const DEV_ROLE =
-  rawDevRole && rawDevRole.trim().length > 0
-    ? rawDevRole.trim()
+  normalizedDevRole && normalizedDevRole.length > 0
+    ? normalizedDevRole
     : process.env.NODE_ENV !== 'production'
       ? 'ADMIN'
       : undefined
