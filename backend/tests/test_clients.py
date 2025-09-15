@@ -1,4 +1,5 @@
 import pytest
+from decimal import Decimal
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -65,7 +66,10 @@ def test_create_client_and_category_visible_to_driver(client):
     assert resp.status_code == 200
     data = resp.json()
     assert any(
-        c["name"] == "Client X" and c["categories"] and c["categories"][0]["name"] == "Cat A"
+        c["name"] == "Client X"
+        and c["categories"]
+        and c["categories"][0]["name"] == "Cat A"
+        and Decimal(c["categories"][0]["unitPriceExVat"]) == Decimal("0")
         for c in data
     )
 
