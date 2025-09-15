@@ -7,7 +7,28 @@ const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || '1'
 const DEV_ROLE = process.env.NEXT_PUBLIC_DEV_ROLE
 const DEV_SUB = process.env.NEXT_PUBLIC_DEV_SUB
 
-export async function apiFetch(path: string, init: RequestInit = {}) {
+export interface ApiFetchError {
+  ok: false
+  status: number
+  statusText: string
+  headers: Headers
+  error: Error
+  json: () => Promise<never>
+  text: () => Promise<never>
+}
+
+export type ApiFetchResponse = Response | ApiFetchError
+
+export function isApiFetchError(
+  response: ApiFetchResponse,
+): response is ApiFetchError {
+  return response.ok === false && 'error' in response
+}
+
+export async function apiFetch(
+  path: string,
+  init: RequestInit = {},
+): Promise<ApiFetchResponse> {
   const headers = {
     'X-Tenant-Id': TENANT_ID,
     ...(init.headers || {}),
@@ -43,8 +64,33 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
   }
 
   const base = typeof window === 'undefined' ? API_BASE_INTERNAL : API_BASE_EXTERNAL
-  const response = await fetch(`${base}${path}`, { ...init, headers })
 
-  // Do not force navigation on 401; let callers handle unauthorized cases.
-  return response
+  try {
+    const response = await fetch(`${base}${path}`, { ...init, headers })
+
+    // Do not force navigation on 401; let callers handle unauthorized cases.
+    return response
+  } catch (error) {
+    const err =
+      error instanceof Error
+        ? error
+        : new Error('Unknown network error while performing apiFetch')
+    console.error(`apiFetch failed for ${path}`, err)
+
+    const fallback: ApiFetchError = {
+      ok: false,
+      status: 0,
+      statusText: 'Network request failed',
+      headers: new Headers(),
+      error: err,
+      json: async () => {
+        throw err
+      },
+      text: async () => {
+        throw err
+      },
+    }
+
+    return fallback
+  }
 }

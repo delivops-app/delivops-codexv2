@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useUser } from '@auth0/nextjs-auth0/client'
-import { apiFetch } from '../../lib/api'
+import { apiFetch, isApiFetchError } from '../../lib/api'
 import { normalizeRoles } from '../../lib/roles'
 
 interface Chauffeur {
@@ -20,6 +20,7 @@ export default function ChauffeursPage() {
   )
   const isAdmin = roles.includes('ADMIN')
   const [chauffeurs, setChauffeurs] = useState<Chauffeur[]>([])
+  const [error, setError] = useState('')
 
   useEffect(() => {
     if (!isAdmin) return
@@ -28,6 +29,12 @@ export default function ChauffeursPage() {
       if (res.ok) {
         const data = await res.json()
         setChauffeurs(data)
+        setError('')
+      } else if (isApiFetchError(res)) {
+        console.error('Failed to load chauffeurs', res.error)
+        setError('Impossible de charger les chauffeurs. Vérifiez votre connexion et réessayez.')
+      } else {
+        setError('Erreur lors du chargement des chauffeurs.')
       }
     }
     fetchChauffeurs()
@@ -47,6 +54,11 @@ export default function ChauffeursPage() {
   return (
     <main className="flex min-h-screen flex-col items-center p-8">
       <h1 className="mb-6 text-3xl font-bold">Chauffeurs</h1>
+      {error && (
+        <p className="mb-4 text-red-600" role="alert">
+          {error}
+        </p>
+      )}
       <table className="min-w-full table-auto border-collapse">
         <thead>
           <tr>

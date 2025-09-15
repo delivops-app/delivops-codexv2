@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useUser } from '@auth0/nextjs-auth0/client'
-import { apiFetch } from '../../../lib/api'
+import { apiFetch, isApiFetchError } from '../../../lib/api'
 import { normalizeRoles } from '../../../lib/roles'
 
 interface DeclarationRow {
@@ -22,6 +22,7 @@ export default function SyntheseChauffeursPage() {
   )
   const isAdmin = roles.includes('ADMIN')
   const [rows, setRows] = useState<DeclarationRow[]>([])
+  const [error, setError] = useState('')
 
   useEffect(() => {
     if (!isAdmin) return
@@ -30,6 +31,12 @@ export default function SyntheseChauffeursPage() {
       if (res.ok) {
         const json = await res.json()
         setRows(json)
+        setError('')
+      } else if (isApiFetchError(res)) {
+        console.error('Failed to load declarations summary', res.error)
+        setError('Impossible de charger la synthèse. Vérifiez votre connexion et réessayez.')
+      } else {
+        setError('Erreur lors du chargement de la synthèse.')
       }
     }
     fetchDeclarations()
@@ -49,6 +56,11 @@ export default function SyntheseChauffeursPage() {
   return (
     <main className="flex min-h-screen flex-col items-center p-8">
       <h1 className="mb-6 text-3xl font-bold">Synthèse des chauffeurs</h1>
+      {error && (
+        <p className="mb-4 text-red-600" role="alert">
+          {error}
+        </p>
+      )}
       <table className="min-w-full table-auto border-collapse">
         <thead>
           <tr>
