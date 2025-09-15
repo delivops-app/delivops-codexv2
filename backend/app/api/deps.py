@@ -1,4 +1,5 @@
 from fastapi import Depends, Header, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials
 
 from app.core.auth import get_current_user, dev_fake_auth
 from app.core.config import settings
@@ -32,7 +33,8 @@ def auth_dependency(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid scheme"
         )
-    return get_current_user(token)
+    creds = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+    return get_current_user(creds)
 
 
 def require_roles(*required_roles: str):
