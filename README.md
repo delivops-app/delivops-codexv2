@@ -16,6 +16,7 @@ AUTH0_AUDIENCE=https://delivops-codex.api/
 AUTH0_ISSUER=https://dev-or3c4n80x1rba26g.eu.auth0.com/
 AUTH0_ALGORITHMS=RS256
 TENANT_HEADER_NAME=X-Tenant-Id
+DEV_FAKE_AUTH=1
 LOKI_URL=http://loki:3100/loki/api/v1/push
 ```
 
@@ -28,7 +29,14 @@ AUTH0_CLIENT_ID=CHANGEME
 AUTH0_CLIENT_SECRET=CHANGEME
 NEXT_PUBLIC_API_BASE=http://localhost:8000
 NEXT_PUBLIC_AUTH0_AUDIENCE=https://delivops-codex.api/
+NEXT_PUBLIC_DEV_ROLE=ADMIN
+NEXT_PUBLIC_DEV_SUB=demo-user
 ```
+
+En développement, `DEV_FAKE_AUTH=1` permet de contourner Auth0. Les
+requêtes front-end doivent alors envoyer les en-têtes `X-Dev-Role` et
+`X-Dev-Sub`, configurés ici via `NEXT_PUBLIC_DEV_ROLE` et
+`NEXT_PUBLIC_DEV_SUB`.
 
 Le fichier `.env.local` est automatiquement chargé par `docker-compose`.
 
