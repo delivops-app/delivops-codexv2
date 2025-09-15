@@ -29,7 +29,7 @@ export default function TourneeWizard({ mode }: { mode: Mode }) {
 
   useEffect(() => {
     const fetchClients = async () => {
-      const res = await apiFetch('/clients')
+      const res = await apiFetch('/clients/')
       if (res.ok) {
         const data = await res.json()
         setClients(data)
@@ -96,7 +96,7 @@ export default function TourneeWizard({ mode }: { mode: Mode }) {
       tariffGroupId: cat.id,
       quantity: quantities[cat.id],
     }))
-    const res = await apiFetch('/tours', {
+    const res = await apiFetch('/tours/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
