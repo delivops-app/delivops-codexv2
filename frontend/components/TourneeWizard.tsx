@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { apiFetch } from '../lib/api'
+import { apiFetch, isApiFetchError } from '../lib/api'
 
 interface Category {
   id: number
@@ -33,8 +33,14 @@ export default function TourneeWizard({ mode }: { mode: Mode }) {
       if (res.ok) {
         const data = await res.json()
         setClients(data)
+        setError('')
+      } else if (isApiFetchError(res)) {
+        console.error('Failed to load clients for tour wizard', res.error)
+        setError('Impossible de charger les clients. Vérifiez votre connexion et réessayez.')
       } else if (res.status === 401) {
         setError('Accès non autorisé')
+      } else {
+        setError('Erreur lors du chargement des clients.')
       }
     }
     fetchClients()
@@ -108,6 +114,10 @@ export default function TourneeWizard({ mode }: { mode: Mode }) {
     setSaving(false)
     if (res.ok) {
       setStep(5)
+      setError('')
+    } else if (isApiFetchError(res)) {
+      console.error('Failed to submit tour declaration', res.error)
+      setError('Impossible de contacter le serveur. Veuillez réessayer plus tard.')
     } else {
       setError("Erreur lors de l'enregistrement")
     }

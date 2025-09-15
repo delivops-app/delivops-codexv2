@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useUser } from '@auth0/nextjs-auth0/client'
-import { apiFetch } from '../../lib/api'
+import { apiFetch, isApiFetchError } from '../../lib/api'
 import { normalizeRoles } from '../../lib/roles'
 
 interface Category {
@@ -25,6 +25,7 @@ export default function DeclarerPage() {
   const isDriver = roles.includes('CHAUFFEUR')
   const [clients, setClients] = useState<Client[]>([])
   const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
 
   useEffect(() => {
     if (!isDriver) return
@@ -33,6 +34,12 @@ export default function DeclarerPage() {
       if (res.ok) {
         const data = await res.json()
         setClients(data)
+        setError('')
+      } else if (isApiFetchError(res)) {
+        console.error('Failed to load clients for declaration page', res.error)
+        setError('Impossible de charger les clients. Vérifiez votre connexion et réessayez.')
+      } else {
+        setError('Erreur lors du chargement des clients.')
       }
     }
     fetchClients()
@@ -54,8 +61,14 @@ export default function DeclarerPage() {
     })
     if (res.ok) {
       setMessage('Déclaration enregistrée')
+      setError('')
+    } else if (isApiFetchError(res)) {
+      console.error('Failed to submit declaration', res.error)
+      setError('Impossible de contacter le serveur. Veuillez réessayer plus tard.')
+      setMessage('')
     } else {
-      setMessage("Erreur lors de l'enregistrement")
+      setError("Erreur lors de l'enregistrement")
+      setMessage('')
     }
   }
 
@@ -74,6 +87,11 @@ export default function DeclarerPage() {
     <main className="flex min-h-screen flex-col items-center p-8">
       <h1 className="mb-6 text-3xl font-bold">Déclaration</h1>
       {message && <p className="mb-4">{message}</p>}
+      {error && (
+        <p className="mb-4 text-red-600" role="alert">
+          {error}
+        </p>
+      )}
       {clients.map((c) => (
         <div key={c.id} className="mb-4 w-full max-w-md">
           <h2 className="mb-2 text-xl font-semibold">{c.name}</h2>

@@ -5,7 +5,7 @@ import ClientForm from './ClientForm'
 import CategoryForm from './CategoryForm'
 import ClientCard from './ClientCard'
 import { Client, TariffCategory } from './types'
-import { apiFetch } from '../lib/api'
+import { apiFetch, isApiFetchError } from '../lib/api'
 
 const COLORS = [
   'bg-red-100',
@@ -21,6 +21,7 @@ export default function ClientManager() {
   const [showClientForm, setShowClientForm] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [clientError, setClientError] = useState<string | null>(null)
+  const [globalError, setGlobalError] = useState<string | null>(null)
 
   const [showCategoryForm, setShowCategoryForm] = useState(false)
   const [categoryClient, setCategoryClient] = useState<Client | null>(null)
@@ -45,6 +46,12 @@ export default function ClientManager() {
           })),
         }))
         setClients(mapped)
+        setGlobalError(null)
+      } else if (isApiFetchError(res)) {
+        console.error('Failed to load clients', res.error)
+        setGlobalError('Impossible de charger les clients. Vérifiez votre connexion et réessayez.')
+      } else {
+        setGlobalError('Erreur lors du chargement des clients.')
       }
     }
     load()
@@ -58,7 +65,12 @@ export default function ClientManager() {
         body: JSON.stringify({ name }),
       })
       if (!res.ok) {
-        setClientError("Impossible d'enregistrer le client")
+        if (isApiFetchError(res)) {
+          console.error('Failed to update client', res.error)
+          setClientError('Connexion au serveur impossible. Réessayez plus tard.')
+        } else {
+          setClientError("Impossible d'enregistrer le client")
+        }
         return
       }
       setClients((prev) =>
@@ -71,7 +83,12 @@ export default function ClientManager() {
         body: JSON.stringify({ name }),
       })
       if (!res.ok) {
-        setClientError("Impossible d'ajouter le client")
+        if (isApiFetchError(res)) {
+          console.error('Failed to create client', res.error)
+          setClientError('Connexion au serveur impossible. Réessayez plus tard.')
+        } else {
+          setClientError("Impossible d'ajouter le client")
+        }
         return
       }
       const data = await res.json()
@@ -88,8 +105,18 @@ export default function ClientManager() {
   }
 
   const handleDeleteClient = async (id: number) => {
-    await apiFetch(`/clients/${id}`, { method: 'DELETE' })
+    const res = await apiFetch(`/clients/${id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      if (isApiFetchError(res)) {
+        console.error('Failed to delete client', res.error)
+        setGlobalError('Suppression impossible : connexion au serveur échouée.')
+      } else {
+        setGlobalError("Impossible de supprimer le client.")
+      }
+      return
+    }
     setClients((prev) => prev.filter((c) => c.id !== id))
+    setGlobalError(null)
   }
 
   const handleAddCategory = (client: Client) => {
@@ -105,9 +132,18 @@ export default function ClientManager() {
   }
 
   const handleDeleteCategory = async (clientId: number, categoryId: number) => {
-    await apiFetch(`/clients/${clientId}/categories/${categoryId}`, {
+    const res = await apiFetch(`/clients/${clientId}/categories/${categoryId}`, {
       method: 'DELETE',
     })
+    if (!res.ok) {
+      if (isApiFetchError(res)) {
+        console.error('Failed to delete category', res.error)
+        setGlobalError('Suppression de la catégorie impossible : vérifiez votre connexion.')
+      } else {
+        setGlobalError("Impossible de supprimer la catégorie.")
+      }
+      return
+    }
     setClients((prev) =>
       prev.map((c) =>
         c.id === clientId
@@ -118,12 +154,13 @@ export default function ClientManager() {
           : c,
       ),
     )
+    setGlobalError(null)
   }
 
   const handleCategorySubmit = async (category: TariffCategory) => {
     if (!categoryClient) return
     if (editingCategory) {
-      await apiFetch(
+      const res = await apiFetch(
         `/clients/${categoryClient.id}/categories/${editingCategory.id}`,
         {
           method: 'PATCH',
@@ -131,6 +168,15 @@ export default function ClientManager() {
           body: JSON.stringify({ name: category.name }),
         },
       )
+      if (!res.ok) {
+        if (isApiFetchError(res)) {
+          console.error('Failed to update category', res.error)
+          setGlobalError('Mise à jour impossible : connexion au serveur échouée.')
+        } else {
+          setGlobalError("Impossible de mettre à jour la catégorie.")
+        }
+        return
+      }
       setClients((prev) =>
         prev.map((c) => {
           if (c.id !== categoryClient.id) return c
@@ -144,6 +190,7 @@ export default function ClientManager() {
           }
         }),
       )
+      setGlobalError(null)
     } else {
       const res = await apiFetch(`/clients/${categoryClient.id}/categories`, {
         method: 'POST',
@@ -172,11 +219,20 @@ export default function ClientManager() {
               : c,
           ),
         )
+        setGlobalError(null)
+      } else if (isApiFetchError(res)) {
+        console.error('Failed to create category', res.error)
+        setGlobalError('Ajout impossible : connexion au serveur échouée.')
+        return
+      } else {
+        setGlobalError("Impossible d'ajouter la catégorie.")
+        return
       }
     }
     setEditingCategory(null)
     setCategoryClient(null)
     setShowCategoryForm(false)
+    setGlobalError(null)
   }
 
   const cancelForms = () => {
@@ -190,6 +246,11 @@ export default function ClientManager() {
 
   return (
     <div className="mt-8 w-full max-w-3xl">
+      {globalError && (
+        <p className="mb-4 text-red-600" role="alert">
+          {globalError}
+        </p>
+      )}
       <button
         onClick={() => {
           setEditingClient(null)
