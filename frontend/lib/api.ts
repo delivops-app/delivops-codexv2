@@ -2,7 +2,7 @@ import { getAccessToken } from '@auth0/nextjs-auth0'
 
 const API_BASE_EXTERNAL =
   process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000'
-const API_BASE_INTERNAL = process.env.API_BASE_INTERNAL || 'http://api:8000'
+const API_BASE_INTERNAL = process.env.API_BASE_INTERNAL || 'http://localhost:8000'
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || '1'
 const DEV_ROLE = process.env.NEXT_PUBLIC_DEV_ROLE
 const DEV_SUB = process.env.NEXT_PUBLIC_DEV_SUB

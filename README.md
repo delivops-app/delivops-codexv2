@@ -28,6 +28,7 @@ AUTH0_ISSUER_BASE_URL=https://dev-or3c4n80x1rba26g.eu.auth0.com
 AUTH0_CLIENT_ID=CHANGEME
 AUTH0_CLIENT_SECRET=CHANGEME
 NEXT_PUBLIC_API_BASE=http://localhost:8000
+API_BASE_INTERNAL=http://localhost:8000
 NEXT_PUBLIC_AUTH0_AUDIENCE=https://delivops-codex.api/
 NEXT_PUBLIC_DEV_ROLE=ADMIN
 NEXT_PUBLIC_DEV_SUB=demo-user
@@ -37,6 +38,11 @@ En développement, `DEV_FAKE_AUTH=1` permet de contourner Auth0. Les
 requêtes front-end doivent alors envoyer les en-têtes `X-Dev-Role` et
 `X-Dev-Sub`, configurés ici via `NEXT_PUBLIC_DEV_ROLE` et
 `NEXT_PUBLIC_DEV_SUB`.
+
+`API_BASE_INTERNAL` est utilisé par Next.js côté serveur pour joindre
+l'API. Il pointe sur `http://localhost:8000` en local mais, dans un
+déploiement Docker, il doit être défini sur le nom d'hôte du service
+(`http://api:8000` dans `docker-compose`).
 
 Le fichier `.env.local` est automatiquement chargé par `docker-compose`.
 
