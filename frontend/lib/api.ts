@@ -4,8 +4,22 @@ const API_BASE_EXTERNAL =
   process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000'
 const API_BASE_INTERNAL = process.env.API_BASE_INTERNAL || 'http://localhost:8000'
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || '1'
-const DEV_ROLE = process.env.NEXT_PUBLIC_DEV_ROLE
-const DEV_SUB = process.env.NEXT_PUBLIC_DEV_SUB
+
+const rawDevRole = process.env.NEXT_PUBLIC_DEV_ROLE
+const DEV_ROLE =
+  rawDevRole && rawDevRole.trim().length > 0
+    ? rawDevRole.trim()
+    : process.env.NODE_ENV !== 'production'
+      ? 'ADMIN'
+      : undefined
+
+const rawDevSub = process.env.NEXT_PUBLIC_DEV_SUB
+const DEV_SUB =
+  rawDevSub && rawDevSub.trim().length > 0
+    ? rawDevSub.trim()
+    : process.env.NODE_ENV !== 'production'
+      ? 'demo-user'
+      : undefined
 
 export interface ApiFetchError {
   ok: false
