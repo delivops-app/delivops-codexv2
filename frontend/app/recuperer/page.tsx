@@ -6,11 +6,20 @@ import TourneeWizard from '../../components/TourneeWizard'
 import { normalizeRoles } from '../../lib/roles'
 
 export default function RecupererPage() {
-  const { user } = useUser()
+  const { user, error, isLoading } = useUser()
   const roles = normalizeRoles(
     ((user?.['https://delivops/roles'] as string[]) || [])
   )
-  if (!roles.includes('CHAUFFEUR')) {
+
+  if (isLoading) {
+    return (
+      <main className="flex min-h-screen flex-col items-center p-8">
+        <p>Chargement...</p>
+      </main>
+    )
+  }
+
+  if (error || !roles.includes('CHAUFFEUR')) {
     return (
       <main className="flex min-h-screen flex-col items-center p-8">
         <p className="mb-4">Accès refusé</p>
@@ -20,6 +29,7 @@ export default function RecupererPage() {
       </main>
     )
   }
+
   return <TourneeWizard mode="pickup" />
 }
 

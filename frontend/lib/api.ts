@@ -37,13 +37,6 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
   const base = typeof window === 'undefined' ? API_BASE_INTERNAL : API_BASE_EXTERNAL
   const response = await fetch(`${base}${path}`, { ...init, headers })
 
-  if (response.status === 401) {
-    if (typeof window !== 'undefined') {
-      window.location.href = '/api/auth/login'
-    } else {
-      throw new Error('Unauthorized')
-    }
-  }
-
+  // Do not force navigation on 401; let callers handle unauthorized cases.
   return response
 }

@@ -33,6 +33,8 @@ export default function TourneeWizard({ mode }: { mode: Mode }) {
       if (res.ok) {
         const data = await res.json()
         setClients(data)
+      } else if (res.status === 401) {
+        setError('Accès non autorisé')
       }
     }
     fetchClients()
@@ -116,6 +118,7 @@ export default function TourneeWizard({ mode }: { mode: Mode }) {
       {step === 1 && (
         <>
           <h1 className="mb-6 text-3xl font-bold">Choisissez un client</h1>
+          {error && <p className="mb-4 text-red-600">{error}</p>}
           {clients.map((c) => (
             <button
               key={c.id}
