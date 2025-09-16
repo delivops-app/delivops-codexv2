@@ -16,7 +16,7 @@ def create_tarif(
     tenant_id: str = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ):
-    tarif = Tarif(tenant_id=int(tenant_id), **tarif_in.dict())
+    tarif = Tarif(tenant_id=int(tenant_id), **tarif_in.model_dump())
     db.add(tarif)
     db.commit()
     db.refresh(tarif)
@@ -38,7 +38,7 @@ def update_tarif(
     )
     if tarif is None:
         raise HTTPException(status_code=404, detail="Tarif not found")
-    for field, value in tarif_in.dict(exclude_unset=True).items():
+    for field, value in tarif_in.model_dump(exclude_unset=True).items():
         setattr(tarif, field, value)
     db.commit()
     db.refresh(tarif)
