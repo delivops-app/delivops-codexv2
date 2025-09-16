@@ -1,5 +1,15 @@
+import re
+
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
+
+
+DEFAULT_LOCALHOST_ORIGINS = (
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+)
 
 
 class Settings(BaseSettings):
@@ -11,21 +21,29 @@ class Settings(BaseSettings):
     tenant_header_name: str = "X-Tenant-Id"
     dev_fake_auth: bool = False
     loki_url: str | None = None
-    cors_allow_origins: list[str] = Field(
-        default_factory=lambda: ["http://localhost:3000", "http://127.0.0.1:3000"]
+    cors_allow_origins: list[str] | str = Field(
+        default_factory=lambda: list(DEFAULT_LOCALHOST_ORIGINS)
     )
     cors_allow_origin_regex: str | None = r"https?://(localhost|127\.0\.0\.1)(:\d+)?$"
 
     @field_validator("cors_allow_origins", mode="before")
     @classmethod
     def _split_origins(cls, value):
-        """Allow comma separated strings for list configuration."""
+        """Allow comma or whitespace separated strings for list configuration."""
         if isinstance(value, str):
             value = value.strip()
             if not value:
                 return []
-            return [origin.strip() for origin in value.split(",") if origin.strip()]
+            parts = re.split(r"[,\s]+", value)
+            return [origin for origin in (part.strip() for part in parts) if origin]
         return value
+
+    @field_validator("cors_allow_origins", mode="after")
+    @classmethod
+    def _ensure_list(cls, value):
+        if isinstance(value, str):
+            return [value]
+        return list(value)
 
 
 settings = Settings()
