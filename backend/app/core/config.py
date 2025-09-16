@@ -1,3 +1,4 @@
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -10,6 +11,21 @@ class Settings(BaseSettings):
     tenant_header_name: str = "X-Tenant-Id"
     dev_fake_auth: bool = False
     loki_url: str | None = None
+    cors_allow_origins: list[str] = Field(
+        default_factory=lambda: ["http://localhost:3000", "http://127.0.0.1:3000"]
+    )
+    cors_allow_origin_regex: str | None = r"https?://(localhost|127\.0\.0\.1)(:\d+)?$"
+
+    @field_validator("cors_allow_origins", mode="before")
+    @classmethod
+    def _split_origins(cls, value):
+        """Allow comma separated strings for list configuration."""
+        if isinstance(value, str):
+            value = value.strip()
+            if not value:
+                return []
+            return [origin.strip() for origin in value.split(",") if origin.strip()]
+        return value
 
 
 settings = Settings()
