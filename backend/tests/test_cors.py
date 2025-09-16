@@ -21,3 +21,20 @@ def test_cors_allows_loopback_origins():
         response.headers.get("access-control-allow-origin")
         == "http://127.0.0.1:5173"
     )
+
+
+def test_cors_allows_localhost_3000():
+    response = client.options(
+        "/clients/",
+        headers={
+            "origin": "http://localhost:3000",
+            "access-control-request-method": "GET",
+            "access-control-request-headers": "x-tenant-id",
+        },
+    )
+
+    assert response.status_code == 200
+    assert (
+        response.headers.get("access-control-allow-origin")
+        == "http://localhost:3000"
+    )
