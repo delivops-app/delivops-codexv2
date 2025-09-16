@@ -1,8 +1,7 @@
 import { getAccessToken } from '@auth0/nextjs-auth0'
 
-const API_BASE_EXTERNAL =
-  process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000'
-const API_BASE_INTERNAL = process.env.API_BASE_INTERNAL || 'http://localhost:8000'
+const API_BASE_EXTERNAL = process.env.NEXT_PUBLIC_API_BASE?.trim()
+const API_BASE_INTERNAL = process.env.API_BASE_INTERNAL?.trim()
 const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || '1'
 
 const rawDevRole = process.env.NEXT_PUBLIC_DEV_ROLE
@@ -40,6 +39,47 @@ export function isApiFetchError(
   return response.ok === false && 'error' in response
 }
 
+function buildUrl(base: string | undefined, path: string): string {
+  if (!base || base.length === 0) {
+    return path
+  }
+
+  const normalizedBase = base.endsWith('/') ? base.slice(0, -1) : base
+  if (!path || path.length === 0) {
+    return normalizedBase
+  }
+
+  if (path.startsWith('/')) {
+    return `${normalizedBase}${path}`
+  }
+
+  return `${normalizedBase}/${path}`
+}
+
+function resolveInternalBase(): string {
+  if (API_BASE_INTERNAL && API_BASE_INTERNAL.length > 0) {
+    return API_BASE_INTERNAL
+  }
+
+  if (API_BASE_EXTERNAL && API_BASE_EXTERNAL.length > 0) {
+    return API_BASE_EXTERNAL
+  }
+
+  return 'http://localhost:8000'
+}
+
+function resolveExternalBase(): string | undefined {
+  if (API_BASE_EXTERNAL && API_BASE_EXTERNAL.length > 0) {
+    return API_BASE_EXTERNAL
+  }
+
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin
+  }
+
+  return undefined
+}
+
 export async function apiFetch(
   path: string,
   init: RequestInit = {},
@@ -49,11 +89,13 @@ export async function apiFetch(
     ...(init.headers || {}),
   } as Record<string, string>
 
-  const base = typeof window === 'undefined' ? API_BASE_INTERNAL : API_BASE_EXTERNAL
+  const base =
+    typeof window === 'undefined' ? resolveInternalBase() : resolveExternalBase()
 
   const performRequest = async () => {
     try {
-      const response = await fetch(`${base}${path}`, { ...init, headers })
+      const url = buildUrl(base, path)
+      const response = await fetch(url, { ...init, headers })
 
       // Do not force navigation on 401; let callers handle unauthorized cases.
       return response
