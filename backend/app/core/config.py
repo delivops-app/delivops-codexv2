@@ -2,6 +2,14 @@ from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
 
+DEFAULT_LOCALHOST_ORIGINS = (
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+)
+
+
 class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://delivops:changeme@db:5432/delivops"
     auth0_domain: str = "dev-or3c4n80x1rba26g.eu.auth0.com"
@@ -12,7 +20,7 @@ class Settings(BaseSettings):
     dev_fake_auth: bool = False
     loki_url: str | None = None
     cors_allow_origins: list[str] = Field(
-        default_factory=lambda: ["http://localhost:3000", "http://127.0.0.1:3000"]
+        default_factory=lambda: list(DEFAULT_LOCALHOST_ORIGINS)
     )
     cors_allow_origin_regex: str | None = r"https?://(localhost|127\.0\.0\.1)(:\d+)?$"
 
