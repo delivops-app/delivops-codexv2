@@ -9,6 +9,7 @@ from app.api.tours import router as tours_router
 from app.api.reports import router as reports_router
 from app.api.clients import router as clients_router
 from app.api.deps import get_tenant_id, auth_dependency
+from app.core.config import settings
 from app.middleware.audit import AuditMiddleware
 from app.core.logging import setup_logging
 
@@ -17,7 +18,8 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=settings.cors_allow_origins,
+    allow_origin_regex=settings.cors_allow_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
