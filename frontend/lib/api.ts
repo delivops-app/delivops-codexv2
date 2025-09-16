@@ -49,6 +49,46 @@ export async function apiFetch(
     ...(init.headers || {}),
   } as Record<string, string>
 
+  const base = typeof window === 'undefined' ? API_BASE_INTERNAL : API_BASE_EXTERNAL
+
+  const performRequest = async () => {
+    try {
+      const response = await fetch(`${base}${path}`, { ...init, headers })
+
+      // Do not force navigation on 401; let callers handle unauthorized cases.
+      return response
+    } catch (error) {
+      const err =
+        error instanceof Error
+          ? error
+          : new Error('Unknown network error while performing apiFetch')
+      console.error(`apiFetch failed for ${path}`, err)
+
+      const fallback: ApiFetchError = {
+        ok: false,
+        status: 0,
+        statusText: 'Network request failed',
+        headers: new Headers(),
+        error: err,
+        json: async () => {
+          throw err
+        },
+        text: async () => {
+          throw err
+        },
+      }
+
+      return fallback
+    }
+  }
+
+  if (DEV_ROLE) {
+    headers['X-Dev-Role'] = DEV_ROLE
+    if (DEV_SUB) headers['X-Dev-Sub'] = DEV_SUB
+
+    return performRequest()
+  }
+
   try {
     let accessToken: string | undefined
 
@@ -78,34 +118,5 @@ export async function apiFetch(
     if (DEV_SUB) headers['X-Dev-Sub'] = DEV_SUB
   }
 
-  const base = typeof window === 'undefined' ? API_BASE_INTERNAL : API_BASE_EXTERNAL
-
-  try {
-    const response = await fetch(`${base}${path}`, { ...init, headers })
-
-    // Do not force navigation on 401; let callers handle unauthorized cases.
-    return response
-  } catch (error) {
-    const err =
-      error instanceof Error
-        ? error
-        : new Error('Unknown network error while performing apiFetch')
-    console.error(`apiFetch failed for ${path}`, err)
-
-    const fallback: ApiFetchError = {
-      ok: false,
-      status: 0,
-      statusText: 'Network request failed',
-      headers: new Headers(),
-      error: err,
-      json: async () => {
-        throw err
-      },
-      text: async () => {
-        throw err
-      },
-    }
-
-    return fallback
-  }
+  return performRequest()
 }
