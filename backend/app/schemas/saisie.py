@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class SaisieBase(BaseModel):
@@ -25,5 +25,4 @@ class SaisieUpdate(BaseModel):
 class SaisieRead(SaisieBase):
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
