@@ -5,8 +5,18 @@ from app.db.session import get_db
 from app.api.deps import get_tenant_id, require_roles
 from app.models.tarif import Tarif
 from app.schemas.tarif import TarifCreate, TarifRead, TarifUpdate
+from app.models.client import Client
 
 router = APIRouter(prefix="/tarifs", tags=["tarifs"])
+
+
+def _get_client_for_tenant(db: Session, client_id: int, tenant_id: int) -> Client:
+    client = db.get(Client, client_id)
+    if client is None:
+        raise HTTPException(status_code=404, detail="Client not found")
+    if client.tenant_id != tenant_id:
+        raise HTTPException(status_code=403, detail="Client does not belong to tenant")
+    return client
 
 
 @router.post("/", response_model=TarifRead, status_code=201)
@@ -16,7 +26,9 @@ def create_tarif(
     tenant_id: str = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ):
-    tarif = Tarif(tenant_id=int(tenant_id), **tarif_in.model_dump())
+    tenant_id_int = int(tenant_id)
+    _get_client_for_tenant(db, tarif_in.client_id, tenant_id_int)
+    tarif = Tarif(tenant_id=tenant_id_int, **tarif_in.model_dump())
     db.add(tarif)
     db.commit()
     db.refresh(tarif)
@@ -31,14 +43,19 @@ def update_tarif(
     tenant_id: str = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ):
+    tenant_id_int = int(tenant_id)
     tarif = (
         db.query(Tarif)
-        .filter(Tarif.id == tarif_id, Tarif.tenant_id == int(tenant_id))
+        .filter(Tarif.id == tarif_id, Tarif.tenant_id == tenant_id_int)
         .first()
     )
     if tarif is None:
         raise HTTPException(status_code=404, detail="Tarif not found")
-    for field, value in tarif_in.model_dump(exclude_unset=True).items():
+    _get_client_for_tenant(db, tarif.client_id, tenant_id_int)
+    update_data = tarif_in.model_dump(exclude_unset=True)
+    if "client_id" in update_data:
+        _get_client_for_tenant(db, update_data["client_id"], tenant_id_int)
+    for field, value in update_data.items():
         setattr(tarif, field, value)
     db.commit()
     db.refresh(tarif)
