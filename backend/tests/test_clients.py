@@ -9,6 +9,8 @@ from app.main import app
 from app.db.session import get_db
 from app.models.base import Base
 from app.models.tenant import Tenant
+from app.models.client import Client
+from app.models.tariff_group import TariffGroup
 from app.core.config import settings
 
 
@@ -79,4 +81,39 @@ def test_create_client_missing_tenant_returns_404(client):
     resp = client.post("/clients/", json={"name": "Test"}, headers=headers_admin)
     assert resp.status_code == 404
     assert resp.json()["detail"] == "Tenant not found"
+
+
+def test_delete_client_marks_client_and_categories_inactive(client):
+    with TestingSessionLocal() as db:
+        tenant = Tenant(name="Acme", slug="acme-delete")
+        db.add(tenant)
+        db.commit()
+        db.refresh(tenant)
+        tenant_id = tenant.id
+
+    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+
+    resp = client.post("/clients/", json={"name": "Client Z"}, headers=headers_admin)
+    assert resp.status_code == 201
+    client_id = resp.json()["id"]
+
+    resp = client.post(
+        f"/clients/{client_id}/categories",
+        json={"name": "Cat Z"},
+        headers=headers_admin,
+    )
+    assert resp.status_code == 201
+    category_id = resp.json()["id"]
+
+    resp = client.delete(f"/clients/{client_id}", headers=headers_admin)
+    assert resp.status_code == 204
+
+    with TestingSessionLocal() as db:
+        db_client = db.get(Client, client_id)
+        assert db_client is not None
+        assert db_client.is_active is False
+
+        db_group = db.get(TariffGroup, category_id)
+        assert db_group is not None
+        assert db_group.is_active is False
 

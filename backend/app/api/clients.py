@@ -155,7 +155,18 @@ def delete_client(
     )
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
-    db.delete(client)
+    groups = (
+        db.query(TariffGroup)
+        .filter(
+            TariffGroup.tenant_id == tenant_id_int,
+            TariffGroup.client_id == client.id,
+            TariffGroup.is_active.is_(True),
+        )
+        .all()
+    )
+    for group in groups:
+        group.is_active = False
+    client.is_active = False
     db.commit()
     return None
 
@@ -255,6 +266,6 @@ def delete_category(
     )
     if not group:
         raise HTTPException(status_code=404, detail="Category not found")
-    db.delete(group)
+    group.is_active = False
     db.commit()
     return None
