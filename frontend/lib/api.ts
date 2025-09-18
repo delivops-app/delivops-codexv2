@@ -39,6 +39,39 @@ export function isApiFetchError(
   return response.ok === false && 'error' in response
 }
 
+function resolveDefaultProtocol(): string {
+  if (typeof window !== 'undefined' && window.location?.protocol) {
+    return window.location.protocol
+  }
+
+  return 'http:'
+}
+
+function normalizeBaseUrl(base: string | undefined): string | undefined {
+  if (!base) {
+    return undefined
+  }
+
+  const trimmed = base.trim()
+  if (!trimmed) {
+    return undefined
+  }
+
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(trimmed)) {
+    return trimmed
+  }
+
+  if (trimmed.startsWith('//')) {
+    return `${resolveDefaultProtocol()}${trimmed}`
+  }
+
+  if (!trimmed.includes('://') && /^[^/]+:[0-9]+/.test(trimmed)) {
+    return `${resolveDefaultProtocol()}//${trimmed}`
+  }
+
+  return trimmed
+}
+
 function buildUrl(base: string | undefined, path: string): string {
   if (!base || base.length === 0) {
     return path
@@ -57,20 +90,23 @@ function buildUrl(base: string | undefined, path: string): string {
 }
 
 function resolveInternalBase(): string {
-  if (API_BASE_INTERNAL && API_BASE_INTERNAL.length > 0) {
-    return API_BASE_INTERNAL
+  const normalizedInternal = normalizeBaseUrl(API_BASE_INTERNAL)
+  if (normalizedInternal && normalizedInternal.length > 0) {
+    return normalizedInternal
   }
 
-  if (API_BASE_EXTERNAL && API_BASE_EXTERNAL.length > 0) {
-    return API_BASE_EXTERNAL
+  const normalizedExternal = normalizeBaseUrl(API_BASE_EXTERNAL)
+  if (normalizedExternal && normalizedExternal.length > 0) {
+    return normalizedExternal
   }
 
   return 'http://localhost:8000'
 }
 
 function resolveExternalBase(): string | undefined {
-  if (API_BASE_EXTERNAL && API_BASE_EXTERNAL.length > 0) {
-    return API_BASE_EXTERNAL
+  const normalizedExternal = normalizeBaseUrl(API_BASE_EXTERNAL)
+  if (normalizedExternal && normalizedExternal.length > 0) {
+    return normalizedExternal
   }
 
   if (typeof window !== 'undefined' && window.location?.origin) {
