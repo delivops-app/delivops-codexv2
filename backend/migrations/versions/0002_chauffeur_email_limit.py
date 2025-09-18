@@ -1,6 +1,6 @@
 """add chauffeur email and tenant max_chauffeurs
 
-Revision ID: 0002_chauffeur_email_tenant_limit
+Revision ID: 0002_chauffeur_email_limit
 Revises: 0001_initial
 Create Date: 2024-05-18 00:00:00.000000
 """
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision = "0002_chauffeur_email_tenant_limit"
+revision = "0002_chauffeur_email_limit"
 down_revision = "0001_initial"
 branch_labels = None
 depends_on = None

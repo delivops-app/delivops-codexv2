@@ -5,7 +5,7 @@ import sqlalchemy as sa
 
 
 revision = "0003_declaration_models"
-down_revision = "0002_chauffeur_email_tenant_limit"
+down_revision = "0002_chauffeur_email_limit"
 branch_labels = None
 depends_on = None
 
