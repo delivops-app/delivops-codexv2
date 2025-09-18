@@ -11,6 +11,7 @@ import os
 import random
 import sys
 from pathlib import Path
+from typing import Iterable
 
 # Allow running the script without manually setting PYTHONPATH
 ROOT = Path(__file__).resolve().parent
@@ -26,57 +27,128 @@ from app.models.audit import AuditLog  # noqa: E402
 from app.models.chauffeur import Chauffeur  # noqa: E402
 from app.models.tenant import Tenant  # noqa: E402
 from app.models.user import User  # noqa: E402
+from sqlalchemy.orm import Session  # noqa: E402
+
+DEMO_USERS: tuple[dict[str, str], ...] = (
+    {"auth0_sub": "auth0|0", "email": "user0@example.com", "role": "ADMIN"},
+    {"auth0_sub": "auth0|1", "email": "user1@example.com", "role": "ADMIN"},
+)
+
+
+def ensure_demo_tenant(db: Session) -> Tenant:
+    """Create the demo tenant if it does not exist yet."""
+
+    tenant = db.query(Tenant).filter(Tenant.slug == "demo").first()
+    if tenant:
+        return tenant
+
+    tenant = Tenant(name="Demo", slug="demo")
+    db.add(tenant)
+    db.commit()
+    db.refresh(tenant)
+    return tenant
+
+
+def ensure_demo_users(db: Session, tenant: Tenant) -> list[User]:
+    """Return demo users, creating them if needed."""
+
+    users: list[User] = []
+    created = False
+    for data in DEMO_USERS:
+        user = (
+            db.query(User)
+            .filter(User.tenant_id == tenant.id, User.email == data["email"])
+            .first()
+        )
+        if user is None:
+            user = User(
+                tenant_id=tenant.id,
+                auth0_sub=data["auth0_sub"],
+                email=data["email"],
+                role=data["role"],
+            )
+            db.add(user)
+            created = True
+        users.append(user)
+
+    if created:
+        db.commit()
+        for user in users:
+            db.refresh(user)
+
+    return users
+
+
+def ensure_chauffeur(
+    db: Session,
+    tenant: Tenant,
+    user: User,
+    index: int,
+) -> Chauffeur:
+    """Create a chauffeur for the given user if it does not already exist."""
+
+    email = f"driver{user.id}_{index}@example.com"
+    chauffeur = (
+        db.query(Chauffeur)
+        .filter(Chauffeur.tenant_id == tenant.id, Chauffeur.email == email)
+        .first()
+    )
+    if chauffeur:
+        return chauffeur
+
+    chauffeur = Chauffeur(
+        tenant_id=tenant.id,
+        email=email,
+        display_name=f"Driver {user.id}-{index}",
+    )
+    db.add(chauffeur)
+    db.flush()
+
+    record_creation_audit(db, tenant.id, user.id, chauffeur)
+
+    db.commit()
+    db.refresh(chauffeur)
+    return chauffeur
+
+
+def record_creation_audit(
+    db: Session,
+    tenant_id: int,
+    user_id: int,
+    chauffeur: Chauffeur,
+) -> None:
+    """Persist an AuditLog describing the chauffeur creation."""
+
+    audit = AuditLog(
+        tenant_id=tenant_id,
+        user_id=user_id,
+        entity="chauffeur",
+        entity_id=chauffeur.id,
+        action="create",
+        after_json=json.dumps(
+            {
+                "email": chauffeur.email,
+                "display_name": chauffeur.display_name,
+            }
+        ),
+    )
+    db.add(audit)
+
+
+def seed_chauffeurs(db: Session, tenant: Tenant, users: Iterable[User]) -> None:
+    """Ensure each user has one to three chauffeurs."""
+
+    for user in users:
+        for index in range(random.randint(1, 3)):
+            ensure_chauffeur(db, tenant, user, index)
 
 
 def run() -> None:
     db = SessionLocal()
     try:
-        tenant = db.query(Tenant).first()
-        if not tenant:
-            tenant = Tenant(name="Demo", slug="demo")
-            db.add(tenant)
-            db.commit()
-            db.refresh(tenant)
-
-        users = []
-        for i in range(2):
-            user = User(
-                tenant_id=tenant.id,
-                auth0_sub=f"auth0|{i}",
-                email=f"user{i}@example.com",
-                role="ADMIN",
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-            users.append(user)
-
-        for user in users:
-            for j in range(random.randint(1, 3)):
-                chauffeur = Chauffeur(
-                    tenant_id=tenant.id,
-                    email=f"driver{user.id}_{j}@example.com",
-                    display_name=f"Driver {user.id}-{j}",
-                )
-                db.add(chauffeur)
-                db.commit()
-                db.refresh(chauffeur)
-
-                audit = AuditLog(
-                    tenant_id=tenant.id,
-                    user_id=user.id,
-                    entity="chauffeur",
-                    entity_id=chauffeur.id,
-                    action="create",
-                    after_json=json.dumps(
-                        {
-                            "email": chauffeur.email,
-                            "display_name": chauffeur.display_name,
-                        }
-                    ),
-                )
-                db.add(audit)
-                db.commit()
+        tenant = ensure_demo_tenant(db)
+        users = ensure_demo_users(db, tenant)
+        seed_chauffeurs(db, tenant, users)
     finally:
         db.close()
 
