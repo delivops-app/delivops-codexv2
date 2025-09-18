@@ -62,6 +62,11 @@ def create_tour(
         tg = db.get(TariffGroup, item.tariff_group_id)
         if tg is None or tg.tenant_id != tenant_id_int:
             raise HTTPException(status_code=404, detail="Tariff group not found")
+        if tg.client_id is not None and tg.client_id != client.id:
+            raise HTTPException(
+                status_code=400,
+                detail="Tariff group not available for this client",
+            )
 
         tariff = (
             db.query(Tariff)

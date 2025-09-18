@@ -8,6 +8,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.main import app
+from app.core.config import settings
 from app.db.session import get_db
 from app.models.base import Base
 from app.models.tenant import Tenant
@@ -37,6 +38,8 @@ def setup_db():
 
 @pytest.fixture
 def client():
+    settings.dev_fake_auth = True
+
     def override_get_db():
         try:
             db = TestingSessionLocal()
@@ -131,6 +134,43 @@ def test_create_tour_calculates_snapshot(client):
     assert data["totals"]["qty"] == 5
     assert Decimal(data["items"][0]["unitPriceExVat"]) == Decimal("3.00")
     assert Decimal(data["items"][0]["amountExVat"]) == Decimal("15.00")
+
+
+def test_create_tour_rejects_tariff_group_from_other_client(client):
+    with TestingSessionLocal() as db:
+        tenant_id, chauffeur_id, client_id, tg_id = _seed(db)
+        other_client = Client(tenant_id=tenant_id, name="Globex")
+        db.add(other_client)
+        db.commit()
+        db.refresh(other_client)
+
+        other_tg = TariffGroup(
+            tenant_id=tenant_id,
+            client_id=other_client.id,
+            code="tg_OTHER",
+            display_name="Colis autres",
+            unit="colis",
+            order=2,
+        )
+        db.add(other_tg)
+        db.commit()
+        db.refresh(other_tg)
+
+    headers = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "CHAUFFEUR",
+        "X-Dev-Sub": "dev|driver1",
+    }
+    payload = {
+        "date": date.today().isoformat(),
+        "clientId": client_id,
+        "items": [{"tariffGroupId": other_tg.id, "quantity": 1}],
+    }
+
+    response = client.post("/tours", json=payload, headers=headers)
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Tariff group not available for this client"
 
 
 def test_report_declarations(client):
