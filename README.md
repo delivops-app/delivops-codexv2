@@ -2,13 +2,23 @@
 
 Monorepo FastAPI + Next.js pour gestion multi-tenant.
 
+## Aperçu de l'architecture
+
+- **Backend** (`backend/`) : API FastAPI, persistance PostgreSQL via SQLAlchemy et traçabilité des actions dans `AuditLog`.
+- **Frontend** (`frontend/`) : application Next.js App Router, authentification Auth0 et intégration avec l'API.
+- **Observabilité** (`observability/`) : stack Grafana + Loki pour consulter les audits et les métriques techniques.
+
 ## Installation
 
-Prérequis : Docker, Docker Compose, Make.
+### Prérequis
 
-### Variables d'environnement
+- Docker & Docker Compose
+- Make
 
-Backend (`backend/.env`):
+### Configuration backend
+
+Créez `backend/.env` avec les variables suivantes :
+
 ```
 DATABASE_URL=postgresql+psycopg://delivops:changeme@db:5432/delivops
 AUTH0_DOMAIN=dev-or3c4n80x1rba26g.eu.auth0.com
@@ -20,7 +30,12 @@ DEV_FAKE_AUTH=1
 LOKI_URL=http://loki:3100/loki/api/v1/push
 ```
 
-Frontend (`frontend/.env.local` — copier depuis `frontend/.env.example`):
+`DEV_FAKE_AUTH` active un mode de développement sans Auth0 : les appels doivent alors renseigner les en-têtes `X-Dev-Role` et `X-Dev-Sub`.
+
+### Configuration frontend
+
+Dupliquez `frontend/.env.example` vers `frontend/.env.local` et complétez :
+
 ```
 AUTH0_SECRET=CHANGEME
 AUTH0_BASE_URL=http://localhost:3000
@@ -34,17 +49,16 @@ NEXT_PUBLIC_DEV_ROLE=ADMIN
 NEXT_PUBLIC_DEV_SUB=demo-user
 ```
 
-En développement, `DEV_FAKE_AUTH=1` permet de contourner Auth0. Les
-requêtes front-end doivent alors envoyer les en-têtes `X-Dev-Role` et
-`X-Dev-Sub`, configurés ici via `NEXT_PUBLIC_DEV_ROLE` et
-`NEXT_PUBLIC_DEV_SUB`.
+- `NEXT_PUBLIC_DEV_ROLE` et `NEXT_PUBLIC_DEV_SUB` pilotent les entêtes injectés par le front lorsque `DEV_FAKE_AUTH=1`.
+- `API_BASE_INTERNAL` est utilisé par le rendu côté serveur de Next.js. En environnement Docker, remplacez-le par `http://api:8000`.
 
-`API_BASE_INTERNAL` est utilisé par Next.js côté serveur pour joindre
-l'API. Il pointe sur `http://localhost:8000` en local mais, dans un
-déploiement Docker, il doit être défini sur le nom d'hôte du service
-(`http://api:8000` dans `docker-compose`).
+Le fichier `.env.local` est automatiquement pris en compte par `docker-compose`.
 
-Le fichier `.env.local` est automatiquement chargé par `docker-compose`.
+### Auth0 et mode développement
+
+- En production, configurez Auth0 avec un rôle `Admin Codex` (claim `ADMIN`) et un rôle `Chauffeur Codex` (claim `CHAUFFEUR`).
+- En local, laissez `DEV_FAKE_AUTH=1` pour contourner Auth0 tout en conservant les contrôles de rôle.
+- Les détails pas-à-pas sont disponibles dans [`AUTH0_SETUP.md`](AUTH0_SETUP.md).
 
 ## Lancement
 
@@ -52,23 +66,28 @@ Le fichier `.env.local` est automatiquement chargé par `docker-compose`.
 make dev
 ```
 
-API: http://localhost:8000
-Web: http://localhost:3000
+Les services sont ensuite accessibles :
 
-### Rôles et permissions
+- API : http://localhost:8000
+- Frontend : http://localhost:3000
 
-| Rôle      | Permissions principales |
-|-----------|------------------------|
-| `ADMIN`   | Gestion des chauffeurs et des tarifs |
-| `CHAUFFEUR` | Accès restreint à son propre profil |
+## Rôles et permissions
 
-Les routes sensibles utilisent la dépendance `require_roles` qui vérifie le claim `roles` du JWT.
+| Rôle        | Permissions principales                              |
+|-------------|------------------------------------------------------|
+| `ADMIN`     | Gestion des chauffeurs, des clients et des tarifs    |
+| `CHAUFFEUR` | Accès restreint à son propre profil et aux tournées |
 
-### Observabilité
+Les routes protégées utilisent la dépendance `require_roles` qui vérifie le claim `roles` du JWT.
 
-Une stack Grafana/Loki est fournie pour consulter les `AuditLog`.
-- Grafana: http://localhost:3001
-- Dashboard "Chauffeurs par utilisateur" pré‑provisionné.
+## Observabilité
+
+Une stack Grafana/Loki accompagne le projet pour le suivi des `AuditLog` :
+
+- Grafana : http://localhost:3001
+- Dashboard "Chauffeurs par utilisateur" pré-provisionné.
+
+## Gestion des données
 
 ### Migrations
 
@@ -84,20 +103,18 @@ make seed
 
 ### Simulation d'activité
 
-Permet d'injecter un tenant de démonstration, deux utilisateurs et quelques
-chauffeurs afin de tester rapidement l'application.
+Injecte un tenant de démonstration, des utilisateurs et plusieurs chauffeurs pour tester rapidement l'application.
 
 ```bash
 python simulate_activity.py
 ```
 
-Le script ajoute automatiquement `backend` au `PYTHONPATH` et se connecte par
-défaut à la base locale (`localhost:5432`) si `DATABASE_URL` n'est pas défini.
+Le script ajoute automatiquement `backend` au `PYTHONPATH` et se connecte par défaut à la base locale (`localhost:5432`) si `DATABASE_URL` n'est pas défini.
 
-### Tests
+## Tests
 
 ```bash
 make test
 ```
 
-Exports générés dans `backend/storage/exports`.
+Les exports générés par les tests sont disponibles dans `backend/storage/exports`.
