@@ -80,6 +80,63 @@ function resolveExternalBase(): string | undefined {
   return undefined
 }
 
+function resolveFallbackBases(base: string | undefined): string[] {
+  if (typeof window === 'undefined' || !base) {
+    return []
+  }
+
+  const hasProtocol = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(base)
+  if (!hasProtocol) {
+    return []
+  }
+
+  try {
+    const parsed = new URL(base)
+    if (parsed.hostname === 'api') {
+      const fallbackHost = window.location?.hostname || 'localhost'
+      const port = parsed.port ? `:${parsed.port}` : ''
+      return [`${parsed.protocol}//${fallbackHost}${port}`]
+    }
+  } catch {
+    // Ignore invalid bases; no fallback available.
+  }
+
+  return []
+}
+
+function buildBaseCandidates(base: string | undefined): (string | undefined)[] {
+  const fallbacks = resolveFallbackBases(base)
+  const candidates: (string | undefined)[] = []
+  const seen = new Set<string>()
+  let hasUndefined = false
+
+  const pushCandidate = (candidate: string | undefined) => {
+    if (!candidate) {
+      if (!hasUndefined) {
+        hasUndefined = true
+        candidates.push(undefined)
+      }
+      return
+    }
+
+    if (!seen.has(candidate)) {
+      seen.add(candidate)
+      candidates.push(candidate)
+    }
+  }
+
+  pushCandidate(base)
+  for (const fallback of fallbacks) {
+    pushCandidate(fallback)
+  }
+
+  if (candidates.length === 0) {
+    candidates.push(undefined)
+  }
+
+  return candidates
+}
+
 export async function apiFetch(
   path: string,
   init: RequestInit = {},
@@ -92,36 +149,56 @@ export async function apiFetch(
   const base =
     typeof window === 'undefined' ? resolveInternalBase() : resolveExternalBase()
 
+  const baseCandidates = buildBaseCandidates(base)
+
   const performRequest = async () => {
-    try {
-      const url = buildUrl(base, path)
-      const response = await fetch(url, { ...init, headers })
+    let lastNetworkError: Error | null = null
 
-      // Do not force navigation on 401; let callers handle unauthorized cases.
-      return response
-    } catch (error) {
-      const err =
-        error instanceof Error
-          ? error
-          : new Error('Unknown network error while performing apiFetch')
-      console.error(`apiFetch failed for ${path}`, err)
+    for (let index = 0; index < baseCandidates.length; index += 1) {
+      const candidate = baseCandidates[index]
+      try {
+        const url = buildUrl(candidate, path)
+        const response = await fetch(url, { ...init, headers })
 
-      const fallback: ApiFetchError = {
-        ok: false,
-        status: 0,
-        statusText: 'Network request failed',
-        headers: new Headers(),
-        error: err,
-        json: async () => {
-          throw err
-        },
-        text: async () => {
-          throw err
-        },
+        // Do not force navigation on 401; let callers handle unauthorized cases.
+        return response
+      } catch (error) {
+        const err =
+          error instanceof Error
+            ? error
+            : new Error('Unknown network error while performing apiFetch')
+        lastNetworkError = err
+
+        const isLastAttempt = index === baseCandidates.length - 1
+        if (!isLastAttempt) {
+          const descriptor = candidate ?? '(relative path)'
+          console.warn(
+            `apiFetch network attempt failed for ${path} via ${descriptor}; retrying with fallback base.`,
+            err,
+          )
+        }
       }
-
-      return fallback
     }
+
+    const finalError =
+      lastNetworkError ?? new Error('Unknown network error while performing apiFetch')
+    console.error(`apiFetch failed for ${path}`, finalError)
+
+    const fallback: ApiFetchError = {
+      ok: false,
+      status: 0,
+      statusText: 'Network request failed',
+      headers: new Headers(),
+      error: finalError,
+      json: async () => {
+        throw finalError
+      },
+      text: async () => {
+        throw finalError
+      },
+    }
+
+    return fallback
   }
 
   if (DEV_ROLE) {
