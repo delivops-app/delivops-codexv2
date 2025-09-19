@@ -11,3 +11,15 @@ export type Client = {
   name: string
   categories: TariffCategory[]
 }
+
+export type ClientCategoryApiPayload = {
+  id: number
+  name: string
+  unitPriceExVat?: string | null
+}
+
+export type ClientApiPayload = {
+  id: number
+  name: string
+  categories: ClientCategoryApiPayload[]
+}
