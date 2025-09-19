@@ -1,8 +1,6 @@
 from secrets import token_urlsafe
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -17,15 +15,6 @@ from app.services.chauffeurs import (
 )
 
 router = APIRouter(prefix="/chauffeurs", tags=["chauffeurs"])
-
-templates = Jinja2Templates(directory="app/templates")
-
-
-@router.get("/invite", response_class=HTMLResponse)
-def invite_chauffeur_form(request: Request, tenant_id: str = Depends(get_tenant_id)):
-    return templates.TemplateResponse(
-        "invite_chauffeur.html", {"request": request, "tenant_id": tenant_id}
-    )
 
 
 @router.get("/count")
@@ -60,9 +49,15 @@ def create_chauffeur(
     try:
         chauffeur = service.create(chauffeur_in, user_sub)
     except TenantNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tenant not found",
+        ) from None
     except ChauffeurLimitReachedError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
 
     token = token_urlsafe(32)
     activation_link = f"https://example.com/activate?token={token}"
@@ -83,7 +78,10 @@ def update_chauffeur(
     try:
         return service.update(chauffeur_id, chauffeur_in, user_sub)
     except ChauffeurNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chauffeur not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chauffeur not found",
+        ) from None
 
 
 @router.delete("/{chauffeur_id}", status_code=204)
@@ -98,5 +96,8 @@ def delete_chauffeur(
     try:
         service.delete(chauffeur_id, user_sub)
     except ChauffeurNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chauffeur not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chauffeur not found",
+        ) from None
     return None

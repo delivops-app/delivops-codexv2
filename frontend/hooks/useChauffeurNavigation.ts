@@ -6,6 +6,6 @@ export function useChauffeurNavigation() {
   const router = useRouter()
 
   return {
-    openInviteForm: () => router.push('/api/chauffeurs/invite'),
+    openInviteForm: () => router.push('/chauffeurs/invite'),
   }
 }
