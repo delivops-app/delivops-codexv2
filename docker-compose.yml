@@ -21,7 +21,7 @@ services:
     volumes:
       - ./backend:/app
     env_file:
-      - ./backend/.env.example
+      - ./backend/.env
     environment:
       - LOKI_URL=http://loki:3100/loki/api/v1/push
     depends_on:
