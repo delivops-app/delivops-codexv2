@@ -56,18 +56,6 @@ export default function ClientCard({
                 <div>
                   <p className="font-medium">{cat.name}</p>
                   <p>{parseFloat(cat.price).toFixed(2)} €</p>
-                  {cat.enseignes.length > 0 && (
-                    <div className="mt-1 flex flex-wrap gap-2">
-                      {cat.enseignes.map((tag, i) => (
-                        <span
-                          key={i}
-                          className="rounded bg-gray-200 px-2 py-1 text-xs"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </div>
                 <div className="space-x-2 text-sm">
                   <button

@@ -132,7 +132,23 @@ def update_client(
         .order_by(TariffGroup.order)
         .all()
     )
-    categories = [CategoryRead(id=g.id, name=g.display_name) for g in groups]
+    today = date.today()
+    categories: list[CategoryRead] = []
+    for g in groups:
+        tariff = (
+            db.query(Tariff)
+            .filter(
+                Tariff.tariff_group_id == g.id,
+                Tariff.effective_from <= today,
+                or_(Tariff.effective_to.is_(None), Tariff.effective_to >= today),
+            )
+            .order_by(Tariff.effective_from.desc())
+            .first()
+        )
+        price = tariff.price_ex_vat if tariff else Decimal("0")
+        categories.append(
+            CategoryRead(id=g.id, name=g.display_name, unit_price_ex_vat=price)
+        )
     return ClientWithCategories(id=client.id, name=client.name, categories=categories)
 
 
@@ -210,9 +226,28 @@ def create_category(
         is_active=True,
     )
     db.add(group)
+    db.flush()
+
+    price = (
+        payload.unit_price_ex_vat
+        if payload.unit_price_ex_vat is not None
+        else Decimal("0")
+    )
+    tariff = Tariff(
+        tenant_id=tenant_id_int,
+        tariff_group_id=group.id,
+        price_ex_vat=price,
+        effective_from=date.today(),
+    )
+    db.add(tariff)
     db.commit()
     db.refresh(group)
-    return CategoryRead(id=group.id, name=group.display_name)
+    db.refresh(tariff)
+    return CategoryRead(
+        id=group.id,
+        name=group.display_name,
+        unit_price_ex_vat=tariff.price_ex_vat,
+    )
 
 
 @router.patch(
@@ -240,9 +275,44 @@ def update_category(
     if not group:
         raise HTTPException(status_code=404, detail="Category not found")
     group.display_name = payload.name
+
+    today = date.today()
+    active_tariff = (
+        db.query(Tariff)
+        .filter(
+            Tariff.tariff_group_id == group.id,
+            Tariff.effective_from <= today,
+            or_(Tariff.effective_to.is_(None), Tariff.effective_to >= today),
+        )
+        .order_by(Tariff.effective_from.desc())
+        .first()
+    )
+
+    if payload.unit_price_ex_vat is not None:
+        if active_tariff:
+            active_tariff.price_ex_vat = payload.unit_price_ex_vat
+        else:
+            active_tariff = Tariff(
+                tenant_id=tenant_id_int,
+                tariff_group_id=group.id,
+                price_ex_vat=payload.unit_price_ex_vat,
+                effective_from=today,
+            )
+            db.add(active_tariff)
+
     db.commit()
     db.refresh(group)
-    return CategoryRead(id=group.id, name=group.display_name)
+
+    current_price = Decimal("0")
+    if active_tariff:
+        db.refresh(active_tariff)
+        current_price = active_tariff.price_ex_vat
+
+    return CategoryRead(
+        id=group.id,
+        name=group.display_name,
+        unit_price_ex_vat=current_price,
+    )
 
 
 @router.delete("/{client_id}/categories/{category_id}", status_code=204)

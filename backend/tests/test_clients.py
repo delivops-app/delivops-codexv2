@@ -1,4 +1,5 @@
 import pytest
+from datetime import date
 from decimal import Decimal
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -10,6 +11,7 @@ from app.db.session import get_db
 from app.models.base import Base
 from app.models.tenant import Tenant
 from app.models.client import Client
+from app.models.tariff import Tariff
 from app.models.tariff_group import TariffGroup
 from app.core.config import settings
 
@@ -59,10 +61,22 @@ def test_create_client_and_category_visible_to_driver(client):
 
     resp = client.post(
         f"/clients/{client_id}/categories",
-        json={"name": "Cat A"},
+        json={"name": "Cat A", "unitPriceExVat": "12.34"},
         headers=headers_admin,
     )
     assert resp.status_code == 201
+    created_category = resp.json()
+    assert Decimal(str(created_category["unitPriceExVat"])) == Decimal("12.34")
+    category_id = created_category["id"]
+
+    with TestingSessionLocal() as db:
+        tariff = (
+            db.query(Tariff)
+            .filter(Tariff.tariff_group_id == category_id)
+            .one()
+        )
+        assert tariff.price_ex_vat == Decimal("12.34")
+        assert tariff.effective_from == date.today()
 
     resp = client.get("/clients/", headers=headers_driver)
     assert resp.status_code == 200
@@ -71,9 +85,62 @@ def test_create_client_and_category_visible_to_driver(client):
         c["name"] == "Client X"
         and c["categories"]
         and c["categories"][0]["name"] == "Cat A"
-        and Decimal(c["categories"][0]["unitPriceExVat"]) == Decimal("0")
+        and Decimal(c["categories"][0]["unitPriceExVat"]) == Decimal("12.34")
         for c in data
     )
+
+
+def test_update_category_updates_tariff_price(client):
+    with TestingSessionLocal() as db:
+        tenant = Tenant(name="Acme", slug="acme-update-cat")
+        db.add(tenant)
+        db.commit()
+        db.refresh(tenant)
+        tenant_id = tenant.id
+
+    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+
+    resp = client.post("/clients/", json={"name": "Client Y"}, headers=headers_admin)
+    assert resp.status_code == 201
+    client_id = resp.json()["id"]
+
+    resp = client.post(
+        f"/clients/{client_id}/categories",
+        json={"name": "Initial", "unitPriceExVat": "5.00"},
+        headers=headers_admin,
+    )
+    assert resp.status_code == 201
+    category_payload = resp.json()
+    category_id = category_payload["id"]
+
+    with TestingSessionLocal() as db:
+        initial_tariff = (
+            db.query(Tariff)
+            .filter(Tariff.tariff_group_id == category_id)
+            .one()
+        )
+        initial_tariff_id = initial_tariff.id
+        initial_effective_from = initial_tariff.effective_from
+
+    resp = client.patch(
+        f"/clients/{client_id}/categories/{category_id}",
+        json={"name": "Updated", "unitPriceExVat": "7.50"},
+        headers=headers_admin,
+    )
+    assert resp.status_code == 200
+    updated_payload = resp.json()
+    assert updated_payload["name"] == "Updated"
+    assert Decimal(str(updated_payload["unitPriceExVat"])) == Decimal("7.50")
+
+    with TestingSessionLocal() as db:
+        updated_tariff = (
+            db.query(Tariff)
+            .filter(Tariff.tariff_group_id == category_id)
+            .one()
+        )
+        assert updated_tariff.id == initial_tariff_id
+        assert updated_tariff.effective_from == initial_effective_from
+        assert updated_tariff.price_ex_vat == Decimal("7.50")
 
 
 def test_create_client_missing_tenant_returns_404(client):
