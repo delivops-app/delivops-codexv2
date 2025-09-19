@@ -4,7 +4,12 @@ import { useEffect, useState } from 'react'
 import ClientForm from './ClientForm'
 import CategoryForm from './CategoryForm'
 import ClientCard from './ClientCard'
-import { Client, TariffCategory } from './types'
+import {
+  Client,
+  TariffCategory,
+  ClientApiPayload,
+  ClientCategoryApiPayload,
+} from './types'
 import { apiFetch, isApiFetchError } from '../lib/api'
 
 const COLORS = [
@@ -15,6 +20,40 @@ const COLORS = [
   'bg-purple-100',
   'bg-pink-100',
 ]
+
+const formatUnitPrice = (
+  value?: string | number | null,
+): string => {
+  if (value === null || value === undefined) {
+    return '0.00'
+  }
+  const parsed =
+    typeof value === 'number' ? value : Number.parseFloat(value)
+  if (Number.isNaN(parsed)) {
+    return '0.00'
+  }
+  return parsed.toFixed(2)
+}
+
+const mapCategoryFromApi = (
+  category: ClientCategoryApiPayload,
+  color: string,
+  enseignes: string[] = [],
+): TariffCategory => ({
+  id: category.id,
+  name: category.name,
+  price: formatUnitPrice(category.unitPriceExVat),
+  enseignes,
+  color,
+})
+
+const mapClientFromApi = (client: ClientApiPayload): Client => ({
+  id: client.id,
+  name: client.name,
+  categories: client.categories.map((cat, idx) =>
+    mapCategoryFromApi(cat, COLORS[idx % COLORS.length]),
+  ),
+})
 
 export default function ClientManager() {
   const [clients, setClients] = useState<Client[]>([])
@@ -33,18 +72,8 @@ export default function ClientManager() {
     const load = async () => {
       const res = await apiFetch('/clients/')
       if (res.ok) {
-        const data = await res.json()
-        const mapped: Client[] = data.map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          categories: c.categories.map((cat: any, idx: number) => ({
-            id: cat.id,
-            name: cat.name,
-            price: '0.00',
-            enseignes: [],
-            color: COLORS[idx % COLORS.length],
-          })),
-        }))
+        const data = (await res.json()) as ClientApiPayload[]
+        const mapped: Client[] = data.map((c) => mapClientFromApi(c))
         setClients(mapped)
         setGlobalError(null)
       } else if (isApiFetchError(res)) {
@@ -91,8 +120,9 @@ export default function ClientManager() {
         }
         return
       }
-      const data = await res.json()
-      setClients((prev) => [{ ...data, categories: [] }, ...prev])
+      const data = (await res.json()) as ClientApiPayload
+      const mapped = mapClientFromApi(data)
+      setClients((prev) => [mapped, ...prev])
     }
     setClientError(null)
     setEditingClient(null)
@@ -177,6 +207,7 @@ export default function ClientManager() {
         }
         return
       }
+      const data = (await res.json()) as ClientCategoryApiPayload
       setClients((prev) =>
         prev.map((c) => {
           if (c.id !== categoryClient.id) return c
@@ -184,7 +215,7 @@ export default function ClientManager() {
             ...c,
             categories: c.categories.map((cat) =>
               cat.id === editingCategory.id
-                ? { ...cat, name: category.name }
+                ? mapCategoryFromApi(data, cat.color, category.enseignes)
                 : cat,
             ),
           }
@@ -198,7 +229,7 @@ export default function ClientManager() {
         body: JSON.stringify({ name: category.name }),
       })
       if (res.ok) {
-        const data = await res.json()
+        const data = (await res.json()) as ClientCategoryApiPayload
         setClients((prev) =>
           prev.map((c) =>
             c.id === categoryClient.id
@@ -206,14 +237,11 @@ export default function ClientManager() {
                   ...c,
                   categories: [
                     ...c.categories,
-                    {
-                      id: data.id,
-                      name: data.name,
-                      price: category.price,
-                      enseignes: category.enseignes,
-                      color:
-                        COLORS[c.categories.length % COLORS.length],
-                    },
+                    mapCategoryFromApi(
+                      data,
+                      COLORS[c.categories.length % COLORS.length],
+                      category.enseignes,
+                    ),
                   ],
                 }
               : c,
