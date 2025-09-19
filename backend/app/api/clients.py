@@ -5,7 +5,7 @@ from datetime import date
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_tenant_id, require_roles
@@ -39,9 +39,12 @@ def list_clients(
     """Return all active clients with their tariff categories."""
     tenant_id_int = int(tenant_id)
     clients = (
-        db.query(Client)
-        .filter(Client.tenant_id == tenant_id_int, Client.is_active.is_(True))
-        .order_by(Client.name)
+        db.execute(
+            select(Client)
+            .where(Client.tenant_id == tenant_id_int, Client.is_active.is_(True))
+            .order_by(Client.name)
+        )
+        .scalars()
         .all()
     )
 
@@ -49,25 +52,31 @@ def list_clients(
     result: List[ClientWithCategories] = []
     for client in clients:
         groups = (
-            db.query(TariffGroup)
-            .filter(
-                TariffGroup.tenant_id == tenant_id_int,
-                TariffGroup.client_id == client.id,
-                TariffGroup.is_active.is_(True),
+            db.execute(
+                select(TariffGroup)
+                .where(
+                    TariffGroup.tenant_id == tenant_id_int,
+                    TariffGroup.client_id == client.id,
+                    TariffGroup.is_active.is_(True),
+                )
+                .order_by(TariffGroup.order)
             )
-            .order_by(TariffGroup.order)
+            .scalars()
             .all()
         )
         categories: list[CategoryRead] = []
         for g in groups:
             tariff = (
-                db.query(Tariff)
-                .filter(
-                    Tariff.tariff_group_id == g.id,
-                    Tariff.effective_from <= today,
-                    or_(Tariff.effective_to.is_(None), Tariff.effective_to >= today),
+                db.execute(
+                    select(Tariff)
+                    .where(
+                        Tariff.tariff_group_id == g.id,
+                        Tariff.effective_from <= today,
+                        or_(Tariff.effective_to.is_(None), Tariff.effective_to >= today),
+                    )
+                    .order_by(Tariff.effective_from.desc())
                 )
-                .order_by(Tariff.effective_from.desc())
+                .scalars()
                 .first()
             )
             price = tariff.price_ex_vat if tariff else Decimal("0")
@@ -107,15 +116,13 @@ def update_client(
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ) -> ClientWithCategories:
     tenant_id_int = int(tenant_id)
-    client = (
-        db.query(Client)
-        .filter(
+    client = db.execute(
+        select(Client).where(
             Client.tenant_id == tenant_id_int,
             Client.id == client_id,
             Client.is_active.is_(True),
         )
-        .first()
-    )
+    ).scalar_one_or_none()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
     client.name = payload.name
@@ -123,26 +130,32 @@ def update_client(
     db.refresh(client)
 
     groups = (
-        db.query(TariffGroup)
-        .filter(
-            TariffGroup.tenant_id == tenant_id_int,
-            TariffGroup.client_id == client.id,
-            TariffGroup.is_active.is_(True),
+        db.execute(
+            select(TariffGroup)
+            .where(
+                TariffGroup.tenant_id == tenant_id_int,
+                TariffGroup.client_id == client.id,
+                TariffGroup.is_active.is_(True),
+            )
+            .order_by(TariffGroup.order)
         )
-        .order_by(TariffGroup.order)
+        .scalars()
         .all()
     )
     today = date.today()
     categories: list[CategoryRead] = []
     for g in groups:
         tariff = (
-            db.query(Tariff)
-            .filter(
-                Tariff.tariff_group_id == g.id,
-                Tariff.effective_from <= today,
-                or_(Tariff.effective_to.is_(None), Tariff.effective_to >= today),
+            db.execute(
+                select(Tariff)
+                .where(
+                    Tariff.tariff_group_id == g.id,
+                    Tariff.effective_from <= today,
+                    or_(Tariff.effective_to.is_(None), Tariff.effective_to >= today),
+                )
+                .order_by(Tariff.effective_from.desc())
             )
-            .order_by(Tariff.effective_from.desc())
+            .scalars()
             .first()
         )
         price = tariff.price_ex_vat if tariff else Decimal("0")
@@ -160,24 +173,24 @@ def delete_client(
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ) -> None:
     tenant_id_int = int(tenant_id)
-    client = (
-        db.query(Client)
-        .filter(
+    client = db.execute(
+        select(Client).where(
             Client.tenant_id == tenant_id_int,
             Client.id == client_id,
             Client.is_active.is_(True),
         )
-        .first()
-    )
+    ).scalar_one_or_none()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
     groups = (
-        db.query(TariffGroup)
-        .filter(
-            TariffGroup.tenant_id == tenant_id_int,
-            TariffGroup.client_id == client.id,
-            TariffGroup.is_active.is_(True),
+        db.execute(
+            select(TariffGroup).where(
+                TariffGroup.tenant_id == tenant_id_int,
+                TariffGroup.client_id == client.id,
+                TariffGroup.is_active.is_(True),
+            )
         )
+        .scalars()
         .all()
     )
     for group in groups:
@@ -196,25 +209,21 @@ def create_category(
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ) -> CategoryRead:
     tenant_id_int = int(tenant_id)
-    client = (
-        db.query(Client)
-        .filter(
+    client = db.execute(
+        select(Client).where(
             Client.tenant_id == tenant_id_int,
             Client.id == client_id,
             Client.is_active.is_(True),
         )
-        .first()
-    )
+    ).scalar_one_or_none()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
-    max_order = (
-        db.query(func.max(TariffGroup.order))
-        .filter(
+    max_order = db.execute(
+        select(func.max(TariffGroup.order)).where(
             TariffGroup.tenant_id == tenant_id_int,
             TariffGroup.client_id == client_id,
         )
-        .scalar()
-    )
+    ).scalar_one_or_none()
     order = (max_order + 1) if max_order is not None else 0
     group = TariffGroup(
         tenant_id=tenant_id_int,
@@ -262,29 +271,30 @@ def update_category(
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ) -> CategoryRead:
     tenant_id_int = int(tenant_id)
-    group = (
-        db.query(TariffGroup)
-        .filter(
+    group = db.execute(
+        select(TariffGroup).where(
             TariffGroup.tenant_id == tenant_id_int,
             TariffGroup.client_id == client_id,
             TariffGroup.id == category_id,
             TariffGroup.is_active.is_(True),
         )
-        .first()
-    )
+    ).scalar_one_or_none()
     if not group:
         raise HTTPException(status_code=404, detail="Category not found")
     group.display_name = payload.name
 
     today = date.today()
     active_tariff = (
-        db.query(Tariff)
-        .filter(
-            Tariff.tariff_group_id == group.id,
-            Tariff.effective_from <= today,
-            or_(Tariff.effective_to.is_(None), Tariff.effective_to >= today),
+        db.execute(
+            select(Tariff)
+            .where(
+                Tariff.tariff_group_id == group.id,
+                Tariff.effective_from <= today,
+                or_(Tariff.effective_to.is_(None), Tariff.effective_to >= today),
+            )
+            .order_by(Tariff.effective_from.desc())
         )
-        .order_by(Tariff.effective_from.desc())
+        .scalars()
         .first()
     )
 
@@ -324,16 +334,14 @@ def delete_category(
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ) -> None:
     tenant_id_int = int(tenant_id)
-    group = (
-        db.query(TariffGroup)
-        .filter(
+    group = db.execute(
+        select(TariffGroup).where(
             TariffGroup.tenant_id == tenant_id_int,
             TariffGroup.client_id == client_id,
             TariffGroup.id == category_id,
             TariffGroup.is_active.is_(True),
         )
-        .first()
-    )
+    ).scalar_one_or_none()
     if not group:
         raise HTTPException(status_code=404, detail="Category not found")
     group.is_active = False
