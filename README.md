@@ -52,7 +52,7 @@ NEXT_PUBLIC_DEV_SUB=demo-user
 - `NEXT_PUBLIC_API_BASE` pointe vers le proxy Next.js (`/api/proxy`) qui relaie les appels navigateur vers FastAPI.
 - `NEXT_PUBLIC_DEV_ROLE` et `NEXT_PUBLIC_DEV_SUB` pilotent les entêtes injectés par le front lorsque `DEV_FAKE_AUTH=1`.
 - `API_BASE_INTERNAL` est utilisé par le rendu côté serveur de Next.js. En environnement Docker, remplacez-le par `http://api:8000` (valeur déjà fournie dans `.env.local`).
-- Vous pouvez rediriger la cible du proxy via `API_PROXY_TARGET`; sinon, `API_BASE_INTERNAL` est utilisée par défaut.
+- `API_PROXY_TARGET` permet de surcharger la destination du proxy Next.js. Par défaut, les requêtes `/api/proxy` sont redirigées vers `http://localhost:8000`. Dans l'environnement Docker Compose, cette variable est définie à `http://api:8000` pour viser le conteneur FastAPI ; ajustez-la si votre API est exposée sur un autre hôte.
 
 Le fichier `.env.local` est automatiquement pris en compte par `docker-compose`.
 
