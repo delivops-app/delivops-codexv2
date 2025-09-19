@@ -35,15 +35,22 @@ const formatUnitPrice = (
   return parsed.toFixed(2)
 }
 
+const toUnitPricePayload = (price: string): number => {
+  if (!price) return 0
+  const parsed = Number.parseFloat(price)
+  if (Number.isNaN(parsed)) {
+    return 0
+  }
+  return Number(parsed.toFixed(2))
+}
+
 const mapCategoryFromApi = (
   category: ClientCategoryApiPayload,
   color: string,
-  enseignes: string[] = [],
 ): TariffCategory => ({
   id: category.id,
   name: category.name,
   price: formatUnitPrice(category.unitPriceExVat),
-  enseignes,
   color,
 })
 
@@ -195,7 +202,10 @@ export default function ClientManager() {
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: category.name }),
+          body: JSON.stringify({
+            name: category.name,
+            unitPriceExVat: toUnitPricePayload(category.price),
+          }),
         },
       )
       if (!res.ok) {
@@ -215,7 +225,7 @@ export default function ClientManager() {
             ...c,
             categories: c.categories.map((cat) =>
               cat.id === editingCategory.id
-                ? mapCategoryFromApi(data, cat.color, category.enseignes)
+                ? mapCategoryFromApi(data, cat.color)
                 : cat,
             ),
           }
@@ -226,7 +236,10 @@ export default function ClientManager() {
       const res = await apiFetch(`/clients/${categoryClient.id}/categories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: category.name }),
+        body: JSON.stringify({
+          name: category.name,
+          unitPriceExVat: toUnitPricePayload(category.price),
+        }),
       })
       if (res.ok) {
         const data = (await res.json()) as ClientCategoryApiPayload
@@ -240,7 +253,6 @@ export default function ClientManager() {
                     mapCategoryFromApi(
                       data,
                       COLORS[c.categories.length % COLORS.length],
-                      category.enseignes,
                     ),
                   ],
                 }

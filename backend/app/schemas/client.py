@@ -16,10 +16,16 @@ class CategoryRead(BaseModel):
 
 class CategoryCreate(BaseModel):
     name: str
+    unit_price_ex_vat: Decimal | None = Field(
+        default=None, alias="unitPriceExVat"
+    )
 
 
 class CategoryUpdate(BaseModel):
     name: str
+    unit_price_ex_vat: Decimal | None = Field(
+        default=None, alias="unitPriceExVat"
+    )
 
 
 class ClientWithCategories(BaseModel):
