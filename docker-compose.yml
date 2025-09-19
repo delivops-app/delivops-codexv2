@@ -38,6 +38,7 @@ services:
       - ./frontend/.env.local
     environment:
       - PORT=3000
+      - API_PROXY_TARGET=http://api:8000
     ports:
       - "3000:3000"
     depends_on:
