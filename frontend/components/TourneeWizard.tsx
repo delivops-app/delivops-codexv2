@@ -35,6 +35,9 @@ export default function TourneeWizard({ mode }: { mode: Mode }) {
   const [client, setClient] = useState<Client | null>(null)
   const [selectedCats, setSelectedCats] = useState<Category[]>([])
   const [quantities, setQuantities] = useState<Record<number, number>>({})
+  const [tourDate, setTourDate] = useState<string>(
+    () => new Date().toISOString().split('T')[0],
+  )
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -65,6 +68,9 @@ export default function TourneeWizard({ mode }: { mode: Mode }) {
     mode === 'pickup'
       ? 'La récupération de votre tournée a été enregistrée avec succès.'
       : 'La clôture de votre tournée a été enregistrée avec succès.'
+  const dateLabel =
+    mode === 'pickup' ? 'Date de récupération' : 'Date de clôture'
+  const dateInputId = mode === 'pickup' ? 'tour-date-pickup' : 'tour-date-delivery'
 
   const selectClient = (c: Client) => {
     setClient(c)
@@ -108,6 +114,10 @@ export default function TourneeWizard({ mode }: { mode: Mode }) {
 
   const validate = async () => {
     if (!client) return
+    if (!tourDate) {
+      setError('Veuillez sélectionner une date pour la tournée')
+      return
+    }
     setSaving(true)
     const items = selectedCats.map((cat) => ({
       tariffGroupId: cat.id,
@@ -120,7 +130,7 @@ export default function TourneeWizard({ mode }: { mode: Mode }) {
         ...DEV_DRIVER_HEADERS,
       },
       body: JSON.stringify({
-        date: new Date().toISOString().split('T')[0],
+        date: tourDate,
         clientId: client.id,
         items,
       }),
@@ -139,6 +149,28 @@ export default function TourneeWizard({ mode }: { mode: Mode }) {
 
   return (
     <main className="flex min-h-screen flex-col items-center p-8">
+      {step < 5 && (
+        <div className="mb-6 flex flex-col items-center">
+          <label
+            htmlFor={dateInputId}
+            className="mb-2 text-lg font-semibold text-gray-800"
+          >
+            {dateLabel}
+          </label>
+          <input
+            id={dateInputId}
+            type="date"
+            value={tourDate}
+            onChange={(e) => {
+              setTourDate(e.target.value)
+              if (error === 'Veuillez sélectionner une date pour la tournée') {
+                setError('')
+              }
+            }}
+            className="rounded border px-3 py-2"
+          />
+        </div>
+      )}
       {step === 1 && (
         <>
           <h1 className="mb-6 text-3xl font-bold">Choisissez un client</h1>
@@ -224,6 +256,10 @@ export default function TourneeWizard({ mode }: { mode: Mode }) {
       {step === 4 && (
         <>
           <h1 className="mb-4 text-2xl font-semibold">Récapitulatif</h1>
+          <p className="mb-4">
+            <span className="font-semibold">Date :</span>{' '}
+            {tourDate || 'Non définie'}
+          </p>
           <ul className="mb-4">
             {selectedCats.map((cat) => (
               <li key={cat.id}>
