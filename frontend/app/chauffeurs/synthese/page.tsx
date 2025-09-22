@@ -11,7 +11,9 @@ interface DeclarationRow {
   driverName: string
   clientName: string
   tariffGroupDisplayName: string
-  quantity: number
+  pickupQuantity: number
+  deliveryQuantity: number
+  differenceQuantity: number
   estimatedAmountEur: string
 }
 
@@ -68,7 +70,9 @@ export default function SyntheseChauffeursPage() {
             <th className="border px-4 py-2">Chauffeur</th>
             <th className="border px-4 py-2">Client donneur d&apos;ordre</th>
             <th className="border px-4 py-2">Catégorie de groupe tarifaire</th>
-            <th className="border px-4 py-2">Nombre de colis livrés</th>
+            <th className="border px-4 py-2">Colis récupérés</th>
+            <th className="border px-4 py-2">Colis livrés</th>
+            <th className="border px-4 py-2">Écart</th>
             <th className="border px-4 py-2">Montant estimé (€)</th>
           </tr>
         </thead>
@@ -79,7 +83,9 @@ export default function SyntheseChauffeursPage() {
               <td className="border px-4 py-2">{row.driverName}</td>
               <td className="border px-4 py-2">{row.clientName}</td>
               <td className="border px-4 py-2">{row.tariffGroupDisplayName}</td>
-              <td className="border px-4 py-2">{row.quantity}</td>
+              <td className="border px-4 py-2">{row.pickupQuantity}</td>
+              <td className="border px-4 py-2">{row.deliveryQuantity}</td>
+              <td className="border px-4 py-2">{row.differenceQuantity}</td>
               <td className="border px-4 py-2">
                 {Number(row.estimatedAmountEur).toFixed(2)}
               </td>
@@ -93,4 +99,3 @@ export default function SyntheseChauffeursPage() {
     </main>
   )
 }
-

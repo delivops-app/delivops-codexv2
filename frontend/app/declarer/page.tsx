@@ -17,6 +17,17 @@ interface Client {
   categories: Category[]
 }
 
+const DEV_DRIVER_SUB =
+  process.env.NEXT_PUBLIC_DEV_DRIVER_SUB?.trim() || 'dev|driver'
+
+const DEV_DRIVER_HEADERS: Record<string, string> = {
+  'X-Dev-Role': 'CHAUFFEUR',
+}
+
+if (DEV_DRIVER_SUB) {
+  DEV_DRIVER_HEADERS['X-Dev-Sub'] = DEV_DRIVER_SUB
+}
+
 export default function DeclarerPage() {
   const { user } = useUser()
   const roles = normalizeRoles(
@@ -30,7 +41,7 @@ export default function DeclarerPage() {
   useEffect(() => {
     if (!isDriver) return
     const fetchClients = async () => {
-      const res = await apiFetch('/clients/')
+      const res = await apiFetch('/clients/', { headers: DEV_DRIVER_HEADERS })
       if (res.ok) {
         const data = await res.json()
         setClients(data)
@@ -49,25 +60,49 @@ export default function DeclarerPage() {
     const qtyStr = prompt(`Nombre de colis pour ${client.name} - ${cat.name} ?`)
     if (!qtyStr) return
     const quantity = Number(qtyStr)
-    if (isNaN(quantity)) return
-    const res = await apiFetch('/tours/', {
+    if (isNaN(quantity) || quantity < 0) return
+
+    const pickupRes = await apiFetch('/tours/pickup', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...DEV_DRIVER_HEADERS },
       body: JSON.stringify({
         date: new Date().toISOString().split('T')[0],
         clientId: client.id,
-        items: [{ tariffGroupId: cat.id, quantity }],
+        items: [{ tariffGroupId: cat.id, pickupQuantity: quantity }],
       }),
     })
-    if (res.ok) {
+
+    if (!pickupRes.ok) {
+      if (isApiFetchError(pickupRes)) {
+        console.error('Failed to submit pickup declaration', pickupRes.error)
+        setError('Impossible de contacter le serveur. Veuillez réessayer plus tard.')
+      } else {
+        const errJson = await pickupRes.json().catch(() => null)
+        setError(errJson?.detail ?? "Erreur lors de l'enregistrement")
+      }
+      setMessage('')
+      return
+    }
+
+    const pickupData = await pickupRes.json()
+    const deliveryRes = await apiFetch(`/tours/${pickupData.tourId}/delivery`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...DEV_DRIVER_HEADERS },
+      body: JSON.stringify({
+        items: [{ tariffGroupId: cat.id, deliveryQuantity: quantity }],
+      }),
+    })
+
+    if (deliveryRes.ok) {
       setMessage('Déclaration enregistrée')
       setError('')
-    } else if (isApiFetchError(res)) {
-      console.error('Failed to submit declaration', res.error)
+    } else if (isApiFetchError(deliveryRes)) {
+      console.error('Failed to submit delivery declaration', deliveryRes.error)
       setError('Impossible de contacter le serveur. Veuillez réessayer plus tard.')
       setMessage('')
     } else {
-      setError("Erreur lors de l'enregistrement")
+      const errJson = await deliveryRes.json().catch(() => null)
+      setError(errJson?.detail ?? "Erreur lors de l'enregistrement")
       setMessage('')
     }
   }
@@ -114,4 +149,3 @@ export default function DeclarerPage() {
     </main>
   )
 }
-
