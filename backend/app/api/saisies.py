@@ -10,6 +10,7 @@ from app.schemas.saisie import SaisieCreate, SaisieUpdate, SaisieRead
 router = APIRouter(prefix="/saisies", tags=["saisies"])
 
 
+@router.post("", response_model=SaisieRead, status_code=201, include_in_schema=False)
 @router.post("/", response_model=SaisieRead, status_code=201)
 def create_saisie(
     saisie_in: SaisieCreate,

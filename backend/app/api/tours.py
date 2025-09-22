@@ -32,6 +32,7 @@ def _get_driver_from_user(db: Session, tenant_id: int, user_sub: str) -> Chauffe
     return chauffeur
 
 
+@router.post("", response_model=TourRead, status_code=201, include_in_schema=False)
 @router.post("/", response_model=TourRead, status_code=201)
 def create_tour(
     tour_in: TourCreate,

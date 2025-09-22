@@ -19,6 +19,7 @@ def _get_client_for_tenant(db: Session, client_id: int, tenant_id: int) -> Clien
     return client
 
 
+@router.post("", response_model=TarifRead, status_code=201, include_in_schema=False)
 @router.post("/", response_model=TarifRead, status_code=201)
 def create_tarif(
     tarif_in: TarifCreate,
