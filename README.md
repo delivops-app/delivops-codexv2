@@ -47,10 +47,12 @@ API_BASE_INTERNAL=http://localhost:8000
 NEXT_PUBLIC_AUTH0_AUDIENCE=https://delivops-codex.api/
 NEXT_PUBLIC_DEV_ROLE=ADMIN
 NEXT_PUBLIC_DEV_SUB=demo-user
+NEXT_PUBLIC_DEV_DRIVER_SUB=dev|driver
 ```
 
 - `NEXT_PUBLIC_API_BASE` pointe vers le proxy Next.js (`/api/proxy`) qui relaie les appels navigateur vers FastAPI.
 - `NEXT_PUBLIC_DEV_ROLE` et `NEXT_PUBLIC_DEV_SUB` pilotent les entêtes injectés par le front lorsque `DEV_FAKE_AUTH=1`.
+- `NEXT_PUBLIC_DEV_DRIVER_SUB` correspond au compte chauffeur de démonstration (utilisé pour simuler la déclaration de tournée en développement).
 - `API_BASE_INTERNAL` est utilisé par le rendu côté serveur de Next.js. En environnement Docker, remplacez-le par `http://api:8000` (valeur déjà fournie dans `.env.local`).
 - `API_PROXY_TARGET` permet de surcharger la destination du proxy Next.js. Par défaut, les requêtes `/api/proxy` sont redirigées vers `http://localhost:8000`. Dans l'environnement Docker Compose, cette variable est définie à `http://api:8000` pour viser le conteneur FastAPI ; ajustez-la si votre API est exposée sur un autre hôte.
 

@@ -18,6 +18,17 @@ interface Client {
 
 type Mode = 'pickup' | 'delivery'
 
+const DEV_DRIVER_SUB =
+  process.env.NEXT_PUBLIC_DEV_DRIVER_SUB?.trim() || 'dev|driver'
+
+const DEV_DRIVER_HEADERS: Record<string, string> = {
+  'X-Dev-Role': 'CHAUFFEUR',
+}
+
+if (DEV_DRIVER_SUB) {
+  DEV_DRIVER_HEADERS['X-Dev-Sub'] = DEV_DRIVER_SUB
+}
+
 export default function TourneeWizard({ mode }: { mode: Mode }) {
   const [step, setStep] = useState(1)
   const [clients, setClients] = useState<Client[]>([])
@@ -104,7 +115,10 @@ export default function TourneeWizard({ mode }: { mode: Mode }) {
     }))
     const res = await apiFetch('/tours/', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...DEV_DRIVER_HEADERS,
+      },
       body: JSON.stringify({
         date: new Date().toISOString().split('T')[0],
         clientId: client.id,

@@ -187,6 +187,23 @@ export async function apiFetch(
 
   const baseCandidates = buildBaseCandidates(base)
 
+  const hasHeader = (name: string) => {
+    const lowerName = name.toLowerCase()
+    return Object.keys(headers).some((key) => key.toLowerCase() === lowerName)
+  }
+
+  const ensureDevHeader = (name: string, value: string | undefined) => {
+    if (!value) return
+    if (!hasHeader(name)) {
+      headers[name] = value
+    }
+  }
+
+  const ensureDevAuthHeaders = () => {
+    ensureDevHeader('X-Dev-Role', DEV_ROLE)
+    ensureDevHeader('X-Dev-Sub', DEV_SUB)
+  }
+
   const performRequest = async () => {
     let lastNetworkError: Error | null = null
 
@@ -237,10 +254,10 @@ export async function apiFetch(
     return fallback
   }
 
-  if (DEV_ROLE) {
-    headers['X-Dev-Role'] = DEV_ROLE
-    if (DEV_SUB) headers['X-Dev-Sub'] = DEV_SUB
+  const hasAuthHeader = hasHeader('Authorization')
 
+  if (DEV_ROLE && !hasAuthHeader) {
+    ensureDevAuthHeaders()
     return performRequest()
   }
 
@@ -264,13 +281,11 @@ export async function apiFetch(
       headers['Authorization'] = `Bearer ${accessToken}`
     } else {
       // Development fallback: use headers recognized by DEV_FAKE_AUTH
-      if (DEV_ROLE) headers['X-Dev-Role'] = DEV_ROLE
-      if (DEV_SUB) headers['X-Dev-Sub'] = DEV_SUB
+      ensureDevAuthHeaders()
     }
   } catch (err) {
     // No token available; proceed without Authorization header
-    if (DEV_ROLE) headers['X-Dev-Role'] = DEV_ROLE
-    if (DEV_SUB) headers['X-Dev-Sub'] = DEV_SUB
+    ensureDevAuthHeaders()
   }
 
   return performRequest()
