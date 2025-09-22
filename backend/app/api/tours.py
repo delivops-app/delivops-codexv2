@@ -20,7 +20,6 @@ from app.schemas.tour import (
     TourTotals,
 )
 
-
 router = APIRouter(prefix="/tours", tags=["tours"])
 
 

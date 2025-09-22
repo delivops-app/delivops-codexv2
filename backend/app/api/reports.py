@@ -65,6 +65,11 @@ def _query_declarations(
     return rows
 
 
+@router.get(
+    "/declarations/",
+    response_model=List[DeclarationReportLine],
+    include_in_schema=False,
+)
 @router.get("/declarations", response_model=List[DeclarationReportLine])
 def report_declarations(
     date_from: Optional[date] = None,
@@ -79,6 +84,7 @@ def report_declarations(
     return _query_declarations(db, tenant_id_int, date_from, date_to, client_id, driver_id)
 
 
+@router.get("/declarations/export.csv/", include_in_schema=False)
 @router.get("/declarations/export.csv")
 def report_declarations_csv(
     date_from: Optional[date] = None,
