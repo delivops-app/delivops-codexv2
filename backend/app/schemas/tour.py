@@ -1,21 +1,34 @@
 from datetime import date
 from decimal import Decimal
-from typing import List
+from typing import List, Literal
 
-from pydantic import BaseModel, Field, ConfigDict, conint
+from pydantic import BaseModel, ConfigDict, Field, conint
 
 
-class TourItemCreate(BaseModel):
+class TourItemPickupCreate(BaseModel):
     tariff_group_id: int = Field(alias="tariffGroupId")
-    quantity: conint(ge=0)
+    pickup_quantity: conint(ge=0) = Field(alias="pickupQuantity")
 
     model_config = ConfigDict(populate_by_name=True)
 
 
-class TourCreate(BaseModel):
+class TourPickupCreate(BaseModel):
     date: date
     client_id: int = Field(alias="clientId")
-    items: List[TourItemCreate]
+    items: List[TourItemPickupCreate]
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class TourItemDeliveryUpdate(BaseModel):
+    tariff_group_id: int = Field(alias="tariffGroupId")
+    delivery_quantity: conint(ge=0) = Field(alias="deliveryQuantity")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class TourDeliveryUpdate(BaseModel):
+    items: List[TourItemDeliveryUpdate]
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -23,7 +36,9 @@ class TourCreate(BaseModel):
 class TourItemRead(BaseModel):
     tariff_group_id: int = Field(alias="tariffGroupId")
     display_name: str = Field(alias="displayName")
-    quantity: int
+    pickup_quantity: int = Field(alias="pickupQuantity")
+    delivery_quantity: int = Field(alias="deliveryQuantity")
+    difference: int
     unit_price_ex_vat: Decimal = Field(alias="unitPriceExVat")
     amount_ex_vat: Decimal = Field(alias="amountExVat")
 
@@ -31,7 +46,9 @@ class TourItemRead(BaseModel):
 
 
 class TourTotals(BaseModel):
-    qty: int
+    pickup_qty: int = Field(alias="pickupQty")
+    delivery_qty: int = Field(alias="deliveryQty")
+    difference_qty: int = Field(alias="differenceQty")
     amount_ex_vat: Decimal = Field(alias="amountExVat")
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
@@ -40,6 +57,7 @@ class TourTotals(BaseModel):
 class TourRead(BaseModel):
     tour_id: int = Field(alias="tourId")
     date: date
+    status: Literal["IN_PROGRESS", "COMPLETED"]
     driver: dict
     client: dict
     items: List[TourItemRead]
@@ -53,7 +71,9 @@ class DeclarationReportLine(BaseModel):
     driver_name: str = Field(alias="driverName")
     client_name: str = Field(alias="clientName")
     tariff_group_display_name: str = Field(alias="tariffGroupDisplayName")
-    quantity: int
+    pickup_quantity: int = Field(alias="pickupQuantity")
+    delivery_quantity: int = Field(alias="deliveryQuantity")
+    difference_quantity: int = Field(alias="differenceQuantity")
     estimated_amount_eur: Decimal = Field(alias="estimatedAmountEur")
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
