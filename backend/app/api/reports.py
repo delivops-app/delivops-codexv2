@@ -10,9 +10,9 @@ from app.api.deps import get_tenant_id, require_roles
 from app.db.session import get_db
 from app.models.chauffeur import Chauffeur
 from app.models.client import Client
+from app.models.tariff_group import TariffGroup
 from app.models.tour import Tour
 from app.models.tour_item import TourItem
-from app.models.tariff_group import TariffGroup
 from app.schemas.tour import DeclarationReportLine
 
 
@@ -34,7 +34,7 @@ def _query_declarations(
         .join(Client, Tour.client_id == Client.id)
         .join(TariffGroup, TourItem.tariff_group_id == TariffGroup.id)
         .filter(Tour.tenant_id == tenant_id)
-        .filter(Tour.kind == "DELIVERY")
+        .filter(Tour.status == Tour.STATUS_COMPLETED)
     )
 
     if date_from:
@@ -56,7 +56,9 @@ def _query_declarations(
                 driver_name=driver.display_name,
                 client_name=client.name,
                 tariff_group_display_name=tg.display_name,
-                quantity=item.quantity,
+                pickup_quantity=item.pickup_quantity,
+                delivery_quantity=item.delivery_quantity,
+                difference_quantity=item.pickup_quantity - item.delivery_quantity,
                 estimated_amount_eur=item.amount_ex_vat_snapshot,
             )
         )
@@ -99,7 +101,9 @@ def report_declarations_csv(
             "Chauffeur",
             "Client donneur d'ordre",
             "Catégorie de groupe tarifaire",
+            "Nombre de colis récupérés",
             "Nombre de colis livrés",
+            "Écart",
             "Montant estimé (€)",
         ]
     )
@@ -110,7 +114,9 @@ def report_declarations_csv(
                 r.driver_name,
                 r.client_name,
                 r.tariff_group_display_name,
-                r.quantity,
+                r.pickup_quantity,
+                r.delivery_quantity,
+                r.difference_quantity,
                 f"{r.estimated_amount_eur:.2f}",
             ]
         )
@@ -119,4 +125,3 @@ def report_declarations_csv(
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=declarations.csv"},
     )
-

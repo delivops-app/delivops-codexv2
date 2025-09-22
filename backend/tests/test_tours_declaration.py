@@ -7,16 +7,16 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.main import app
 from app.core.config import settings
 from app.db.session import get_db
+from app.main import app
 from app.models.base import Base
-from app.models.tenant import Tenant
-from app.models.user import User
 from app.models.chauffeur import Chauffeur
 from app.models.client import Client
-from app.models.tariff_group import TariffGroup
 from app.models.tariff import Tariff
+from app.models.tariff_group import TariffGroup
+from app.models.tenant import Tenant
+from app.models.user import User
 
 engine = create_engine(
     "sqlite://",
@@ -114,7 +114,7 @@ def _seed(db):
     return tenant.id, chauffeur.id, client_model.id, tg.id
 
 
-def test_create_tour_calculates_snapshot(client):
+def test_create_pickup_and_close_tour(client):
     with TestingSessionLocal() as db:
         tenant_id, chauffeur_id, client_id, tg_id = _seed(db)
 
@@ -123,21 +123,37 @@ def test_create_tour_calculates_snapshot(client):
         "X-Dev-Role": "CHAUFFEUR",
         "X-Dev-Sub": "dev|driver1",
     }
-    payload = {
+
+    pickup_payload = {
         "date": date.today().isoformat(),
         "clientId": client_id,
-        "items": [{"tariffGroupId": tg_id, "quantity": 5}],
-        "kind": "DELIVERY",
+        "items": [{"tariffGroupId": tg_id, "pickupQuantity": 5}],
     }
-    response = client.post("/tours", json=payload, headers=headers)
-    assert response.status_code == 201
-    data = response.json()
-    assert data["totals"]["qty"] == 5
-    assert Decimal(data["items"][0]["unitPriceExVat"]) == Decimal("3.00")
-    assert Decimal(data["items"][0]["amountExVat"]) == Decimal("15.00")
+    pickup_response = client.post("/tours/pickup", json=pickup_payload, headers=headers)
+    assert pickup_response.status_code == 201
+    pickup_data = pickup_response.json()
+    assert pickup_data["totals"]["pickupQty"] == 5
+    assert pickup_data["totals"]["deliveryQty"] == 0
+    assert Decimal(pickup_data["items"][0]["unitPriceExVat"]) == Decimal("3.00")
+    assert Decimal(pickup_data["items"][0]["amountExVat"]) == Decimal("0.00")
+
+    delivery_payload = {
+        "items": [{"tariffGroupId": tg_id, "deliveryQuantity": 4}]
+    }
+    delivery_response = client.put(
+        f"/tours/{pickup_data['tourId']}/delivery",
+        json=delivery_payload,
+        headers=headers,
+    )
+    assert delivery_response.status_code == 200
+    delivery_data = delivery_response.json()
+    assert delivery_data["totals"]["pickupQty"] == 5
+    assert delivery_data["totals"]["deliveryQty"] == 4
+    assert Decimal(delivery_data["items"][0]["amountExVat"]) == Decimal("12.00")
+    assert delivery_data["status"] == "COMPLETED"
 
 
-def test_create_tour_rejects_tariff_group_from_other_client(client):
+def test_create_pickup_rejects_tariff_group_from_other_client(client):
     with TestingSessionLocal() as db:
         tenant_id, chauffeur_id, client_id, tg_id = _seed(db)
         other_client = Client(tenant_id=tenant_id, name="Globex")
@@ -165,11 +181,10 @@ def test_create_tour_rejects_tariff_group_from_other_client(client):
     payload = {
         "date": date.today().isoformat(),
         "clientId": client_id,
-        "items": [{"tariffGroupId": other_tg.id, "quantity": 1}],
-        "kind": "DELIVERY",
+        "items": [{"tariffGroupId": other_tg.id, "pickupQuantity": 1}],
     }
 
-    response = client.post("/tours", json=payload, headers=headers)
+    response = client.post("/tours/pickup", json=payload, headers=headers)
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Tariff group not available for this client"
@@ -178,56 +193,34 @@ def test_create_tour_rejects_tariff_group_from_other_client(client):
 def test_report_declarations(client):
     with TestingSessionLocal() as db:
         tenant_id, chauffeur_id, client_id, tg_id = _seed(db)
+
     headers = {
         "X-Tenant-Id": str(tenant_id),
         "X-Dev-Role": "CHAUFFEUR",
         "X-Dev-Sub": "dev|driver1",
     }
-    payload = {
-        "date": date.today().isoformat(),
-        "clientId": client_id,
-        "items": [{"tariffGroupId": tg_id, "quantity": 2}],
-        "kind": "DELIVERY",
-    }
-    client.post("/tours", json=payload, headers=headers)
-
-    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
-    resp = client.get("/reports/declarations", headers=headers_admin)
-    assert resp.status_code == 200
-    data = resp.json()
-    assert len(data) == 1
-    assert data[0]["quantity"] == 2
-
-
-def test_pickup_tours_are_excluded_from_report(client):
-    with TestingSessionLocal() as db:
-        tenant_id, chauffeur_id, client_id, tg_id = _seed(db)
-
-    headers_driver = {
-        "X-Tenant-Id": str(tenant_id),
-        "X-Dev-Role": "CHAUFFEUR",
-        "X-Dev-Sub": "dev|driver1",
-    }
-
     pickup_payload = {
         "date": date.today().isoformat(),
         "clientId": client_id,
-        "items": [{"tariffGroupId": tg_id, "quantity": 3}],
-        "kind": "PICKUP",
+        "items": [{"tariffGroupId": tg_id, "pickupQuantity": 2}],
     }
-    client.post("/tours", json=pickup_payload, headers=headers_driver)
+    pickup_resp = client.post("/tours/pickup", json=pickup_payload, headers=headers)
+    tour_id = pickup_resp.json()["tourId"]
 
     delivery_payload = {
-        "date": date.today().isoformat(),
-        "clientId": client_id,
-        "items": [{"tariffGroupId": tg_id, "quantity": 2}],
-        "kind": "DELIVERY",
+        "items": [{"tariffGroupId": tg_id, "deliveryQuantity": 2}]
     }
-    client.post("/tours", json=delivery_payload, headers=headers_driver)
+    client.put(
+        f"/tours/{tour_id}/delivery",
+        json=delivery_payload,
+        headers=headers,
+    )
 
     headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
     resp = client.get("/reports/declarations", headers=headers_admin)
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 1
-    assert data[0]["quantity"] == 2
+    assert data[0]["pickupQuantity"] == 2
+    assert data[0]["deliveryQuantity"] == 2
+    assert data[0]["differenceQuantity"] == 0
