@@ -1,6 +1,6 @@
 from datetime import date
 from decimal import Decimal
-from typing import List
+from typing import List, Literal
 
 from pydantic import BaseModel, Field, ConfigDict, conint
 
@@ -16,6 +16,7 @@ class TourCreate(BaseModel):
     date: date
     client_id: int = Field(alias="clientId")
     items: List[TourItemCreate]
+    kind: Literal["PICKUP", "DELIVERY"] = Field(default="DELIVERY", alias="kind")
 
     model_config = ConfigDict(populate_by_name=True)
 
