@@ -34,6 +34,7 @@ def _query_declarations(
         .join(Client, Tour.client_id == Client.id)
         .join(TariffGroup, TourItem.tariff_group_id == TariffGroup.id)
         .filter(Tour.tenant_id == tenant_id)
+        .filter(Tour.kind == "DELIVERY")
     )
 
     if date_from:

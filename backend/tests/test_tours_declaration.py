@@ -127,6 +127,7 @@ def test_create_tour_calculates_snapshot(client):
         "date": date.today().isoformat(),
         "clientId": client_id,
         "items": [{"tariffGroupId": tg_id, "quantity": 5}],
+        "kind": "DELIVERY",
     }
     response = client.post("/tours", json=payload, headers=headers)
     assert response.status_code == 201
@@ -165,6 +166,7 @@ def test_create_tour_rejects_tariff_group_from_other_client(client):
         "date": date.today().isoformat(),
         "clientId": client_id,
         "items": [{"tariffGroupId": other_tg.id, "quantity": 1}],
+        "kind": "DELIVERY",
     }
 
     response = client.post("/tours", json=payload, headers=headers)
@@ -185,8 +187,43 @@ def test_report_declarations(client):
         "date": date.today().isoformat(),
         "clientId": client_id,
         "items": [{"tariffGroupId": tg_id, "quantity": 2}],
+        "kind": "DELIVERY",
     }
     client.post("/tours", json=payload, headers=headers)
+
+    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    resp = client.get("/reports/declarations", headers=headers_admin)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 1
+    assert data[0]["quantity"] == 2
+
+
+def test_pickup_tours_are_excluded_from_report(client):
+    with TestingSessionLocal() as db:
+        tenant_id, chauffeur_id, client_id, tg_id = _seed(db)
+
+    headers_driver = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "CHAUFFEUR",
+        "X-Dev-Sub": "dev|driver1",
+    }
+
+    pickup_payload = {
+        "date": date.today().isoformat(),
+        "clientId": client_id,
+        "items": [{"tariffGroupId": tg_id, "quantity": 3}],
+        "kind": "PICKUP",
+    }
+    client.post("/tours", json=pickup_payload, headers=headers_driver)
+
+    delivery_payload = {
+        "date": date.today().isoformat(),
+        "clientId": client_id,
+        "items": [{"tariffGroupId": tg_id, "quantity": 2}],
+        "kind": "DELIVERY",
+    }
+    client.post("/tours", json=delivery_payload, headers=headers_driver)
 
     headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
     resp = client.get("/reports/declarations", headers=headers_admin)

@@ -133,6 +133,7 @@ export default function TourneeWizard({ mode }: { mode: Mode }) {
         date: tourDate,
         clientId: client.id,
         items,
+        kind: mode === 'pickup' ? 'PICKUP' : 'DELIVERY',
       }),
     })
     setSaving(false)

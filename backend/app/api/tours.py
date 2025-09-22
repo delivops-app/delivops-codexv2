@@ -52,6 +52,7 @@ def create_tour(
         driver_id=driver.id,
         client_id=client.id,
         date=tour_in.date,
+        kind=tour_in.kind,
     )
     db.add(tour)
     db.flush()
