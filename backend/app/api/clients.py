@@ -30,6 +30,7 @@ def slugify(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
 
 
+@router.get("", response_model=List[ClientWithCategories], include_in_schema=False)
 @router.get("/", response_model=List[ClientWithCategories])
 def list_clients(
     db: Session = Depends(get_db),  # noqa: B008
@@ -89,6 +90,7 @@ def list_clients(
     return result
 
 
+@router.post("", response_model=ClientWithCategories, status_code=201, include_in_schema=False)
 @router.post("/", response_model=ClientWithCategories, status_code=201)
 def create_client(
     payload: ClientCreate,
