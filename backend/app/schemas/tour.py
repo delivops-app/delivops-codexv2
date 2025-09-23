@@ -78,6 +78,7 @@ class DeclarationReportLine(BaseModel):
     difference_quantity: int = Field(alias="differenceQuantity")
     estimated_amount_eur: Decimal = Field(alias="estimatedAmountEur")
     unit_price_ex_vat: Decimal = Field(alias="unitPriceExVat")
+    status: Literal["IN_PROGRESS", "COMPLETED"]
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
