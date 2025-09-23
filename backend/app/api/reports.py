@@ -47,6 +47,7 @@ def _serialize_declaration(
         difference_quantity=pickup_qty - delivery_qty,
         estimated_amount_eur=item.amount_ex_vat_snapshot or Decimal("0"),
         unit_price_ex_vat=item.unit_price_ex_vat_snapshot or Decimal("0"),
+        status=tour.status,
     )
 
 
@@ -65,7 +66,9 @@ def _query_declarations(
         .join(Client, Tour.client_id == Client.id)
         .join(TariffGroup, TourItem.tariff_group_id == TariffGroup.id)
         .filter(Tour.tenant_id == tenant_id)
-        .filter(Tour.status == Tour.STATUS_COMPLETED)
+        .filter(
+            Tour.status.in_([Tour.STATUS_COMPLETED, Tour.STATUS_IN_PROGRESS])
+        )
     )
 
     if date_from:

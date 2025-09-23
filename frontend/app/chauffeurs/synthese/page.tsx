@@ -18,6 +18,7 @@ interface DeclarationRow {
   differenceQuantity: number
   estimatedAmountEur: string
   unitPriceExVat: string
+  status: 'IN_PROGRESS' | 'COMPLETED'
 }
 
 interface DriverOption {
@@ -97,7 +98,7 @@ export default function SyntheseChauffeursPage() {
   const fetchDeclarations = useCallback(async () => {
     const res = await apiFetch('/reports/declarations')
     if (res.ok) {
-      const json = await res.json()
+      const json: DeclarationRow[] = await res.json()
       setRows(json)
       setError('')
     } else if (isApiFetchError(res)) {
@@ -367,6 +368,9 @@ export default function SyntheseChauffeursPage() {
   }
 
   const startEditing = (row: DeclarationRow) => {
+    if (row.status === 'IN_PROGRESS') {
+      return
+    }
     setEditingId(row.tourItemId)
     setFormValues({
       pickupQuantity: row.pickupQuantity.toString(),
@@ -1058,6 +1062,8 @@ export default function SyntheseChauffeursPage() {
                       handleInputChange('deliveryQuantity', e.target.value)
                     }
                   />
+                ) : row.status === 'IN_PROGRESS' ? (
+                  'en cours de livraison'
                 ) : (
                   row.deliveryQuantity
                 )}
@@ -1114,12 +1120,16 @@ export default function SyntheseChauffeursPage() {
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      className="rounded bg-blue-600 px-3 py-1 text-white disabled:opacity-50"
-                      onClick={() => startEditing(row)}
-                      disabled={isCreating || deletingId === row.tourItemId}
-                    >
-                      Modifier
-                    </button>
+                    className="rounded bg-blue-600 px-3 py-1 text-white disabled:opacity-50"
+                    onClick={() => startEditing(row)}
+                    disabled={
+                      isCreating ||
+                      deletingId === row.tourItemId ||
+                      row.status === 'IN_PROGRESS'
+                    }
+                  >
+                    Modifier
+                  </button>
                     <button
                       type="button"
                       className="rounded bg-red-600 px-3 py-1 text-white disabled:opacity-50"
