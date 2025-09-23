@@ -16,11 +16,11 @@ def upgrade() -> None:
         sa.Column("status", sa.String(), nullable=False, server_default="IN_PROGRESS"),
     )
     op.add_column(
-        "tour_item",
+        "touritem",
         sa.Column("pickup_quantity", sa.Integer(), nullable=False, server_default="0"),
     )
     op.add_column(
-        "tour_item",
+        "touritem",
         sa.Column("delivery_quantity", sa.Integer(), nullable=False, server_default="0"),
     )
 
@@ -35,7 +35,7 @@ def upgrade() -> None:
     conn.execute(
         sa.text(
             """
-            UPDATE tour_item AS ti
+            UPDATE touritem AS ti
             SET pickup_quantity = ti.quantity
             FROM tour AS t
             WHERE ti.tour_id = t.id AND t.kind = 'PICKUP'
@@ -45,7 +45,7 @@ def upgrade() -> None:
     conn.execute(
         sa.text(
             """
-            UPDATE tour_item AS ti
+            UPDATE touritem AS ti
             SET delivery_quantity = ti.quantity
             FROM tour AS t
             WHERE ti.tour_id = t.id AND t.kind = 'DELIVERY'
@@ -92,7 +92,7 @@ def upgrade() -> None:
                     """
                     SELECT id, tenant_id, tariff_group_id, delivery_quantity,
                            unit_price_ex_vat_snapshot, amount_ex_vat_snapshot
-                    FROM tour_item
+                    FROM touritem
                     WHERE tour_id = :tour_id
                     """
                 ),
@@ -102,7 +102,7 @@ def upgrade() -> None:
                 existing = conn.execute(
                     sa.text(
                         """
-                        SELECT id FROM tour_item
+                        SELECT id FROM touritem
                         WHERE tour_id = :pickup_id AND tariff_group_id = :tg
                         """
                     ),
@@ -112,7 +112,7 @@ def upgrade() -> None:
                     conn.execute(
                         sa.text(
                             """
-                            UPDATE tour_item
+                            UPDATE touritem
                             SET delivery_quantity = :delivery_quantity,
                                 unit_price_ex_vat_snapshot = :unit_price,
                                 amount_ex_vat_snapshot = :amount
@@ -130,7 +130,7 @@ def upgrade() -> None:
                     conn.execute(
                         sa.text(
                             """
-                            INSERT INTO tour_item (
+                            INSERT INTO touritem (
                                 tenant_id, tour_id, tariff_group_id,
                                 pickup_quantity, delivery_quantity,
                                 unit_price_ex_vat_snapshot, amount_ex_vat_snapshot
@@ -151,7 +151,7 @@ def upgrade() -> None:
                         },
                     )
             conn.execute(
-                sa.text("DELETE FROM tour_item WHERE tour_id = :tour_id"),
+                sa.text("DELETE FROM touritem WHERE tour_id = :tour_id"),
                 {"tour_id": delivery["id"]},
             )
             conn.execute(
@@ -166,7 +166,7 @@ def upgrade() -> None:
             conn.execute(
                 sa.text(
                     """
-                    UPDATE tour_item
+                    UPDATE touritem
                     SET pickup_quantity = delivery_quantity
                     WHERE tour_id = :tour_id
                     """
@@ -176,7 +176,7 @@ def upgrade() -> None:
 
     op.drop_constraint("ck_tour_kind", "tour")
     op.drop_column("tour", "kind")
-    op.drop_column("tour_item", "quantity")
+    op.drop_column("touritem", "quantity")
 
     op.create_check_constraint(
         "ck_tour_status",
@@ -185,13 +185,13 @@ def upgrade() -> None:
     )
 
     op.alter_column("tour", "status", server_default=None)
-    op.alter_column("tour_item", "pickup_quantity", server_default=None)
-    op.alter_column("tour_item", "delivery_quantity", server_default=None)
+    op.alter_column("touritem", "pickup_quantity", server_default=None)
+    op.alter_column("touritem", "delivery_quantity", server_default=None)
 
 
 def downgrade() -> None:
     op.add_column(
-        "tour_item",
+        "touritem",
         sa.Column("quantity", sa.Integer(), nullable=False, server_default="0"),
     )
     op.add_column(
@@ -205,7 +205,7 @@ def downgrade() -> None:
     conn.execute(
         sa.text(
             """
-            UPDATE tour_item
+            UPDATE touritem
             SET quantity = pickup_quantity
             """
         )
@@ -238,7 +238,7 @@ def downgrade() -> None:
                     """
                     SELECT tenant_id, tariff_group_id, delivery_quantity,
                            unit_price_ex_vat_snapshot, amount_ex_vat_snapshot
-                    FROM tour_item
+                    FROM touritem
                     WHERE tour_id = :tour_id
                     """
                 ),
@@ -248,7 +248,7 @@ def downgrade() -> None:
                 conn.execute(
                     sa.text(
                         """
-                        INSERT INTO tour_item (
+                        INSERT INTO touritem (
                             tenant_id, tour_id, tariff_group_id, quantity,
                             unit_price_ex_vat_snapshot, amount_ex_vat_snapshot
                         ) VALUES (
@@ -269,7 +269,7 @@ def downgrade() -> None:
             conn.execute(
                 sa.text(
                     """
-                    UPDATE tour_item
+                    UPDATE touritem
                     SET quantity = pickup_quantity
                     WHERE tour_id = :tour_id
                     """
@@ -278,8 +278,8 @@ def downgrade() -> None:
             )
 
     op.drop_constraint("ck_tour_status", "tour")
-    op.drop_column("tour_item", "delivery_quantity")
-    op.drop_column("tour_item", "pickup_quantity")
+    op.drop_column("touritem", "delivery_quantity")
+    op.drop_column("touritem", "pickup_quantity")
     op.drop_column("tour", "status")
 
     op.create_check_constraint(
@@ -288,4 +288,4 @@ def downgrade() -> None:
         "kind IN ('PICKUP', 'DELIVERY')",
     )
     op.alter_column("tour", "kind", server_default=None)
-    op.alter_column("tour_item", "quantity", server_default=None)
+    op.alter_column("touritem", "quantity", server_default=None)
