@@ -77,8 +77,23 @@ class DeclarationReportLine(BaseModel):
     delivery_quantity: int = Field(alias="deliveryQuantity")
     difference_quantity: int = Field(alias="differenceQuantity")
     estimated_amount_eur: Decimal = Field(alias="estimatedAmountEur")
+    unit_price_ex_vat: Decimal = Field(alias="unitPriceExVat")
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+
+class DeclarationReportCreate(BaseModel):
+    date: date
+    driver_id: int = Field(alias="driverId")
+    client_id: int = Field(alias="clientId")
+    tariff_group_id: int = Field(alias="tariffGroupId")
+    pickup_quantity: int = Field(alias="pickupQuantity", ge=0)
+    delivery_quantity: int = Field(alias="deliveryQuantity", ge=0)
+    estimated_amount_eur: Decimal | None = Field(
+        default=None, alias="estimatedAmountEur", ge=0
+    )
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class DeclarationReportUpdate(BaseModel):
