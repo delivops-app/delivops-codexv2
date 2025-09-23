@@ -5,17 +5,22 @@ from typing import List, Optional
 
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_tenant_id, require_roles
 from app.db.session import get_db
 from app.models.chauffeur import Chauffeur
 from app.models.client import Client
+from app.models.tariff import Tariff
 from app.models.tariff_group import TariffGroup
 from app.models.tour import Tour
 from app.models.tour_item import TourItem
-from app.schemas.tour import DeclarationReportLine, DeclarationReportUpdate
+from app.schemas.tour import (
+    DeclarationReportCreate,
+    DeclarationReportLine,
+    DeclarationReportUpdate,
+)
 
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -41,6 +46,7 @@ def _serialize_declaration(
         delivery_quantity=delivery_qty,
         difference_quantity=pickup_qty - delivery_qty,
         estimated_amount_eur=item.amount_ex_vat_snapshot or Decimal("0"),
+        unit_price_ex_vat=item.unit_price_ex_vat_snapshot or Decimal("0"),
     )
 
 
@@ -111,6 +117,125 @@ def report_declarations(
 ):
     tenant_id_int = int(tenant_id)
     return _query_declarations(db, tenant_id_int, date_from, date_to, client_id, driver_id)
+
+
+@router.post(
+    "/declarations",
+    response_model=DeclarationReportLine,
+    status_code=status.HTTP_201_CREATED,
+)
+@router.post(
+    "/declarations/",
+    response_model=DeclarationReportLine,
+    status_code=status.HTTP_201_CREATED,
+    include_in_schema=False,
+)
+def create_declaration(
+    declaration_create: DeclarationReportCreate,
+    db: Session = Depends(get_db),  # noqa: B008
+    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+):
+    tenant_id_int = int(tenant_id)
+
+    driver = db.get(Chauffeur, declaration_create.driver_id)
+    if driver is None or driver.tenant_id != tenant_id_int:
+        raise HTTPException(status_code=404, detail="Driver not found")
+
+    client = db.get(Client, declaration_create.client_id)
+    if client is None or client.tenant_id != tenant_id_int:
+        raise HTTPException(status_code=404, detail="Client not found")
+
+    tg = db.get(TariffGroup, declaration_create.tariff_group_id)
+    if tg is None or tg.tenant_id != tenant_id_int:
+        raise HTTPException(status_code=404, detail="Tariff group not found")
+    if tg.client_id not in (None, client.id):
+        raise HTTPException(
+            status_code=400,
+            detail="Tariff group not available for this client",
+        )
+
+    if declaration_create.delivery_quantity > declaration_create.pickup_quantity:
+        raise HTTPException(
+            status_code=400,
+            detail="Delivered quantity cannot exceed picked up quantity",
+        )
+
+    tour = (
+        db.query(Tour)
+        .filter(
+            Tour.tenant_id == tenant_id_int,
+            Tour.driver_id == driver.id,
+            Tour.client_id == client.id,
+            Tour.date == declaration_create.date,
+        )
+        .first()
+    )
+
+    if tour is None:
+        tour = Tour(
+            tenant_id=tenant_id_int,
+            driver_id=driver.id,
+            client_id=client.id,
+            date=declaration_create.date,
+            status=Tour.STATUS_COMPLETED,
+        )
+        db.add(tour)
+        db.flush()
+    else:
+        existing_item = (
+            db.query(TourItem)
+            .filter(
+                TourItem.tenant_id == tenant_id_int,
+                TourItem.tour_id == tour.id,
+                TourItem.tariff_group_id == tg.id,
+            )
+            .first()
+        )
+        if existing_item is not None:
+            raise HTTPException(
+                status_code=400,
+                detail="A declaration already exists for this tariff group on this tour",
+            )
+        tour.status = Tour.STATUS_COMPLETED
+
+    tariff = (
+        db.query(Tariff)
+        .filter(
+            Tariff.tariff_group_id == tg.id,
+            Tariff.effective_from <= declaration_create.date,
+            (Tariff.effective_to.is_(None))
+            | (Tariff.effective_to >= declaration_create.date),
+        )
+        .order_by(Tariff.effective_from.desc())
+        .first()
+    )
+    unit_price = tariff.price_ex_vat if tariff else Decimal("0")
+
+    amount = (
+        declaration_create.estimated_amount_eur
+        if declaration_create.estimated_amount_eur is not None
+        else unit_price * declaration_create.delivery_quantity
+    )
+
+    tour_item = TourItem(
+        tenant_id=tenant_id_int,
+        tour_id=tour.id,
+        tariff_group_id=tg.id,
+        pickup_quantity=declaration_create.pickup_quantity,
+        delivery_quantity=declaration_create.delivery_quantity,
+        unit_price_ex_vat_snapshot=unit_price,
+        amount_ex_vat_snapshot=amount,
+    )
+    db.add(tour_item)
+    db.flush()
+    db.commit()
+
+    created = _get_single_declaration(db, tenant_id_int, tour_item.id)
+    if created is None:
+        raise HTTPException(status_code=404, detail="Declaration not found")
+    item, tour, driver, client, tg = created
+    return _serialize_declaration(item, tour, driver, client, tg)
 
 
 @router.put(

@@ -226,6 +226,8 @@ def test_report_declarations(client):
     assert data[0]["pickupQuantity"] == 2
     assert data[0]["deliveryQuantity"] == 2
     assert data[0]["differenceQuantity"] == 0
+    assert data[0]["unitPriceExVat"] == "3.00"
+    assert data[0]["estimatedAmountEur"] == "6.00"
 
 
 def test_admin_updates_declaration(client):
@@ -276,6 +278,7 @@ def test_admin_updates_declaration(client):
     assert updated["deliveryQuantity"] == 2
     assert updated["differenceQuantity"] == 2
     assert updated["estimatedAmountEur"] == "25.50"
+    assert updated["unitPriceExVat"] == "3.00"
 
     invalid_payload = {
         "pickupQuantity": 2,
@@ -291,6 +294,53 @@ def test_admin_updates_declaration(client):
         invalid_resp.json()["detail"]
         == "Delivered quantity cannot exceed picked up quantity"
     )
+
+
+def test_admin_creates_declaration(client):
+    with TestingSessionLocal() as db:
+        tenant_id, chauffeur_id, client_id, tg_id = _seed(db)
+
+    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    payload = {
+        "date": date.today().isoformat(),
+        "driverId": chauffeur_id,
+        "clientId": client_id,
+        "tariffGroupId": tg_id,
+        "pickupQuantity": 5,
+        "deliveryQuantity": 4,
+    }
+
+    create_resp = client.post(
+        "/reports/declarations", json=payload, headers=headers_admin
+    )
+    assert create_resp.status_code == 201
+    created = create_resp.json()
+    assert created["pickupQuantity"] == 5
+    assert created["deliveryQuantity"] == 4
+    assert created["differenceQuantity"] == 1
+    assert created["unitPriceExVat"] == "3.00"
+    assert created["estimatedAmountEur"] == "12.00"
+
+    duplicate_resp = client.post(
+        "/reports/declarations", json=payload, headers=headers_admin
+    )
+    assert duplicate_resp.status_code == 400
+    assert (
+        duplicate_resp.json()["detail"]
+        == "A declaration already exists for this tariff group on this tour"
+    )
+
+    custom_amount_payload = {
+        **payload,
+        "date": (date.today() - timedelta(days=1)).isoformat(),
+        "estimatedAmountEur": "42.00",
+    }
+    custom_resp = client.post(
+        "/reports/declarations", json=custom_amount_payload, headers=headers_admin
+    )
+    assert custom_resp.status_code == 201
+    created_custom = custom_resp.json()
+    assert created_custom["estimatedAmountEur"] == "42.00"
 
 
 def test_admin_deletes_declaration(client):
