@@ -221,6 +221,116 @@ def test_report_declarations(client):
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 1
+    assert data[0]["tourId"] > 0
+    assert data[0]["tourItemId"] > 0
     assert data[0]["pickupQuantity"] == 2
     assert data[0]["deliveryQuantity"] == 2
     assert data[0]["differenceQuantity"] == 0
+
+
+def test_admin_updates_declaration(client):
+    with TestingSessionLocal() as db:
+        tenant_id, chauffeur_id, client_id, tg_id = _seed(db)
+
+    headers_driver = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "CHAUFFEUR",
+        "X-Dev-Sub": "dev|driver1",
+    }
+    pickup_payload = {
+        "date": date.today().isoformat(),
+        "clientId": client_id,
+        "items": [{"tariffGroupId": tg_id, "pickupQuantity": 3}],
+    }
+    pickup_resp = client.post(
+        "/tours/pickup", json=pickup_payload, headers=headers_driver
+    )
+    tour_id = pickup_resp.json()["tourId"]
+
+    delivery_payload = {
+        "items": [{"tariffGroupId": tg_id, "deliveryQuantity": 1}]
+    }
+    client.put(
+        f"/tours/{tour_id}/delivery",
+        json=delivery_payload,
+        headers=headers_driver,
+    )
+
+    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    report_resp = client.get("/reports/declarations", headers=headers_admin)
+    tour_item_id = report_resp.json()[0]["tourItemId"]
+
+    update_payload = {
+        "pickupQuantity": 4,
+        "deliveryQuantity": 2,
+        "estimatedAmountEur": "25.50",
+    }
+    update_resp = client.put(
+        f"/reports/declarations/{tour_item_id}",
+        json=update_payload,
+        headers=headers_admin,
+    )
+    assert update_resp.status_code == 200
+    updated = update_resp.json()
+    assert updated["pickupQuantity"] == 4
+    assert updated["deliveryQuantity"] == 2
+    assert updated["differenceQuantity"] == 2
+    assert updated["estimatedAmountEur"] == "25.50"
+
+    invalid_payload = {
+        "pickupQuantity": 2,
+        "deliveryQuantity": 3,
+    }
+    invalid_resp = client.put(
+        f"/reports/declarations/{tour_item_id}",
+        json=invalid_payload,
+        headers=headers_admin,
+    )
+    assert invalid_resp.status_code == 400
+    assert (
+        invalid_resp.json()["detail"]
+        == "Delivered quantity cannot exceed picked up quantity"
+    )
+
+
+def test_admin_deletes_declaration(client):
+    with TestingSessionLocal() as db:
+        tenant_id, chauffeur_id, client_id, tg_id = _seed(db)
+
+    headers_driver = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "CHAUFFEUR",
+        "X-Dev-Sub": "dev|driver1",
+    }
+    pickup_payload = {
+        "date": date.today().isoformat(),
+        "clientId": client_id,
+        "items": [{"tariffGroupId": tg_id, "pickupQuantity": 2}],
+    }
+    pickup_resp = client.post(
+        "/tours/pickup", json=pickup_payload, headers=headers_driver
+    )
+    tour_id = pickup_resp.json()["tourId"]
+
+    delivery_payload = {
+        "items": [{"tariffGroupId": tg_id, "deliveryQuantity": 1}]
+    }
+    client.put(
+        f"/tours/{tour_id}/delivery",
+        json=delivery_payload,
+        headers=headers_driver,
+    )
+
+    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    report_resp = client.get("/reports/declarations", headers=headers_admin)
+    assert report_resp.status_code == 200
+    tour_item_id = report_resp.json()[0]["tourItemId"]
+
+    delete_resp = client.delete(
+        f"/reports/declarations/{tour_item_id}", headers=headers_admin
+    )
+    assert delete_resp.status_code == 204
+
+    after_delete = client.get("/reports/declarations", headers=headers_admin)
+    assert after_delete.status_code == 200
+    assert after_delete.json() == []
