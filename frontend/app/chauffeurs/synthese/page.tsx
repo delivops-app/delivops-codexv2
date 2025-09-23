@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useUser } from '@auth0/nextjs-auth0/client'
 import { apiFetch, isApiFetchError } from '../../../lib/api'
@@ -38,6 +38,13 @@ interface ClientOption {
   categories: ClientCategoryOption[]
 }
 
+interface FiltersState {
+  date: string
+  driverId: string
+  clientId: string
+  tariffGroupName: string
+}
+
 export default function SyntheseChauffeursPage() {
   const { user } = useUser()
   const roles = normalizeRoles(
@@ -47,6 +54,12 @@ export default function SyntheseChauffeursPage() {
   const [rows, setRows] = useState<DeclarationRow[]>([])
   const [drivers, setDrivers] = useState<DriverOption[]>([])
   const [clients, setClients] = useState<ClientOption[]>([])
+  const [filters, setFilters] = useState<FiltersState>({
+    date: '',
+    driverId: '',
+    clientId: '',
+    tariffGroupName: '',
+  })
   const [error, setError] = useState('')
   const [editingId, setEditingId] = useState<number | null>(null)
   const [formValues, setFormValues] = useState({
@@ -130,6 +143,152 @@ export default function SyntheseChauffeursPage() {
     fetchDrivers()
     fetchClientsData()
   }, [isAdmin, fetchDeclarations, fetchDrivers, fetchClientsData])
+
+  const handleFilterChange = (field: keyof FiltersState, value: string) => {
+    setFilters((prev) => {
+      if (field === 'clientId') {
+        return { ...prev, clientId: value, tariffGroupName: '' }
+      }
+      return { ...prev, [field]: value }
+    })
+  }
+
+  const resetFilters = () => {
+    setFilters({
+      date: '',
+      driverId: '',
+      clientId: '',
+      tariffGroupName: '',
+    })
+  }
+
+  const driverFilterOptions = useMemo(
+    () =>
+      drivers
+        .slice()
+        .sort((a, b) =>
+          a.displayName.localeCompare(b.displayName, 'fr', {
+            sensitivity: 'base',
+          }),
+        ),
+    [drivers],
+  )
+
+  const clientFilterOptions = useMemo(
+    () =>
+      clients
+        .slice()
+        .sort((a, b) =>
+          a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }),
+        ),
+    [clients],
+  )
+
+  const selectedFilterClient = useMemo(
+    () =>
+      filters.clientId
+        ? clients.find(
+            (client) => client.id === Number.parseInt(filters.clientId, 10),
+          )
+        : undefined,
+    [filters.clientId, clients],
+  )
+
+  const tariffGroupFilterOptions = useMemo(() => {
+    const names = new Set<string>()
+    if (selectedFilterClient) {
+      selectedFilterClient.categories.forEach((category) => {
+        if (category.name) {
+          names.add(category.name)
+        }
+      })
+      rows
+        .filter((row) => row.clientName === selectedFilterClient.name)
+        .forEach((row) => names.add(row.tariffGroupDisplayName))
+    } else {
+      clients.forEach((client) => {
+        client.categories.forEach((category) => {
+          if (category.name) {
+            names.add(category.name)
+          }
+        })
+      })
+      rows.forEach((row) => names.add(row.tariffGroupDisplayName))
+    }
+    return Array.from(names).sort((a, b) =>
+      a.localeCompare(b, 'fr', { sensitivity: 'base' }),
+    )
+  }, [selectedFilterClient, clients, rows])
+
+  const filteredRows = useMemo(() => {
+    const driverNameById = new Map<number, string>()
+    drivers.forEach((driver) => {
+      driverNameById.set(driver.id, driver.displayName)
+    })
+    const clientNameById = new Map<number, string>()
+    clients.forEach((client) => {
+      clientNameById.set(client.id, client.name)
+    })
+
+    const driverId = filters.driverId
+      ? Number.parseInt(filters.driverId, 10)
+      : undefined
+    const clientId = filters.clientId
+      ? Number.parseInt(filters.clientId, 10)
+      : undefined
+
+    return rows.filter((row) => {
+      if (filters.date && row.date !== filters.date) {
+        return false
+      }
+
+      if (driverId !== undefined && !Number.isNaN(driverId)) {
+        const driverName = driverNameById.get(driverId)
+        if (!driverName || row.driverName !== driverName) {
+          return false
+        }
+      }
+
+      if (clientId !== undefined && !Number.isNaN(clientId)) {
+        const clientName = clientNameById.get(clientId)
+        if (!clientName || row.clientName !== clientName) {
+          return false
+        }
+      }
+
+      if (
+        filters.tariffGroupName &&
+        row.tariffGroupDisplayName !== filters.tariffGroupName
+      ) {
+        return false
+      }
+
+      return true
+    })
+  }, [rows, filters, drivers, clients])
+
+  const totalEstimatedAmount = useMemo(() => {
+    return filteredRows.reduce((acc, row) => {
+      const value = Number.parseFloat(row.estimatedAmountEur)
+      if (Number.isNaN(value)) {
+        return acc
+      }
+      return acc + value
+    }, 0)
+  }, [filteredRows])
+
+  const formattedTotalEstimatedAmount = useMemo(
+    () =>
+      totalEstimatedAmount.toLocaleString('fr-FR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+    [totalEstimatedAmount],
+  )
+
+  const hasActiveFilters = Boolean(
+    filters.date || filters.driverId || filters.clientId || filters.tariffGroupName,
+  )
 
   const resetNewForm = () => {
     setNewFormValues({
@@ -482,6 +641,108 @@ export default function SyntheseChauffeursPage() {
           {error}
         </p>
       )}
+      <div className="mb-6 w-full rounded border border-gray-300 bg-white p-4">
+        <h2 className="mb-4 text-xl font-semibold">Filtres</h2>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="flex flex-col">
+            <label
+              htmlFor="filter-date"
+              className="mb-1 text-sm font-semibold text-gray-700"
+            >
+              Date
+            </label>
+            <input
+              id="filter-date"
+              type="date"
+              className="rounded border px-2 py-1"
+              value={filters.date}
+              onChange={(e) => handleFilterChange('date', e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col">
+            <label
+              htmlFor="filter-driver"
+              className="mb-1 text-sm font-semibold text-gray-700"
+            >
+              Chauffeur
+            </label>
+            <select
+              id="filter-driver"
+              className="rounded border px-2 py-1"
+              value={filters.driverId}
+              onChange={(e) => handleFilterChange('driverId', e.target.value)}
+            >
+              <option value="">Tous les chauffeurs</option>
+              {driverFilterOptions.map((driver) => (
+                <option key={driver.id} value={driver.id}>
+                  {driver.displayName}
+                  {!driver.isActive ? ' (inactif)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col">
+            <label
+              htmlFor="filter-client"
+              className="mb-1 text-sm font-semibold text-gray-700"
+            >
+              Client donneur d&apos;ordre
+            </label>
+            <select
+              id="filter-client"
+              className="rounded border px-2 py-1"
+              value={filters.clientId}
+              onChange={(e) => handleFilterChange('clientId', e.target.value)}
+            >
+              <option value="">Tous les clients</option>
+              {clientFilterOptions.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col">
+            <label
+              htmlFor="filter-tariff-group"
+              className="mb-1 text-sm font-semibold text-gray-700"
+            >
+              Catégorie de groupe tarifaire
+            </label>
+            <select
+              id="filter-tariff-group"
+              className="rounded border px-2 py-1"
+              value={filters.tariffGroupName}
+              onChange={(e) =>
+                handleFilterChange('tariffGroupName', e.target.value)
+              }
+            >
+              <option value="">Toutes les catégories</option>
+              {tariffGroupFilterOptions.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <button
+            type="button"
+            className="w-full rounded bg-gray-500 px-4 py-2 text-white disabled:opacity-50 sm:w-auto"
+            onClick={resetFilters}
+            disabled={!hasActiveFilters}
+          >
+            Réinitialiser les filtres
+          </button>
+          <p className="text-base sm:text-lg">
+            Montant estimé total :{' '}
+            <span className="font-semibold">
+              {formattedTotalEstimatedAmount} €
+            </span>
+          </p>
+        </div>
+      </div>
       <div className="mb-4 flex w-full justify-end">
         <button
           type="button"
@@ -629,7 +890,7 @@ export default function SyntheseChauffeursPage() {
               </td>
             </tr>
           )}
-          {rows.map((row) => (
+          {filteredRows.map((row) => (
             <tr key={row.tourItemId}>
               <td className="border px-4 py-2">{row.date}</td>
               <td className="border px-4 py-2">{row.driverName}</td>
@@ -736,14 +997,27 @@ export default function SyntheseChauffeursPage() {
               </td>
             </tr>
           ))}
-          {rows.length === 0 && !isCreating && (
+          {filteredRows.length === 0 && !isCreating && (
             <tr>
               <td className="border px-4 py-6 text-center" colSpan={9}>
-                Aucune déclaration disponible.
+                {rows.length === 0
+                  ? 'Aucune déclaration disponible.'
+                  : 'Aucune déclaration ne correspond aux filtres.'}
               </td>
             </tr>
           )}
         </tbody>
+        <tfoot>
+          <tr>
+            <td className="border px-4 py-2 font-semibold" colSpan={7}>
+              Montant estimé total
+            </td>
+            <td className="border px-4 py-2 font-semibold">
+              {formattedTotalEstimatedAmount} €
+            </td>
+            <td className="border px-4 py-2" />
+          </tr>
+        </tfoot>
       </table>
       <Link href="/" className="mt-4 rounded bg-gray-600 px-4 py-2 text-white">
         Retour
