@@ -38,8 +38,14 @@ interface ClientOption {
   categories: ClientCategoryOption[]
 }
 
+type DateFilterMode = 'day' | 'month' | 'range'
+
 interface FiltersState {
-  date: string
+  dateMode: DateFilterMode
+  day: string
+  month: string
+  dateFrom: string
+  dateTo: string
   driverId: string
   clientId: string
   tariffGroupName: string
@@ -55,7 +61,11 @@ export default function SyntheseChauffeursPage() {
   const [drivers, setDrivers] = useState<DriverOption[]>([])
   const [clients, setClients] = useState<ClientOption[]>([])
   const [filters, setFilters] = useState<FiltersState>({
-    date: '',
+    dateMode: 'day',
+    day: '',
+    month: '',
+    dateFrom: '',
+    dateTo: '',
     driverId: '',
     clientId: '',
     tariffGroupName: '',
@@ -149,13 +159,43 @@ export default function SyntheseChauffeursPage() {
       if (field === 'clientId') {
         return { ...prev, clientId: value, tariffGroupName: '' }
       }
-      return { ...prev, [field]: value }
+      if (field === 'dateMode') {
+        return {
+          ...prev,
+          dateMode: value as FiltersState['dateMode'],
+          day: '',
+          month: '',
+          dateFrom: '',
+          dateTo: '',
+        }
+      }
+      if (field === 'dateFrom') {
+        const nextDateFrom = value
+        const nextDateTo =
+          prev.dateTo && nextDateFrom && nextDateFrom > prev.dateTo
+            ? nextDateFrom
+            : prev.dateTo
+        return { ...prev, dateFrom: nextDateFrom, dateTo: nextDateTo }
+      }
+      if (field === 'dateTo') {
+        const nextDateTo = value
+        const nextDateFrom =
+          prev.dateFrom && nextDateTo && prev.dateFrom > nextDateTo
+            ? nextDateTo
+            : prev.dateFrom
+        return { ...prev, dateTo: nextDateTo, dateFrom: nextDateFrom }
+      }
+      return { ...prev, [field]: value } as FiltersState
     })
   }
 
   const resetFilters = () => {
     setFilters({
-      date: '',
+      dateMode: 'day',
+      day: '',
+      month: '',
+      dateFrom: '',
+      dateTo: '',
       driverId: '',
       clientId: '',
       tariffGroupName: '',
@@ -238,8 +278,25 @@ export default function SyntheseChauffeursPage() {
       : undefined
 
     return rows.filter((row) => {
-      if (filters.date && row.date !== filters.date) {
+      if (filters.dateMode === 'day' && filters.day && row.date !== filters.day) {
         return false
+      }
+
+      if (
+        filters.dateMode === 'month' &&
+        filters.month &&
+        row.date.slice(0, 7) !== filters.month
+      ) {
+        return false
+      }
+
+      if (filters.dateMode === 'range') {
+        if (filters.dateFrom && row.date < filters.dateFrom) {
+          return false
+        }
+        if (filters.dateTo && row.date > filters.dateTo) {
+          return false
+        }
       }
 
       if (driverId !== undefined && !Number.isNaN(driverId)) {
@@ -286,8 +343,14 @@ export default function SyntheseChauffeursPage() {
     [totalEstimatedAmount],
   )
 
+  const hasDateFilter =
+    (filters.dateMode === 'day' && filters.day.trim().length > 0) ||
+    (filters.dateMode === 'month' && filters.month.trim().length > 0) ||
+    (filters.dateMode === 'range' &&
+      (filters.dateFrom.trim().length > 0 || filters.dateTo.trim().length > 0))
+
   const hasActiveFilters = Boolean(
-    filters.date || filters.driverId || filters.clientId || filters.tariffGroupName,
+    hasDateFilter || filters.driverId || filters.clientId || filters.tariffGroupName,
   )
 
   const resetNewForm = () => {
@@ -646,19 +709,92 @@ export default function SyntheseChauffeursPage() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="flex flex-col">
             <label
-              htmlFor="filter-date"
+              htmlFor="filter-date-mode"
               className="mb-1 text-sm font-semibold text-gray-700"
             >
-              Date
+              Type de période
             </label>
-            <input
-              id="filter-date"
-              type="date"
+            <select
+              id="filter-date-mode"
               className="rounded border px-2 py-1"
-              value={filters.date}
-              onChange={(e) => handleFilterChange('date', e.target.value)}
-            />
+              value={filters.dateMode}
+              onChange={(e) => handleFilterChange('dateMode', e.target.value)}
+            >
+              <option value="day">Jour</option>
+              <option value="month">Mois</option>
+              <option value="range">Période</option>
+            </select>
           </div>
+          {filters.dateMode === 'day' && (
+            <div className="flex flex-col">
+              <label
+                htmlFor="filter-date-day"
+                className="mb-1 text-sm font-semibold text-gray-700"
+              >
+                Date
+              </label>
+              <input
+                id="filter-date-day"
+                type="date"
+                className="rounded border px-2 py-1"
+                value={filters.day}
+                onChange={(e) => handleFilterChange('day', e.target.value)}
+              />
+            </div>
+          )}
+          {filters.dateMode === 'month' && (
+            <div className="flex flex-col">
+              <label
+                htmlFor="filter-date-month"
+                className="mb-1 text-sm font-semibold text-gray-700"
+              >
+                Mois
+              </label>
+              <input
+                id="filter-date-month"
+                type="month"
+                className="rounded border px-2 py-1"
+                value={filters.month}
+                onChange={(e) => handleFilterChange('month', e.target.value)}
+              />
+            </div>
+          )}
+          {filters.dateMode === 'range' && (
+            <>
+              <div className="flex flex-col">
+                <label
+                  htmlFor="filter-date-from"
+                  className="mb-1 text-sm font-semibold text-gray-700"
+                >
+                  Du
+                </label>
+                <input
+                  id="filter-date-from"
+                  type="date"
+                  className="rounded border px-2 py-1"
+                  value={filters.dateFrom}
+                  onChange={(e) =>
+                    handleFilterChange('dateFrom', e.target.value)
+                  }
+                />
+              </div>
+              <div className="flex flex-col">
+                <label
+                  htmlFor="filter-date-to"
+                  className="mb-1 text-sm font-semibold text-gray-700"
+                >
+                  Au
+                </label>
+                <input
+                  id="filter-date-to"
+                  type="date"
+                  className="rounded border px-2 py-1"
+                  value={filters.dateTo}
+                  onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+                />
+              </div>
+            </>
+          )}
           <div className="flex flex-col">
             <label
               htmlFor="filter-driver"
