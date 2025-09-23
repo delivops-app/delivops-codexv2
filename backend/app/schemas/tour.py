@@ -67,6 +67,8 @@ class TourRead(BaseModel):
 
 
 class DeclarationReportLine(BaseModel):
+    tour_id: int = Field(alias="tourId")
+    tour_item_id: int = Field(alias="tourItemId")
     date: date
     driver_name: str = Field(alias="driverName")
     client_name: str = Field(alias="clientName")
@@ -77,3 +79,17 @@ class DeclarationReportLine(BaseModel):
     estimated_amount_eur: Decimal = Field(alias="estimatedAmountEur")
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+
+class DeclarationReportUpdate(BaseModel):
+    pickup_quantity: int | None = Field(
+        default=None, alias="pickupQuantity", ge=0
+    )
+    delivery_quantity: int | None = Field(
+        default=None, alias="deliveryQuantity", ge=0
+    )
+    estimated_amount_eur: Decimal | None = Field(
+        default=None, alias="estimatedAmountEur", ge=0
+    )
+
+    model_config = ConfigDict(populate_by_name=True)
