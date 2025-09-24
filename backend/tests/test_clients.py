@@ -83,6 +83,7 @@ def test_create_client_and_category_visible_to_driver(client):
     data = resp.json()
     assert any(
         c["name"] == "Client X"
+        and c["isActive"] is True
         and c["categories"]
         and c["categories"][0]["name"] == "Cat A"
         and Decimal(c["categories"][0]["unitPriceExVat"]) == Decimal("12.34")
@@ -183,4 +184,37 @@ def test_delete_client_marks_client_and_categories_inactive(client):
         db_group = db.get(TariffGroup, category_id)
         assert db_group is not None
         assert db_group.is_active is False
+
+
+def test_list_clients_include_inactive_flag(client):
+    with TestingSessionLocal() as db:
+        tenant = Tenant(name="Acme", slug="acme-include-inactive")
+        db.add(tenant)
+        db.commit()
+        db.refresh(tenant)
+        tenant_id = tenant.id
+
+    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+
+    resp = client.post("/clients/", json={"name": "Client Active"}, headers=headers_admin)
+    assert resp.status_code == 201
+
+    resp = client.post("/clients/", json={"name": "Client Inactive"}, headers=headers_admin)
+    assert resp.status_code == 201
+    inactive_id = resp.json()["id"]
+
+    resp = client.delete(f"/clients/{inactive_id}", headers=headers_admin)
+    assert resp.status_code == 204
+
+    resp = client.get("/clients/", headers=headers_admin)
+    assert resp.status_code == 200
+    default_data = resp.json()
+    assert len(default_data) == 1
+    assert default_data[0]["name"] == "Client Active"
+    assert default_data[0]["isActive"] is True
+
+    resp = client.get("/clients/?include_inactive=true", headers=headers_admin)
+    assert resp.status_code == 200
+    data = {entry["name"]: entry["isActive"] for entry in resp.json()}
+    assert data == {"Client Active": True, "Client Inactive": False}
 

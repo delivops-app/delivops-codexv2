@@ -1,6 +1,6 @@
+from decimal import Decimal
 from typing import List
 
-from decimal import Decimal
 from pydantic import BaseModel, Field, ConfigDict
 
 
@@ -31,7 +31,10 @@ class CategoryUpdate(BaseModel):
 class ClientWithCategories(BaseModel):
     id: int
     name: str
+    is_active: bool = Field(alias="isActive")
     categories: List[CategoryRead]
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class ClientCreate(BaseModel):
