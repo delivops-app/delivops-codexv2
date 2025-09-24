@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 from decimal import Decimal
+from io import BytesIO
 
 import pytest
 from fastapi.testclient import TestClient
@@ -7,6 +8,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from openpyxl import load_workbook
+
+from app.api.reports import DECLARATIONS_EXPORT_HEADER
 from app.core.config import settings
 from app.db.session import get_db
 from app.main import app
@@ -197,6 +201,32 @@ def test_create_pickup_rejects_tariff_group_from_other_client(client):
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Tariff group not available for this client"
+
+
+def test_export_declarations_excel_returns_expected_header(client):
+    with TestingSessionLocal() as db:
+        tenant_id, *_ = _seed(db)
+
+    headers = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": "dev|admin",
+    }
+
+    response = client.get("/reports/declarations/export.xlsx", headers=headers)
+
+    assert response.status_code == 200
+    assert (
+        response.headers["content-type"]
+        == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+    workbook = load_workbook(BytesIO(response.content))
+    worksheet = workbook.active
+    first_row = next(worksheet.iter_rows(min_row=1, max_row=1, values_only=True))
+    workbook.close()
+
+    assert list(first_row) == DECLARATIONS_EXPORT_HEADER
 
 
 def test_report_declarations(client):

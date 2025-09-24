@@ -5,3 +5,10 @@ target-version = ['py311']
 [tool.ruff]
 line-length = 88
 select = ["E", "F", "B"]
+
+[project]
+name = "delivops-backend"
+version = "0.0.0"
+dependencies = [
+    "openpyxl",
+]
