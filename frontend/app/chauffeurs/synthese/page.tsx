@@ -369,6 +369,7 @@ export default function SyntheseChauffeursPage() {
 
   const startEditing = (row: DeclarationRow) => {
     if (row.status === 'IN_PROGRESS' || row.tourItemId === null) {
+
       return
     }
     setEditingId(row.tourItemId)
@@ -1146,6 +1147,7 @@ export default function SyntheseChauffeursPage() {
                   >
                     Supprimer
                   </button>
+
                   </div>
                 )}
               </td>

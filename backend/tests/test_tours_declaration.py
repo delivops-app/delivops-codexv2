@@ -284,6 +284,7 @@ def test_report_declarations_includes_in_progress_without_items(client):
     assert data[0]["status"] == "IN_PROGRESS"
 
 
+
 def test_admin_updates_declaration(client):
     with TestingSessionLocal() as db:
         tenant_id, chauffeur_id, client_id, tg_id = _seed(db)
@@ -315,7 +316,9 @@ def test_admin_updates_declaration(client):
     headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
     report_resp = client.get("/reports/declarations", headers=headers_admin)
     tour_item_id = report_resp.json()[0]["tourItemId"]
+
     assert tour_item_id is not None
+
     assert report_resp.json()[0]["status"] == "COMPLETED"
 
     update_payload = {
