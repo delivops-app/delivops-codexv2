@@ -142,6 +142,10 @@ python simulate_activity.py
 
 Le script ajoute automatiquement `backend` au `PYTHONPATH` et se connecte par défaut à la base locale (`localhost:5432`) si `DATABASE_URL` n'est pas défini.
 
+### Export Excel des déclarations
+
+L'API expose un export Excel des déclarations via `GET /reports/declarations/export.xlsx`. En mode développement (`DEV_FAKE_AUTH=1`), pensez à ajouter les en-têtes `X-Tenant-Id` (identifiant ou slug du tenant) ainsi que `X-Dev-Role: ADMIN` et `X-Dev-Sub` pour récupérer le fichier `declarations.xlsx`.
+
 ## Tests
 
 ```bash

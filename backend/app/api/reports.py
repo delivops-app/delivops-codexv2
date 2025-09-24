@@ -1,11 +1,12 @@
 import csv
 from datetime import date
-from io import StringIO
+from io import BytesIO, StringIO
 from typing import List, Optional
 
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_tenant_id, require_roles
@@ -16,6 +17,7 @@ from app.models.tariff import Tariff
 from app.models.tariff_group import TariffGroup
 from app.models.tour import Tour
 from app.models.tour_item import TourItem
+from openpyxl import Workbook
 from app.schemas.tour import (
     DeclarationReportCreate,
     DeclarationReportLine,
@@ -24,6 +26,35 @@ from app.schemas.tour import (
 
 
 router = APIRouter(prefix="/reports", tags=["reports"])
+
+
+DECLARATIONS_EXPORT_HEADER = [
+    "Date",
+    "Chauffeur",
+    "Client donneur d'ordre",
+    "Catégorie de groupe tarifaire",
+    "Nombre de colis récupérés",
+    "Nombre de colis livrés",
+    "Écart",
+    "Montant estimé (€)",
+    "Marge (€)",
+]
+
+
+def _format_declaration_export_row(
+    declaration: DeclarationReportLine,
+) -> list[str | int]:
+    return [
+        declaration.date.isoformat(),
+        declaration.driver_name,
+        declaration.client_name,
+        declaration.tariff_group_display_name,
+        declaration.pickup_quantity,
+        declaration.delivery_quantity,
+        declaration.difference_quantity,
+        f"{declaration.estimated_amount_eur:.2f}",
+        f"{declaration.margin_amount_eur:.2f}",
+    ]
 
 
 def _serialize_declaration(
@@ -381,35 +412,39 @@ def report_declarations_csv(
     rows = _query_declarations(db, tenant_id, date_from, date_to, client_id, driver_id)
     output = StringIO()
     writer = csv.writer(output, delimiter=";")
-    writer.writerow(
-        [
-            "Date",
-            "Chauffeur",
-            "Client donneur d'ordre",
-            "Catégorie de groupe tarifaire",
-            "Nombre de colis récupérés",
-            "Nombre de colis livrés",
-            "Écart",
-            "Montant estimé (€)",
-            "Marge (€)",
-        ]
-    )
+    writer.writerow(DECLARATIONS_EXPORT_HEADER)
     for r in rows:
-        writer.writerow(
-            [
-                r.date.isoformat(),
-                r.driver_name,
-                r.client_name,
-                r.tariff_group_display_name,
-                r.pickup_quantity,
-                r.delivery_quantity,
-                r.difference_quantity,
-                f"{r.estimated_amount_eur:.2f}",
-                f"{r.margin_amount_eur:.2f}",
-            ]
-        )
+        writer.writerow(_format_declaration_export_row(r))
     return Response(
         content=output.getvalue(),
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=declarations.csv"},
+    )
+
+
+@router.get("/declarations/export.xlsx/", include_in_schema=False)
+@router.get("/declarations/export.xlsx")
+def report_declarations_excel(
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
+    client_id: Optional[int] = None,
+    driver_id: Optional[int] = None,
+    db: Session = Depends(get_db),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
+    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+):
+    rows = _query_declarations(db, tenant_id, date_from, date_to, client_id, driver_id)
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Declarations"
+    sheet.append(DECLARATIONS_EXPORT_HEADER)
+    for row in rows:
+        sheet.append(_format_declaration_export_row(row))
+    output = BytesIO()
+    workbook.save(output)
+    output.seek(0)
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=declarations.xlsx"},
     )
