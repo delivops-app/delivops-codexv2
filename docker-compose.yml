@@ -60,7 +60,7 @@ services:
   pgadmin:
     image: dpage/pgadmin4:8.7
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@delivops.local
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-changeme}
     ports:
       - "5050:80"
