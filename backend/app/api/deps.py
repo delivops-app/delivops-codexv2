@@ -1,8 +1,12 @@
 from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user, dev_fake_auth
 from app.core.config import settings
+from app.db.session import get_db
+from app.models.tenant import Tenant
 
 
 ROLE_ALIASES = {
@@ -11,10 +15,28 @@ ROLE_ALIASES = {
 }
 
 
-def get_tenant_id(x_tenant_id: str = Header(..., alias=settings.tenant_header_name)):
+def get_tenant_id(
+    x_tenant_id: str = Header(..., alias=settings.tenant_header_name),
+    db: Session = Depends(get_db),  # noqa: B008
+) -> int:
     if not x_tenant_id:
         raise HTTPException(status_code=400, detail="Missing tenant header")
-    return x_tenant_id
+
+    tenant_identifier = x_tenant_id.strip()
+    if not tenant_identifier:
+        raise HTTPException(status_code=400, detail="Missing tenant header")
+
+    slug = tenant_identifier.lower()
+    tenant_id = db.execute(
+        select(Tenant.id).where(func.lower(Tenant.slug) == slug)
+    ).scalar_one_or_none()
+    if tenant_id is not None:
+        return tenant_id
+
+    try:
+        return int(tenant_identifier)
+    except ValueError as exc:  # pragma: no cover - defensive safeguard
+        raise HTTPException(status_code=404, detail="Tenant not found") from exc
 
 
 def auth_dependency(

@@ -24,12 +24,11 @@ def _get_client_for_tenant(db: Session, client_id: int, tenant_id: int) -> Clien
 def create_tarif(
     tarif_in: TarifCreate,
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ):
-    tenant_id_int = int(tenant_id)
-    _get_client_for_tenant(db, tarif_in.client_id, tenant_id_int)
-    tarif = Tarif(tenant_id=tenant_id_int, **tarif_in.model_dump())
+    _get_client_for_tenant(db, tarif_in.client_id, tenant_id)
+    tarif = Tarif(tenant_id=tenant_id, **tarif_in.model_dump())
     db.add(tarif)
     db.commit()
     db.refresh(tarif)
@@ -41,21 +40,20 @@ def update_tarif(
     tarif_id: int,
     tarif_in: TarifUpdate,
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ):
-    tenant_id_int = int(tenant_id)
     tarif = (
         db.query(Tarif)
-        .filter(Tarif.id == tarif_id, Tarif.tenant_id == tenant_id_int)
+        .filter(Tarif.id == tarif_id, Tarif.tenant_id == tenant_id)
         .first()
     )
     if tarif is None:
         raise HTTPException(status_code=404, detail="Tarif not found")
-    _get_client_for_tenant(db, tarif.client_id, tenant_id_int)
+    _get_client_for_tenant(db, tarif.client_id, tenant_id)
     update_data = tarif_in.model_dump(exclude_unset=True)
     if "client_id" in update_data:
-        _get_client_for_tenant(db, update_data["client_id"], tenant_id_int)
+        _get_client_for_tenant(db, update_data["client_id"], tenant_id)
     for field, value in update_data.items():
         setattr(tarif, field, value)
     db.commit()
@@ -67,12 +65,12 @@ def update_tarif(
 def delete_tarif(
     tarif_id: int,
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ):
     tarif = (
         db.query(Tarif)
-        .filter(Tarif.id == tarif_id, Tarif.tenant_id == int(tenant_id))
+        .filter(Tarif.id == tarif_id, Tarif.tenant_id == tenant_id)
         .first()
     )
     if tarif is None:

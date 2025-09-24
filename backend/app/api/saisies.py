@@ -15,15 +15,14 @@ router = APIRouter(prefix="/saisies", tags=["saisies"])
 def create_saisie(
     saisie_in: SaisieCreate,
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ):
-    tenant_id_int = int(tenant_id)
     tournee = db.get(Tournee, saisie_in.tournee_id)
-    if tournee is None or tournee.tenant_id != tenant_id_int:
+    if tournee is None or tournee.tenant_id != tenant_id:
         raise HTTPException(status_code=404, detail="Tournee not found")
     saisie = Saisie(
-        tenant_id=tenant_id_int,
+        tenant_id=tenant_id,
         tournee_id=saisie_in.tournee_id,
         type=saisie_in.type,
         groupe_colis=saisie_in.groupe_colis,
@@ -42,12 +41,11 @@ def update_saisie(
     saisie_id: int,
     saisie_in: SaisieUpdate,
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ):
-    tenant_id_int = int(tenant_id)
     saisie = db.get(Saisie, saisie_id)
-    if saisie is None or saisie.tenant_id != tenant_id_int:
+    if saisie is None or saisie.tenant_id != tenant_id:
         raise HTTPException(status_code=404, detail="Saisie not found")
     if saisie_in.type is not None:
         saisie.type = saisie_in.type

@@ -108,21 +108,20 @@ def _serialize_tour(tour: Tour) -> TourRead:
 def create_tour_pickup(
     tour_in: TourPickupCreate,
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("CHAUFFEUR")),  # noqa: B008
 ):
-    tenant_id_int = int(tenant_id)
-    driver = _get_driver_from_user(db, tenant_id_int, user.get("sub"))
+    driver = _get_driver_from_user(db, tenant_id, user.get("sub"))
 
     client = db.get(Client, tour_in.client_id)
-    if client is None or client.tenant_id != tenant_id_int:
+    if client is None or client.tenant_id != tenant_id:
         raise HTTPException(status_code=404, detail="Client not found")
 
     if not tour_in.items:
         raise HTTPException(status_code=400, detail="At least one item is required")
 
     tour = Tour(
-        tenant_id=tenant_id_int,
+        tenant_id=tenant_id,
         driver_id=driver.id,
         client_id=client.id,
         date=tour_in.date,
@@ -133,7 +132,7 @@ def create_tour_pickup(
 
     for item in tour_in.items:
         tg = db.get(TariffGroup, item.tariff_group_id)
-        if tg is None or tg.tenant_id != tenant_id_int:
+        if tg is None or tg.tenant_id != tenant_id:
             raise HTTPException(status_code=404, detail="Tariff group not found")
         if tg.client_id is not None and tg.client_id != client.id:
             raise HTTPException(
@@ -154,7 +153,7 @@ def create_tour_pickup(
         unit_margin = tariff.margin_ex_vat if tariff else Decimal("0")
 
         tour_item = TourItem(
-            tenant_id=tenant_id_int,
+            tenant_id=tenant_id,
             tour_id=tour.id,
             tariff_group_id=tg.id,
             pickup_quantity=item.pickup_quantity,
@@ -176,16 +175,15 @@ def create_tour_pickup(
 @router.get("/pending/", response_model=list[TourRead], include_in_schema=False)
 def list_pending_tours(
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("CHAUFFEUR")),  # noqa: B008
 ):
-    tenant_id_int = int(tenant_id)
-    driver = _get_driver_from_user(db, tenant_id_int, user.get("sub"))
+    driver = _get_driver_from_user(db, tenant_id, user.get("sub"))
 
     tours = (
         db.query(Tour)
         .filter(
-            Tour.tenant_id == tenant_id_int,
+            Tour.tenant_id == tenant_id,
             Tour.driver_id == driver.id,
             Tour.status == Tour.STATUS_IN_PROGRESS,
         )
@@ -206,14 +204,13 @@ def submit_tour_delivery(
     tour_id: int,
     tour_update: TourDeliveryUpdate,
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("CHAUFFEUR")),  # noqa: B008
 ):
-    tenant_id_int = int(tenant_id)
-    driver = _get_driver_from_user(db, tenant_id_int, user.get("sub"))
+    driver = _get_driver_from_user(db, tenant_id, user.get("sub"))
 
     tour = db.get(Tour, tour_id)
-    if tour is None or tour.tenant_id != tenant_id_int:
+    if tour is None or tour.tenant_id != tenant_id:
         raise HTTPException(status_code=404, detail="Tour not found")
     if tour.driver_id != driver.id:
         raise HTTPException(status_code=403, detail="Tour not owned by driver")
