@@ -12,13 +12,12 @@ router = APIRouter(prefix="/tournees", tags=["tournees"])
 @router.get("/synthese")
 def synthese_tournees(
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ):
-    tenant_id_int = int(tenant_id)
     tournees = (
         db.query(Tournee)
-        .filter(Tournee.tenant_id == tenant_id_int)
+        .filter(Tournee.tenant_id == tenant_id)
         .order_by(Tournee.date)
         .all()
     )

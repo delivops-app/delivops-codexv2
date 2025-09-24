@@ -145,11 +145,10 @@ def report_declarations(
     client_id: Optional[int] = None,
     driver_id: Optional[int] = None,
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ):
-    tenant_id_int = int(tenant_id)
-    return _query_declarations(db, tenant_id_int, date_from, date_to, client_id, driver_id)
+    return _query_declarations(db, tenant_id, date_from, date_to, client_id, driver_id)
 
 
 @router.post(
@@ -166,21 +165,19 @@ def report_declarations(
 def create_declaration(
     declaration_create: DeclarationReportCreate,
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ):
-    tenant_id_int = int(tenant_id)
-
     driver = db.get(Chauffeur, declaration_create.driver_id)
-    if driver is None or driver.tenant_id != tenant_id_int:
+    if driver is None or driver.tenant_id != tenant_id:
         raise HTTPException(status_code=404, detail="Driver not found")
 
     client = db.get(Client, declaration_create.client_id)
-    if client is None or client.tenant_id != tenant_id_int:
+    if client is None or client.tenant_id != tenant_id:
         raise HTTPException(status_code=404, detail="Client not found")
 
     tg = db.get(TariffGroup, declaration_create.tariff_group_id)
-    if tg is None or tg.tenant_id != tenant_id_int:
+    if tg is None or tg.tenant_id != tenant_id:
         raise HTTPException(status_code=404, detail="Tariff group not found")
     if tg.client_id not in (None, client.id):
         raise HTTPException(
@@ -197,7 +194,7 @@ def create_declaration(
     tour = (
         db.query(Tour)
         .filter(
-            Tour.tenant_id == tenant_id_int,
+            Tour.tenant_id == tenant_id,
             Tour.driver_id == driver.id,
             Tour.client_id == client.id,
             Tour.date == declaration_create.date,
@@ -207,7 +204,7 @@ def create_declaration(
 
     if tour is None:
         tour = Tour(
-            tenant_id=tenant_id_int,
+            tenant_id=tenant_id,
             driver_id=driver.id,
             client_id=client.id,
             date=declaration_create.date,
@@ -219,7 +216,7 @@ def create_declaration(
         existing_item = (
             db.query(TourItem)
             .filter(
-                TourItem.tenant_id == tenant_id_int,
+                TourItem.tenant_id == tenant_id,
                 TourItem.tour_id == tour.id,
                 TourItem.tariff_group_id == tg.id,
             )
@@ -254,7 +251,7 @@ def create_declaration(
     margin_amount = unit_margin * declaration_create.delivery_quantity
 
     tour_item = TourItem(
-        tenant_id=tenant_id_int,
+        tenant_id=tenant_id,
         tour_id=tour.id,
         tariff_group_id=tg.id,
         pickup_quantity=declaration_create.pickup_quantity,
@@ -268,7 +265,7 @@ def create_declaration(
     db.flush()
     db.commit()
 
-    created = _get_single_declaration(db, tenant_id_int, tour_item.id)
+    created = _get_single_declaration(db, tenant_id, tour_item.id)
     if created is None:
         raise HTTPException(status_code=404, detail="Declaration not found")
     item, tour, driver, client, tg = created
@@ -288,11 +285,10 @@ def update_declaration(
     tour_item_id: int,
     declaration_update: DeclarationReportUpdate,
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ):
-    tenant_id_int = int(tenant_id)
-    declaration = _get_single_declaration(db, tenant_id_int, tour_item_id)
+    declaration = _get_single_declaration(db, tenant_id, tour_item_id)
     if declaration is None:
         raise HTTPException(status_code=404, detail="Declaration not found")
 
@@ -333,7 +329,7 @@ def update_declaration(
 
     db.commit()
 
-    updated = _get_single_declaration(db, tenant_id_int, tour_item_id)
+    updated = _get_single_declaration(db, tenant_id, tour_item_id)
     if updated is None:
         raise HTTPException(status_code=404, detail="Declaration not found")
     item, tour, driver, client, tg = updated
@@ -349,11 +345,10 @@ def update_declaration(
 def delete_declaration(
     tour_item_id: int,
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ):
-    tenant_id_int = int(tenant_id)
-    declaration = _get_single_declaration(db, tenant_id_int, tour_item_id)
+    declaration = _get_single_declaration(db, tenant_id, tour_item_id)
     if declaration is None:
         raise HTTPException(status_code=404, detail="Declaration not found")
 
@@ -363,7 +358,7 @@ def delete_declaration(
 
     remaining = (
         db.query(TourItem)
-        .filter(TourItem.tour_id == tour.id, TourItem.tenant_id == tenant_id_int)
+        .filter(TourItem.tour_id == tour.id, TourItem.tenant_id == tenant_id)
         .count()
     )
     if remaining == 0:
@@ -380,13 +375,10 @@ def report_declarations_csv(
     client_id: Optional[int] = None,
     driver_id: Optional[int] = None,
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ):
-    tenant_id_int = int(tenant_id)
-    rows = _query_declarations(
-        db, tenant_id_int, date_from, date_to, client_id, driver_id
-    )
+    rows = _query_declarations(db, tenant_id, date_from, date_to, client_id, driver_id)
     output = StringIO()
     writer = csv.writer(output, delimiter=";")
     writer.writerow(

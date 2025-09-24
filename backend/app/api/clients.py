@@ -35,7 +35,7 @@ def slugify(text: str) -> str:
 def list_clients(
     include_inactive: bool = False,
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("CHAUFFEUR", "ADMIN")),  # noqa: B008
 ) -> List[ClientWithCategories]:
     """Return clients with their tariff categories.
@@ -44,8 +44,7 @@ def list_clients(
     to also include inactive ones, which is useful when displaying historical
     data that still references them.
     """
-    tenant_id_int = int(tenant_id)
-    client_filters = [Client.tenant_id == tenant_id_int]
+    client_filters = [Client.tenant_id == tenant_id]
     if not include_inactive:
         client_filters.append(Client.is_active.is_(True))
     clients = (
@@ -62,7 +61,7 @@ def list_clients(
     result: List[ClientWithCategories] = []
     for client in clients:
         group_filters = [
-            TariffGroup.tenant_id == tenant_id_int,
+            TariffGroup.tenant_id == tenant_id,
             TariffGroup.client_id == client.id,
         ]
         if not include_inactive:
@@ -117,14 +116,13 @@ def list_clients(
 def create_client(
     payload: ClientCreate,
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ) -> ClientWithCategories:
-    tenant_id_int = int(tenant_id)
-    tenant = db.get(Tenant, tenant_id_int)
+    tenant = db.get(Tenant, tenant_id)
     if tenant is None:
         raise HTTPException(status_code=404, detail="Tenant not found")
-    client = Client(tenant_id=tenant_id_int, name=payload.name, is_active=True)
+    client = Client(tenant_id=tenant_id, name=payload.name, is_active=True)
     db.add(client)
     db.commit()
     db.refresh(client)
@@ -141,13 +139,12 @@ def update_client(
     client_id: int,
     payload: ClientUpdate,
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ) -> ClientWithCategories:
-    tenant_id_int = int(tenant_id)
     client = db.execute(
         select(Client).where(
-            Client.tenant_id == tenant_id_int,
+            Client.tenant_id == tenant_id,
             Client.id == client_id,
             Client.is_active.is_(True),
         )
@@ -162,7 +159,7 @@ def update_client(
         db.execute(
             select(TariffGroup)
             .where(
-                TariffGroup.tenant_id == tenant_id_int,
+                TariffGroup.tenant_id == tenant_id,
                 TariffGroup.client_id == client.id,
                 TariffGroup.is_active.is_(True),
             )
@@ -209,13 +206,12 @@ def update_client(
 def delete_client(
     client_id: int,
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ) -> None:
-    tenant_id_int = int(tenant_id)
     client = db.execute(
         select(Client).where(
-            Client.tenant_id == tenant_id_int,
+            Client.tenant_id == tenant_id,
             Client.id == client_id,
             Client.is_active.is_(True),
         )
@@ -225,7 +221,7 @@ def delete_client(
     groups = (
         db.execute(
             select(TariffGroup).where(
-                TariffGroup.tenant_id == tenant_id_int,
+                TariffGroup.tenant_id == tenant_id,
                 TariffGroup.client_id == client.id,
                 TariffGroup.is_active.is_(True),
             )
@@ -245,13 +241,12 @@ def create_category(
     client_id: int,
     payload: CategoryCreate,
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ) -> CategoryRead:
-    tenant_id_int = int(tenant_id)
     client = db.execute(
         select(Client).where(
-            Client.tenant_id == tenant_id_int,
+            Client.tenant_id == tenant_id,
             Client.id == client_id,
             Client.is_active.is_(True),
         )
@@ -260,13 +255,13 @@ def create_category(
         raise HTTPException(status_code=404, detail="Client not found")
     max_order = db.execute(
         select(func.max(TariffGroup.order)).where(
-            TariffGroup.tenant_id == tenant_id_int,
+            TariffGroup.tenant_id == tenant_id,
             TariffGroup.client_id == client_id,
         )
     ).scalar_one_or_none()
     order = (max_order + 1) if max_order is not None else 0
     group = TariffGroup(
-        tenant_id=tenant_id_int,
+        tenant_id=tenant_id,
         client_id=client_id,
         code=slugify(payload.name),
         display_name=payload.name,
@@ -286,7 +281,7 @@ def create_category(
         payload.margin_ex_vat if payload.margin_ex_vat is not None else Decimal("0")
     )
     tariff = Tariff(
-        tenant_id=tenant_id_int,
+        tenant_id=tenant_id,
         tariff_group_id=group.id,
         price_ex_vat=price,
         margin_ex_vat=margin,
@@ -312,13 +307,12 @@ def update_category(
     category_id: int,
     payload: CategoryUpdate,
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ) -> CategoryRead:
-    tenant_id_int = int(tenant_id)
     group = db.execute(
         select(TariffGroup).where(
-            TariffGroup.tenant_id == tenant_id_int,
+            TariffGroup.tenant_id == tenant_id,
             TariffGroup.client_id == client_id,
             TariffGroup.id == category_id,
             TariffGroup.is_active.is_(True),
@@ -351,7 +345,7 @@ def update_category(
                 active_tariff.margin_ex_vat = payload.margin_ex_vat
         else:
             active_tariff = Tariff(
-                tenant_id=tenant_id_int,
+                tenant_id=tenant_id,
                 tariff_group_id=group.id,
                 price_ex_vat=(
                     payload.unit_price_ex_vat
@@ -390,13 +384,12 @@ def delete_category(
     client_id: int,
     category_id: int,
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ) -> None:
-    tenant_id_int = int(tenant_id)
     group = db.execute(
         select(TariffGroup).where(
-            TariffGroup.tenant_id == tenant_id_int,
+            TariffGroup.tenant_id == tenant_id,
             TariffGroup.client_id == client_id,
             TariffGroup.id == category_id,
             TariffGroup.is_active.is_(True),

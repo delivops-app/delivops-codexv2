@@ -20,9 +20,9 @@ router = APIRouter(prefix="/chauffeurs", tags=["chauffeurs"])
 @router.get("/count")
 def count_chauffeurs(
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
 ):
-    service = ChauffeurService(db, int(tenant_id))
+    service = ChauffeurService(db, tenant_id)
     count, subscribed = service.count_and_subscription()
     return {"count": count, "subscribed": subscribed}
 
@@ -31,10 +31,10 @@ def count_chauffeurs(
 @router.get("/", response_model=list[ChauffeurRead])
 def list_chauffeurs(
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ):
-    service = ChauffeurService(db, int(tenant_id))
+    service = ChauffeurService(db, tenant_id)
     return service.list()
 
 
@@ -43,10 +43,10 @@ def list_chauffeurs(
 def create_chauffeur(
     chauffeur_in: ChauffeurCreate,
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ):
-    service = ChauffeurService(db, int(tenant_id))
+    service = ChauffeurService(db, tenant_id)
     user_sub = user.get("sub") if isinstance(user, dict) else None
     try:
         chauffeur = service.create(chauffeur_in, user_sub)
@@ -72,10 +72,10 @@ def update_chauffeur(
     chauffeur_id: int,
     chauffeur_in: ChauffeurUpdate,
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ):
-    service = ChauffeurService(db, int(tenant_id))
+    service = ChauffeurService(db, tenant_id)
     user_sub = user.get("sub") if isinstance(user, dict) else None
     try:
         return service.update(chauffeur_id, chauffeur_in, user_sub)
@@ -90,10 +90,10 @@ def update_chauffeur(
 def delete_chauffeur(
     chauffeur_id: int,
     db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: str = Depends(get_tenant_id),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
 ):
-    service = ChauffeurService(db, int(tenant_id))
+    service = ChauffeurService(db, tenant_id)
     user_sub = user.get("sub") if isinstance(user, dict) else None
     try:
         service.delete(chauffeur_id, user_sub)
