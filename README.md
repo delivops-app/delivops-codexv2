@@ -78,6 +78,23 @@ Les services sont ensuite accessibles :
 - Frontend : http://localhost:3000
 - pgAdmin : http://localhost:5050
 
+### Mode production permanent
+
+Pour exécuter l'API et le frontend avec les mêmes commandes qu'en production, utilisez le fichier d'override `docker-compose.prod.yml` :
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build
+```
+
+- le service `api` est démarré sans `--reload` ;
+- le service `web` réalise automatiquement `npm run build` puis `npm run start`, ce qui force `NODE_ENV=production` et active l'usage du vrai jeton Auth0 côté frontend.
+
+Stoppez ensuite l'environnement via :
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml down
+```
+
 ## Rôles et permissions
 
 | Rôle        | Permissions principales                              |
