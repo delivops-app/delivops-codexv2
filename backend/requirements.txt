@@ -13,3 +13,4 @@ requests
 pytest
 httpx
 jinja2
+openpyxl
