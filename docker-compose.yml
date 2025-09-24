@@ -67,7 +67,7 @@ services:
     volumes:
       - pgadmin_data:/var/lib/pgadmin
     depends_on:
-      - db
+      - delivops-codexv2-db-1
 volumes:
   db_data:
   pgadmin_data:

@@ -6,7 +6,7 @@ frontend/.env.local
 node_modules/
 backend/storage/
 .venv/
-
+frontend/.env
 # Next.js build
 frontend/.next/
 **/.next/
