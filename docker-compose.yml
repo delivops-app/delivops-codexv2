@@ -65,9 +65,9 @@ services:
     ports:
       - "5050:80"
     volumes:
-      - pgadmin_data:/var/lib/pgadmin
+      - pgadmin_datav3:/var/lib/pgadmin
     depends_on:
       - db
 volumes:
   db_data:
-  pgadmin_data:
+  pgadmin_datav3:
