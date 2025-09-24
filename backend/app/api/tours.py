@@ -45,6 +45,7 @@ def _serialize_tour(tour: Tour) -> TourRead:
     total_pickup = 0
     total_delivery = 0
     total_amount = Decimal("0")
+    total_margin = Decimal("0")
 
     # Keep a deterministic order for readability
     sorted_items = sorted(
@@ -60,6 +61,8 @@ def _serialize_tour(tour: Tour) -> TourRead:
         diff = pickup_qty - delivery_qty
         unit_price = item.unit_price_ex_vat_snapshot or Decimal("0")
         amount = item.amount_ex_vat_snapshot or Decimal("0")
+        unit_margin = item.unit_margin_ex_vat_snapshot or Decimal("0")
+        margin_amount = item.margin_ex_vat_snapshot or Decimal("0")
 
         items_read.append(
             TourItemRead(
@@ -72,17 +75,21 @@ def _serialize_tour(tour: Tour) -> TourRead:
                 difference=diff,
                 unit_price_ex_vat=unit_price,
                 amount_ex_vat=amount,
+                unit_margin_ex_vat=unit_margin,
+                margin_amount_ex_vat=margin_amount,
             )
         )
         total_pickup += pickup_qty
         total_delivery += delivery_qty
         total_amount += amount
+        total_margin += margin_amount
 
     totals = TourTotals(
         pickup_qty=total_pickup,
         delivery_qty=total_delivery,
         difference_qty=total_pickup - total_delivery,
         amount_ex_vat=total_amount,
+        margin_amount_ex_vat=total_margin,
     )
 
     return TourRead(
@@ -144,6 +151,7 @@ def create_tour_pickup(
             .first()
         )
         unit_price = tariff.price_ex_vat if tariff else Decimal("0")
+        unit_margin = tariff.margin_ex_vat if tariff else Decimal("0")
 
         tour_item = TourItem(
             tenant_id=tenant_id_int,
@@ -153,6 +161,8 @@ def create_tour_pickup(
             delivery_quantity=0,
             unit_price_ex_vat_snapshot=unit_price,
             amount_ex_vat_snapshot=Decimal("0"),
+            unit_margin_ex_vat_snapshot=unit_margin,
+            margin_ex_vat_snapshot=Decimal("0"),
         )
         db.add(tour_item)
 
@@ -232,12 +242,16 @@ def submit_tour_delivery(
         ti.amount_ex_vat_snapshot = (
             ti.unit_price_ex_vat_snapshot or Decimal("0")
         ) * item.delivery_quantity
+        ti.margin_ex_vat_snapshot = (
+            ti.unit_margin_ex_vat_snapshot or Decimal("0")
+        ) * item.delivery_quantity
 
     # Any item not referenced in the payload is considered undelivered
     for tg_id, ti in items_by_group.items():
         if tg_id not in updated_groups:
             ti.delivery_quantity = 0
             ti.amount_ex_vat_snapshot = Decimal("0")
+            ti.margin_ex_vat_snapshot = Decimal("0")
 
     tour.status = Tour.STATUS_COMPLETED
     db.commit()

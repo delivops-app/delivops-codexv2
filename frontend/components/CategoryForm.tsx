@@ -25,6 +25,7 @@ export default function CategoryForm({
 }: Props) {
   const [name, setName] = useState(initialCategory?.name ?? '')
   const [price, setPrice] = useState(initialCategory?.price ?? '')
+  const [margin, setMargin] = useState(initialCategory?.margin ?? '')
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
@@ -32,6 +33,7 @@ export default function CategoryForm({
       id: initialCategory?.id ?? 0,
       name,
       price: formatPrice(price),
+      margin: formatPrice(margin),
       color: initialCategory?.color ?? '',
     })
   }
@@ -64,6 +66,22 @@ export default function CategoryForm({
           onBlur={(e) => setPrice(formatPrice(e.target.value))}
           className="w-full rounded border p-2"
           placeholder="Tarif en €"
+          required
+        />
+      </div>
+      <div className="mb-4">
+        <label className="mb-1 block font-medium" htmlFor="margin">
+          Marge
+        </label>
+        <input
+          id="margin"
+          type="number"
+          step="0.01"
+          value={margin}
+          onChange={(e) => setMargin(e.target.value)}
+          onBlur={(e) => setMargin(formatPrice(e.target.value))}
+          className="w-full rounded border p-2"
+          placeholder="Marge en €"
           required
         />
       </div>

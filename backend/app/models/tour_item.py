@@ -18,6 +18,8 @@ class TourItem(Base):
     delivery_quantity = Column(Integer, nullable=False, default=0)
     unit_price_ex_vat_snapshot = Column(Numeric(10, 2), default=Decimal("0"))
     amount_ex_vat_snapshot = Column(Numeric(10, 2), default=Decimal("0"))
+    unit_margin_ex_vat_snapshot = Column(Numeric(10, 2), default=Decimal("0"))
+    margin_ex_vat_snapshot = Column(Numeric(10, 2), default=Decimal("0"))
 
     tour = relationship("Tour", back_populates="items")
     tariff_group = relationship("TariffGroup")

@@ -92,8 +92,14 @@ def list_clients(
                 .first()
             )
             price = tariff.price_ex_vat if tariff else Decimal("0")
+            margin = tariff.margin_ex_vat if tariff else Decimal("0")
             categories.append(
-                CategoryRead(id=g.id, name=g.display_name, unit_price_ex_vat=price)
+                CategoryRead(
+                    id=g.id,
+                    name=g.display_name,
+                    unit_price_ex_vat=price,
+                    margin_ex_vat=margin,
+                )
             )
         result.append(
             ClientWithCategories(
@@ -182,8 +188,14 @@ def update_client(
             .first()
         )
         price = tariff.price_ex_vat if tariff else Decimal("0")
+        margin = tariff.margin_ex_vat if tariff else Decimal("0")
         categories.append(
-            CategoryRead(id=g.id, name=g.display_name, unit_price_ex_vat=price)
+            CategoryRead(
+                id=g.id,
+                name=g.display_name,
+                unit_price_ex_vat=price,
+                margin_ex_vat=margin,
+            )
         )
     return ClientWithCategories(
         id=client.id,
@@ -270,10 +282,14 @@ def create_category(
         if payload.unit_price_ex_vat is not None
         else Decimal("0")
     )
+    margin = (
+        payload.margin_ex_vat if payload.margin_ex_vat is not None else Decimal("0")
+    )
     tariff = Tariff(
         tenant_id=tenant_id_int,
         tariff_group_id=group.id,
         price_ex_vat=price,
+        margin_ex_vat=margin,
         effective_from=date.today(),
     )
     db.add(tariff)
@@ -284,6 +300,7 @@ def create_category(
         id=group.id,
         name=group.display_name,
         unit_price_ex_vat=tariff.price_ex_vat,
+        margin_ex_vat=tariff.margin_ex_vat,
     )
 
 
@@ -326,14 +343,26 @@ def update_category(
         .first()
     )
 
-    if payload.unit_price_ex_vat is not None:
+    if payload.unit_price_ex_vat is not None or payload.margin_ex_vat is not None:
         if active_tariff:
-            active_tariff.price_ex_vat = payload.unit_price_ex_vat
+            if payload.unit_price_ex_vat is not None:
+                active_tariff.price_ex_vat = payload.unit_price_ex_vat
+            if payload.margin_ex_vat is not None:
+                active_tariff.margin_ex_vat = payload.margin_ex_vat
         else:
             active_tariff = Tariff(
                 tenant_id=tenant_id_int,
                 tariff_group_id=group.id,
-                price_ex_vat=payload.unit_price_ex_vat,
+                price_ex_vat=(
+                    payload.unit_price_ex_vat
+                    if payload.unit_price_ex_vat is not None
+                    else Decimal("0")
+                ),
+                margin_ex_vat=(
+                    payload.margin_ex_vat
+                    if payload.margin_ex_vat is not None
+                    else Decimal("0")
+                ),
                 effective_from=today,
             )
             db.add(active_tariff)
@@ -342,14 +371,17 @@ def update_category(
     db.refresh(group)
 
     current_price = Decimal("0")
+    current_margin = Decimal("0")
     if active_tariff:
         db.refresh(active_tariff)
         current_price = active_tariff.price_ex_vat
+        current_margin = active_tariff.margin_ex_vat
 
     return CategoryRead(
         id=group.id,
         name=group.display_name,
         unit_price_ex_vat=current_price,
+        margin_ex_vat=current_margin,
     )
 
 

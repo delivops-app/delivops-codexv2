@@ -61,12 +61,17 @@ def test_create_client_and_category_visible_to_driver(client):
 
     resp = client.post(
         f"/clients/{client_id}/categories",
-        json={"name": "Cat A", "unitPriceExVat": "12.34"},
+        json={
+            "name": "Cat A",
+            "unitPriceExVat": "12.34",
+            "marginExVat": "2.50",
+        },
         headers=headers_admin,
     )
     assert resp.status_code == 201
     created_category = resp.json()
     assert Decimal(str(created_category["unitPriceExVat"])) == Decimal("12.34")
+    assert Decimal(str(created_category["marginExVat"])) == Decimal("2.50")
     category_id = created_category["id"]
 
     with TestingSessionLocal() as db:
@@ -76,6 +81,7 @@ def test_create_client_and_category_visible_to_driver(client):
             .one()
         )
         assert tariff.price_ex_vat == Decimal("12.34")
+        assert tariff.margin_ex_vat == Decimal("2.50")
         assert tariff.effective_from == date.today()
 
     resp = client.get("/clients/", headers=headers_driver)
@@ -87,6 +93,7 @@ def test_create_client_and_category_visible_to_driver(client):
         and c["categories"]
         and c["categories"][0]["name"] == "Cat A"
         and Decimal(c["categories"][0]["unitPriceExVat"]) == Decimal("12.34")
+        and Decimal(c["categories"][0]["marginExVat"]) == Decimal("2.50")
         for c in data
     )
 
@@ -107,7 +114,11 @@ def test_update_category_updates_tariff_price(client):
 
     resp = client.post(
         f"/clients/{client_id}/categories",
-        json={"name": "Initial", "unitPriceExVat": "5.00"},
+        json={
+            "name": "Initial",
+            "unitPriceExVat": "5.00",
+            "marginExVat": "1.00",
+        },
         headers=headers_admin,
     )
     assert resp.status_code == 201
@@ -125,13 +136,18 @@ def test_update_category_updates_tariff_price(client):
 
     resp = client.patch(
         f"/clients/{client_id}/categories/{category_id}",
-        json={"name": "Updated", "unitPriceExVat": "7.50"},
+        json={
+            "name": "Updated",
+            "unitPriceExVat": "7.50",
+            "marginExVat": "1.50",
+        },
         headers=headers_admin,
     )
     assert resp.status_code == 200
     updated_payload = resp.json()
     assert updated_payload["name"] == "Updated"
     assert Decimal(str(updated_payload["unitPriceExVat"])) == Decimal("7.50")
+    assert Decimal(str(updated_payload["marginExVat"])) == Decimal("1.50")
 
     with TestingSessionLocal() as db:
         updated_tariff = (
@@ -142,6 +158,7 @@ def test_update_category_updates_tariff_price(client):
         assert updated_tariff.id == initial_tariff_id
         assert updated_tariff.effective_from == initial_effective_from
         assert updated_tariff.price_ex_vat == Decimal("7.50")
+        assert updated_tariff.margin_ex_vat == Decimal("1.50")
 
 
 def test_create_client_missing_tenant_returns_404(client):

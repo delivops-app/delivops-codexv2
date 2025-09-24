@@ -8,6 +8,7 @@ interface Category {
   id: number
   name: string
   unitPriceExVat?: string
+  marginExVat?: string
 }
 
 interface Client {
