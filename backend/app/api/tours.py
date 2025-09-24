@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -34,6 +35,9 @@ def _get_driver_from_user(db: Session, tenant_id: int, user_sub: str) -> Chauffe
     chauffeur = db.query(Chauffeur).filter(Chauffeur.user_id == user.id).first()
     if chauffeur is None:
         raise HTTPException(status_code=403, detail="Driver not found")
+    chauffeur.last_seen_at = datetime.utcnow()
+    db.commit()
+    db.refresh(chauffeur)
     return chauffeur
 
 

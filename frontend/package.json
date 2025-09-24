@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "npm run test:relative-time",
+    "test:relative-time": "tsc --project tsconfig.test.json && node .tmp-tests/__tests__/relativeTime.test.js"
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "3.8.0",

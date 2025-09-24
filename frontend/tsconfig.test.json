@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "lib": ["es2020", "dom"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": ".tmp-tests",
+    "types": ["node"],
+    "resolveJsonModule": true
+  },
+  "include": [
+    "lib/relativeTime.ts",
+    "lib/__tests__/relativeTime.test.ts"
+  ]
+}
