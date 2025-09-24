@@ -14,6 +14,7 @@ class Tariff(Base):
         Integer, ForeignKey("tariffgroup.id"), nullable=False, index=True
     )
     price_ex_vat = Column(Numeric(10, 2), default=Decimal("0"))
+    margin_ex_vat = Column(Numeric(10, 2), default=Decimal("0"))
     vat_rate = Column(Numeric(5, 2), default=Decimal("0"))
     effective_from = Column(Date, nullable=False)
     effective_to = Column(Date, nullable=True)

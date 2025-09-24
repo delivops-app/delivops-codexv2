@@ -41,6 +41,8 @@ class TourItemRead(BaseModel):
     difference: int
     unit_price_ex_vat: Decimal = Field(alias="unitPriceExVat")
     amount_ex_vat: Decimal = Field(alias="amountExVat")
+    unit_margin_ex_vat: Decimal = Field(alias="unitMarginExVat")
+    margin_amount_ex_vat: Decimal = Field(alias="marginAmountEur")
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
@@ -50,6 +52,7 @@ class TourTotals(BaseModel):
     delivery_qty: int = Field(alias="deliveryQty")
     difference_qty: int = Field(alias="differenceQty")
     amount_ex_vat: Decimal = Field(alias="amountExVat")
+    margin_amount_ex_vat: Decimal = Field(alias="marginAmountEur")
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
@@ -78,6 +81,8 @@ class DeclarationReportLine(BaseModel):
     difference_quantity: int = Field(alias="differenceQuantity")
     estimated_amount_eur: Decimal = Field(alias="estimatedAmountEur")
     unit_price_ex_vat: Decimal = Field(alias="unitPriceExVat")
+    unit_margin_ex_vat: Decimal = Field(alias="unitMarginExVat")
+    margin_amount_eur: Decimal = Field(alias="marginAmountEur")
     status: Literal["IN_PROGRESS", "COMPLETED"]
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)

@@ -51,6 +51,7 @@ const mapCategoryFromApi = (
   id: category.id,
   name: category.name,
   price: formatUnitPrice(category.unitPriceExVat),
+  margin: formatUnitPrice(category.marginExVat),
   color,
 })
 
@@ -206,6 +207,7 @@ export default function ClientManager() {
           body: JSON.stringify({
             name: category.name,
             unitPriceExVat: toUnitPricePayload(category.price),
+            marginExVat: toUnitPricePayload(category.margin),
           }),
         },
       )
@@ -240,6 +242,7 @@ export default function ClientManager() {
         body: JSON.stringify({
           name: category.name,
           unitPriceExVat: toUnitPricePayload(category.price),
+          marginExVat: toUnitPricePayload(category.margin),
         }),
       })
       if (res.ok) {

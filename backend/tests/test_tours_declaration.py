@@ -98,6 +98,7 @@ def _seed(db):
         tenant_id=tenant.id,
         tariff_group_id=tg.id,
         price_ex_vat=Decimal("3.00"),
+        margin_ex_vat=Decimal("1.20"),
         vat_rate=Decimal("0.20"),
         effective_from=date.today() - timedelta(days=1),
     )
@@ -105,6 +106,7 @@ def _seed(db):
         tenant_id=tenant.id,
         tariff_group_id=tg.id,
         price_ex_vat=Decimal("2.00"),
+        margin_ex_vat=Decimal("0.80"),
         vat_rate=Decimal("0.20"),
         effective_from=date.today() - timedelta(days=10),
         effective_to=date.today() - timedelta(days=2),
@@ -137,6 +139,9 @@ def test_create_pickup_and_close_tour(client):
     assert pickup_data["totals"]["deliveryQty"] == 0
     assert Decimal(pickup_data["items"][0]["unitPriceExVat"]) == Decimal("3.00")
     assert Decimal(pickup_data["items"][0]["amountExVat"]) == Decimal("0.00")
+    assert Decimal(pickup_data["items"][0]["unitMarginExVat"]) == Decimal("1.20")
+    assert Decimal(pickup_data["items"][0]["marginAmountEur"]) == Decimal("0.00")
+    assert Decimal(pickup_data["totals"]["marginAmountEur"]) == Decimal("0.00")
 
     delivery_payload = {
         "items": [{"tariffGroupId": tg_id, "deliveryQuantity": 4}]
@@ -151,6 +156,9 @@ def test_create_pickup_and_close_tour(client):
     assert delivery_data["totals"]["pickupQty"] == 5
     assert delivery_data["totals"]["deliveryQty"] == 4
     assert Decimal(delivery_data["items"][0]["amountExVat"]) == Decimal("12.00")
+    assert Decimal(delivery_data["items"][0]["unitMarginExVat"]) == Decimal("1.20")
+    assert Decimal(delivery_data["items"][0]["marginAmountEur"]) == Decimal("4.80")
+    assert Decimal(delivery_data["totals"]["marginAmountEur"]) == Decimal("4.80")
     assert delivery_data["status"] == "COMPLETED"
 
 
@@ -229,6 +237,8 @@ def test_report_declarations(client):
     assert data[0]["differenceQuantity"] == 0
     assert data[0]["unitPriceExVat"] == "3.00"
     assert data[0]["estimatedAmountEur"] == "6.00"
+    assert data[0]["unitMarginExVat"] == "1.20"
+    assert data[0]["marginAmountEur"] == "2.40"
     assert data[0]["status"] == "COMPLETED"
 
 
@@ -256,6 +266,8 @@ def test_report_declarations_includes_in_progress(client):
     assert len(data) == 1
     assert data[0]["pickupQuantity"] == 3
     assert data[0]["deliveryQuantity"] == 0
+    assert data[0]["unitMarginExVat"] == "1.20"
+    assert data[0]["marginAmountEur"] == "0.00"
     assert data[0]["status"] == "IN_PROGRESS"
 
 
@@ -281,6 +293,8 @@ def test_report_declarations_includes_in_progress_without_items(client):
     assert data[0]["pickupQuantity"] == 0
     assert data[0]["deliveryQuantity"] == 0
     assert data[0]["tariffGroupDisplayName"] == "—"
+    assert data[0]["unitMarginExVat"] == "0.00"
+    assert data[0]["marginAmountEur"] == "0.00"
     assert data[0]["status"] == "IN_PROGRESS"
 
 
@@ -338,6 +352,8 @@ def test_admin_updates_declaration(client):
     assert updated["differenceQuantity"] == 2
     assert updated["estimatedAmountEur"] == "25.50"
     assert updated["unitPriceExVat"] == "3.00"
+    assert updated["unitMarginExVat"] == "1.20"
+    assert updated["marginAmountEur"] == "2.40"
     assert updated["status"] == "COMPLETED"
 
     invalid_payload = {
@@ -380,6 +396,8 @@ def test_admin_creates_declaration(client):
     assert created["differenceQuantity"] == 1
     assert created["unitPriceExVat"] == "3.00"
     assert created["estimatedAmountEur"] == "12.00"
+    assert created["unitMarginExVat"] == "1.20"
+    assert created["marginAmountEur"] == "4.80"
     assert created["status"] == "COMPLETED"
 
     duplicate_resp = client.post(
@@ -402,6 +420,8 @@ def test_admin_creates_declaration(client):
     assert custom_resp.status_code == 201
     created_custom = custom_resp.json()
     assert created_custom["estimatedAmountEur"] == "42.00"
+    assert created_custom["unitMarginExVat"] == "1.20"
+    assert created_custom["marginAmountEur"] == "4.80"
     assert created_custom["status"] == "COMPLETED"
 
 

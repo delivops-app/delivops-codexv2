@@ -10,6 +10,7 @@ class CategoryRead(BaseModel):
     unit_price_ex_vat: Decimal | None = Field(
         default=None, alias="unitPriceExVat"
     )
+    margin_ex_vat: Decimal | None = Field(default=None, alias="marginExVat")
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
@@ -19,6 +20,7 @@ class CategoryCreate(BaseModel):
     unit_price_ex_vat: Decimal | None = Field(
         default=None, alias="unitPriceExVat"
     )
+    margin_ex_vat: Decimal | None = Field(default=None, alias="marginExVat")
 
 
 class CategoryUpdate(BaseModel):
@@ -26,6 +28,7 @@ class CategoryUpdate(BaseModel):
     unit_price_ex_vat: Decimal | None = Field(
         default=None, alias="unitPriceExVat"
     )
+    margin_ex_vat: Decimal | None = Field(default=None, alias="marginExVat")
 
 
 class ClientWithCategories(BaseModel):

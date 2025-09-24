@@ -19,6 +19,14 @@ export default function ClientCard({
   onEditCategory,
   onDeleteCategory,
 }: Props) {
+  const formatAmount = (value: string) => {
+    const parsed = Number.parseFloat(value)
+    if (Number.isNaN(parsed)) {
+      return '0.00'
+    }
+    return parsed.toFixed(2)
+  }
+
   return (
     <div className="mb-4 rounded border p-4">
       <div className="flex items-center justify-between">
@@ -55,7 +63,8 @@ export default function ClientCard({
               <div className="flex justify-between">
                 <div>
                   <p className="font-medium">{cat.name}</p>
-                  <p>{parseFloat(cat.price).toFixed(2)} €</p>
+                  <p>Tarif : {formatAmount(cat.price)} €</p>
+                  <p>Marge : {formatAmount(cat.margin)} €</p>
                 </div>
                 <div className="space-x-2 text-sm">
                   <button

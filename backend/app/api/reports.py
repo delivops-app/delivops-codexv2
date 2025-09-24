@@ -41,6 +41,20 @@ def _serialize_declaration(
     unit_price = (
         item.unit_price_ex_vat_snapshot if item and item.unit_price_ex_vat_snapshot else None
     )
+    unit_margin = (
+        item.unit_margin_ex_vat_snapshot if item and item.unit_margin_ex_vat_snapshot else None
+    )
+    margin_amount = (
+        item.margin_ex_vat_snapshot if item and item.margin_ex_vat_snapshot else None
+    )
+    estimated_amount_value = (estimated_amount or Decimal("0")).quantize(
+        Decimal("0.01")
+    )
+    unit_price_value = (unit_price or Decimal("0")).quantize(Decimal("0.01"))
+    unit_margin_value = (unit_margin or Decimal("0")).quantize(Decimal("0.01"))
+    margin_amount_value = (margin_amount or Decimal("0")).quantize(
+        Decimal("0.01")
+    )
     return DeclarationReportLine(
         tour_id=tour.id,
         tour_item_id=item.id if item else None,
@@ -51,8 +65,10 @@ def _serialize_declaration(
         pickup_quantity=pickup_qty,
         delivery_quantity=delivery_qty,
         difference_quantity=pickup_qty - delivery_qty,
-        estimated_amount_eur=estimated_amount or Decimal("0"),
-        unit_price_ex_vat=unit_price or Decimal("0"),
+        estimated_amount_eur=estimated_amount_value,
+        unit_price_ex_vat=unit_price_value,
+        unit_margin_ex_vat=unit_margin_value,
+        margin_amount_eur=margin_amount_value,
         status=tour.status,
     )
 
@@ -228,12 +244,14 @@ def create_declaration(
         .first()
     )
     unit_price = tariff.price_ex_vat if tariff else Decimal("0")
+    unit_margin = tariff.margin_ex_vat if tariff else Decimal("0")
 
     amount = (
         declaration_create.estimated_amount_eur
         if declaration_create.estimated_amount_eur is not None
         else unit_price * declaration_create.delivery_quantity
     )
+    margin_amount = unit_margin * declaration_create.delivery_quantity
 
     tour_item = TourItem(
         tenant_id=tenant_id_int,
@@ -243,6 +261,8 @@ def create_declaration(
         delivery_quantity=declaration_create.delivery_quantity,
         unit_price_ex_vat_snapshot=unit_price,
         amount_ex_vat_snapshot=amount,
+        unit_margin_ex_vat_snapshot=unit_margin,
+        margin_ex_vat_snapshot=margin_amount,
     )
     db.add(tour_item)
     db.flush()
@@ -307,6 +327,9 @@ def update_declaration(
         item.amount_ex_vat_snapshot = unit_price * (
             item.delivery_quantity or 0
         )
+
+    unit_margin = item.unit_margin_ex_vat_snapshot or Decimal("0")
+    item.margin_ex_vat_snapshot = unit_margin * (item.delivery_quantity or 0)
 
     db.commit()
 
@@ -376,6 +399,7 @@ def report_declarations_csv(
             "Nombre de colis livrés",
             "Écart",
             "Montant estimé (€)",
+            "Marge (€)",
         ]
     )
     for r in rows:
@@ -389,6 +413,7 @@ def report_declarations_csv(
                 r.delivery_quantity,
                 r.difference_quantity,
                 f"{r.estimated_amount_eur:.2f}",
+                f"{r.margin_amount_eur:.2f}",
             ]
         )
     return Response(

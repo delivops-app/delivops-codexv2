@@ -2,6 +2,7 @@ export type TariffCategory = {
   id: number
   name: string
   price: string
+  margin: string
   color: string
 }
 
@@ -16,6 +17,7 @@ export type ClientCategoryApiPayload = {
   id: number
   name: string
   unitPriceExVat?: string | null
+  marginExVat?: string | null
 }
 
 export type ClientApiPayload = {

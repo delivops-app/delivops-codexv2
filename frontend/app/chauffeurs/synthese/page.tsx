@@ -18,6 +18,8 @@ interface DeclarationRow {
   differenceQuantity: number
   estimatedAmountEur: string
   unitPriceExVat: string
+  unitMarginExVat: string
+  marginAmountEur: string
   status: 'IN_PROGRESS' | 'COMPLETED'
 }
 
@@ -31,6 +33,7 @@ interface ClientCategoryOption {
   id: number
   name: string
   unitPriceExVat: string | number | null
+  marginExVat: string | number | null
 }
 
 interface ClientOption {
@@ -77,6 +80,19 @@ const createDefaultFiltersState = (): FiltersState => ({
   tariffGroupName: '',
 })
 
+const formatIsoDateToFr = (value: string) => {
+  if (!value) return ''
+  const parts = value.split('-')
+  if (parts.length !== 3) {
+    return value
+  }
+  const [year, month, day] = parts
+  if (!year || !month || !day) {
+    return value
+  }
+  return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`
+}
+
 export default function SyntheseChauffeursPage() {
   const { user } = useUser()
   const roles = normalizeRoles(
@@ -97,6 +113,7 @@ export default function SyntheseChauffeursPage() {
     estimatedAmountEur: '',
   })
   const [editingUnitPrice, setEditingUnitPrice] = useState('')
+  const [editingUnitMargin, setEditingUnitMargin] = useState('')
   const [isEditingAmountDirty, setIsEditingAmountDirty] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [deletingId, setDeletingId] = useState<number | null>(null)
@@ -164,6 +181,7 @@ export default function SyntheseChauffeursPage() {
             id: category.id,
             name: category.name,
             unitPriceExVat: category.unitPriceExVat,
+            marginExVat: category.marginExVat,
           })),
         })),
       )
@@ -361,6 +379,16 @@ export default function SyntheseChauffeursPage() {
     }, 0)
   }, [filteredRows])
 
+  const totalMarginAmount = useMemo(() => {
+    return filteredRows.reduce((acc, row) => {
+      const value = Number.parseFloat(row.marginAmountEur)
+      if (Number.isNaN(value)) {
+        return acc
+      }
+      return acc + value
+    }, 0)
+  }, [filteredRows])
+
   const formattedTotalEstimatedAmount = useMemo(
     () =>
       totalEstimatedAmount.toLocaleString('fr-FR', {
@@ -368,6 +396,15 @@ export default function SyntheseChauffeursPage() {
         maximumFractionDigits: 2,
       }),
     [totalEstimatedAmount],
+  )
+
+  const formattedTotalMarginAmount = useMemo(
+    () =>
+      totalMarginAmount.toLocaleString('fr-FR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+    [totalMarginAmount],
   )
 
   const hasDateFilter =
@@ -405,6 +442,7 @@ export default function SyntheseChauffeursPage() {
       estimatedAmountEur: Number(row.estimatedAmountEur || 0).toFixed(2),
     })
     setEditingUnitPrice(row.unitPriceExVat)
+    setEditingUnitMargin(row.unitMarginExVat)
     setIsEditingAmountDirty(false)
     setError('')
   }
@@ -413,6 +451,7 @@ export default function SyntheseChauffeursPage() {
     setEditingId(null)
     setIsSaving(false)
     setEditingUnitPrice('')
+    setEditingUnitMargin('')
     setIsEditingAmountDirty(false)
   }
 
@@ -663,7 +702,7 @@ export default function SyntheseChauffeursPage() {
   const handleDelete = async (row: DeclarationRow) => {
     if (deletingId !== null || row.tourItemId === null) return
     const confirmed = window.confirm(
-      `Confirmez-vous la suppression de la déclaration du ${row.date} pour ${row.driverName} ?`,
+      `Confirmez-vous la suppression de la déclaration du ${formatIsoDateToFr(row.date)} pour ${row.driverName} ?`,
     )
     if (!confirmed) return
 
@@ -678,6 +717,7 @@ export default function SyntheseChauffeursPage() {
       if (editingId === row.tourItemId) {
         setEditingId(null)
         setEditingUnitPrice('')
+        setEditingUnitMargin('')
         setIsEditingAmountDirty(false)
       }
     } else if (isApiFetchError(res)) {
@@ -705,6 +745,11 @@ export default function SyntheseChauffeursPage() {
   const selectedClientForNewRow = selectedClientId
     ? clients.find((client) => client.id === selectedClientId)
     : undefined
+  const selectedCategoryForNewRow = selectedClientForNewRow
+    ? selectedClientForNewRow.categories.find(
+        (category) => category.id === Number(newFormValues.tariffGroupId),
+      )
+    : undefined
   const newPickupQuantity = parseInt(newFormValues.pickupQuantity, 10)
   const newDeliveryQuantity = parseInt(newFormValues.deliveryQuantity, 10)
   const newDifference =
@@ -714,6 +759,15 @@ export default function SyntheseChauffeursPage() {
   const deliveryMax = Number.isNaN(newPickupQuantity)
     ? undefined
     : newPickupQuantity
+  const unitMarginValue = selectedCategoryForNewRow?.marginExVat
+  const newUnitMargin =
+    unitMarginValue === null || unitMarginValue === undefined
+      ? Number.NaN
+      : parseFloat(unitMarginValue.toString())
+  const newMarginAmount =
+    Number.isNaN(newUnitMargin) || Number.isNaN(newDeliveryQuantity)
+      ? null
+      : newUnitMargin * newDeliveryQuantity
   const isEditingRow = editingId !== null
 
   if (!isAdmin) {
@@ -903,12 +957,20 @@ export default function SyntheseChauffeursPage() {
           >
             Réinitialiser les filtres
           </button>
-          <p className="text-base sm:text-lg">
-            Montant estimé total :{' '}
-            <span className="font-semibold">
-              {formattedTotalEstimatedAmount} €
-            </span>
-          </p>
+          <div className="text-base sm:text-lg sm:text-right">
+            <p>
+              Montant estimé total :{' '}
+              <span className="font-semibold">
+                {formattedTotalEstimatedAmount} €
+              </span>
+            </p>
+            <p>
+              Marge totale :{' '}
+              <span className="font-semibold">
+                {formattedTotalMarginAmount} €
+              </span>
+            </p>
+          </div>
         </div>
       </div>
       <div className="mb-4 flex w-full justify-end">
@@ -932,6 +994,7 @@ export default function SyntheseChauffeursPage() {
             <th className="border px-4 py-2">Colis livrés</th>
             <th className="border px-4 py-2">Écart</th>
             <th className="border px-4 py-2">Montant estimé (€)</th>
+            <th className="border px-4 py-2">Marge (€)</th>
             <th className="border px-4 py-2">Actions</th>
           </tr>
         </thead>
@@ -1042,6 +1105,11 @@ export default function SyntheseChauffeursPage() {
                 />
               </td>
               <td className="border px-4 py-2">
+                {newMarginAmount !== null
+                  ? newMarginAmount.toFixed(2)
+                  : '—'}
+              </td>
+              <td className="border px-4 py-2">
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -1071,7 +1139,7 @@ export default function SyntheseChauffeursPage() {
                   : `tour-${row.tourId}`
               }
             >
-              <td className="border px-4 py-2">{row.date}</td>
+              <td className="border px-4 py-2">{formatIsoDateToFr(row.date)}</td>
               <td className="border px-4 py-2">{row.driverName}</td>
               <td className="border px-4 py-2">{row.clientName}</td>
               <td className="border px-4 py-2">{row.tariffGroupDisplayName}</td>
@@ -1136,6 +1204,24 @@ export default function SyntheseChauffeursPage() {
                 )}
               </td>
               <td className="border px-4 py-2">
+                {editingId === row.tourItemId
+                  ? (() => {
+                      const delivery = parseInt(
+                        formValues.deliveryQuantity,
+                        10,
+                      )
+                      const unitMargin = parseFloat(editingUnitMargin || '')
+                      if (
+                        Number.isNaN(delivery) ||
+                        Number.isNaN(unitMargin)
+                      ) {
+                        return '—'
+                      }
+                      return (unitMargin * delivery).toFixed(2)
+                    })()
+                  : Number(row.marginAmountEur || 0).toFixed(2)}
+              </td>
+              <td className="border px-4 py-2">
                 {editingId === row.tourItemId ? (
                   <div className="flex gap-2">
                     <button
@@ -1187,7 +1273,7 @@ export default function SyntheseChauffeursPage() {
           ))}
           {filteredRows.length === 0 && !isCreating && (
             <tr>
-              <td className="border px-4 py-6 text-center" colSpan={9}>
+              <td className="border px-4 py-6 text-center" colSpan={10}>
                 {rows.length === 0
                   ? 'Aucune déclaration disponible.'
                   : 'Aucune déclaration ne correspond aux filtres.'}
@@ -1198,10 +1284,13 @@ export default function SyntheseChauffeursPage() {
         <tfoot>
           <tr>
             <td className="border px-4 py-2 font-semibold" colSpan={7}>
-              Montant estimé total
+              Totaux
             </td>
             <td className="border px-4 py-2 font-semibold">
               {formattedTotalEstimatedAmount} €
+            </td>
+            <td className="border px-4 py-2 font-semibold">
+              {formattedTotalMarginAmount} €
             </td>
             <td className="border px-4 py-2" />
           </tr>
