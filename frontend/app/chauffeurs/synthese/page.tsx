@@ -60,6 +60,23 @@ interface FiltersState {
   tariffGroupName: string
 }
 
+const getCurrentMonthString = () => {
+  const now = new Date()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  return `${now.getFullYear()}-${month}`
+}
+
+const createDefaultFiltersState = (): FiltersState => ({
+  dateMode: 'month',
+  day: '',
+  month: getCurrentMonthString(),
+  dateFrom: '',
+  dateTo: '',
+  driverId: '',
+  clientId: '',
+  tariffGroupName: '',
+})
+
 export default function SyntheseChauffeursPage() {
   const { user } = useUser()
   const roles = normalizeRoles(
@@ -69,16 +86,9 @@ export default function SyntheseChauffeursPage() {
   const [rows, setRows] = useState<DeclarationRow[]>([])
   const [drivers, setDrivers] = useState<DriverOption[]>([])
   const [clients, setClients] = useState<ClientOption[]>([])
-  const [filters, setFilters] = useState<FiltersState>({
-    dateMode: 'day',
-    day: '',
-    month: '',
-    dateFrom: '',
-    dateTo: '',
-    driverId: '',
-    clientId: '',
-    tariffGroupName: '',
-  })
+  const [filters, setFilters] = useState<FiltersState>(() =>
+    createDefaultFiltersState(),
+  )
   const [error, setError] = useState('')
   const [editingId, setEditingId] = useState<number | null>(null)
   const [formValues, setFormValues] = useState({
@@ -184,7 +194,7 @@ export default function SyntheseChauffeursPage() {
           ...prev,
           dateMode: value as FiltersState['dateMode'],
           day: '',
-          month: '',
+          month: value === 'month' ? getCurrentMonthString() : '',
           dateFrom: '',
           dateTo: '',
         }
@@ -210,16 +220,7 @@ export default function SyntheseChauffeursPage() {
   }
 
   const resetFilters = () => {
-    setFilters({
-      dateMode: 'day',
-      day: '',
-      month: '',
-      dateFrom: '',
-      dateTo: '',
-      driverId: '',
-      clientId: '',
-      tariffGroupName: '',
-    })
+    setFilters(createDefaultFiltersState())
   }
 
   const driverFilterOptions = useMemo(
