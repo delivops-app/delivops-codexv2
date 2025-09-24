@@ -68,7 +68,7 @@ class TourRead(BaseModel):
 
 class DeclarationReportLine(BaseModel):
     tour_id: int = Field(alias="tourId")
-    tour_item_id: int = Field(alias="tourItemId")
+    tour_item_id: int | None = Field(alias="tourItemId")
     date: date
     driver_name: str = Field(alias="driverName")
     client_name: str = Field(alias="clientName")

@@ -15,6 +15,7 @@ from app.models.chauffeur import Chauffeur
 from app.models.client import Client
 from app.models.tariff import Tariff
 from app.models.tariff_group import TariffGroup
+from app.models.tour import Tour
 from app.models.tenant import Tenant
 from app.models.user import User
 
@@ -222,7 +223,7 @@ def test_report_declarations(client):
     data = resp.json()
     assert len(data) == 1
     assert data[0]["tourId"] > 0
-    assert data[0]["tourItemId"] > 0
+    assert data[0]["tourItemId"] is not None
     assert data[0]["pickupQuantity"] == 2
     assert data[0]["deliveryQuantity"] == 2
     assert data[0]["differenceQuantity"] == 0
@@ -258,6 +259,32 @@ def test_report_declarations_includes_in_progress(client):
     assert data[0]["status"] == "IN_PROGRESS"
 
 
+def test_report_declarations_includes_in_progress_without_items(client):
+    with TestingSessionLocal() as db:
+        tenant_id, chauffeur_id, client_id, _ = _seed(db)
+        tour = Tour(
+            tenant_id=tenant_id,
+            driver_id=chauffeur_id,
+            client_id=client_id,
+            date=date.today(),
+            status=Tour.STATUS_IN_PROGRESS,
+        )
+        db.add(tour)
+        db.commit()
+
+    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    resp = client.get("/reports/declarations", headers=headers_admin)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 1
+    assert data[0]["tourItemId"] is None
+    assert data[0]["pickupQuantity"] == 0
+    assert data[0]["deliveryQuantity"] == 0
+    assert data[0]["tariffGroupDisplayName"] == "—"
+    assert data[0]["status"] == "IN_PROGRESS"
+
+
+
 def test_admin_updates_declaration(client):
     with TestingSessionLocal() as db:
         tenant_id, chauffeur_id, client_id, tg_id = _seed(db)
@@ -289,6 +316,9 @@ def test_admin_updates_declaration(client):
     headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
     report_resp = client.get("/reports/declarations", headers=headers_admin)
     tour_item_id = report_resp.json()[0]["tourItemId"]
+
+    assert tour_item_id is not None
+
     assert report_resp.json()[0]["status"] == "COMPLETED"
 
     update_payload = {
