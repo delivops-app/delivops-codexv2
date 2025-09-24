@@ -8,7 +8,7 @@ import { normalizeRoles } from '../../../lib/roles'
 
 interface DeclarationRow {
   tourId: number
-  tourItemId: number
+  tourItemId: number | null
   date: string
   driverName: string
   clientName: string
@@ -18,6 +18,7 @@ interface DeclarationRow {
   differenceQuantity: number
   estimatedAmountEur: string
   unitPriceExVat: string
+  status: 'IN_PROGRESS' | 'COMPLETED'
 }
 
 interface DriverOption {
@@ -97,7 +98,7 @@ export default function SyntheseChauffeursPage() {
   const fetchDeclarations = useCallback(async () => {
     const res = await apiFetch('/reports/declarations')
     if (res.ok) {
-      const json = await res.json()
+      const json: DeclarationRow[] = await res.json()
       setRows(json)
       setError('')
     } else if (isApiFetchError(res)) {
@@ -367,6 +368,9 @@ export default function SyntheseChauffeursPage() {
   }
 
   const startEditing = (row: DeclarationRow) => {
+    if (row.status === 'IN_PROGRESS' || row.tourItemId === null) {
+      return
+    }
     setEditingId(row.tourItemId)
     setFormValues({
       pickupQuantity: row.pickupQuantity.toString(),
@@ -630,7 +634,7 @@ export default function SyntheseChauffeursPage() {
   }
 
   const handleDelete = async (row: DeclarationRow) => {
-    if (deletingId !== null) return
+    if (deletingId !== null || row.tourItemId === null) return
     const confirmed = window.confirm(
       `Confirmez-vous la suppression de la déclaration du ${row.date} pour ${row.driverName} ?`,
     )
@@ -1027,7 +1031,13 @@ export default function SyntheseChauffeursPage() {
             </tr>
           )}
           {filteredRows.map((row) => (
-            <tr key={row.tourItemId}>
+            <tr
+              key={
+                row.tourItemId !== null
+                  ? `item-${row.tourItemId}`
+                  : `tour-${row.tourId}`
+              }
+            >
               <td className="border px-4 py-2">{row.date}</td>
               <td className="border px-4 py-2">{row.driverName}</td>
               <td className="border px-4 py-2">{row.clientName}</td>
@@ -1058,6 +1068,8 @@ export default function SyntheseChauffeursPage() {
                       handleInputChange('deliveryQuantity', e.target.value)
                     }
                   />
+                ) : row.status === 'IN_PROGRESS' ? (
+                  'en cours de livraison'
                 ) : (
                   row.deliveryQuantity
                 )}
@@ -1116,18 +1128,24 @@ export default function SyntheseChauffeursPage() {
                       type="button"
                       className="rounded bg-blue-600 px-3 py-1 text-white disabled:opacity-50"
                       onClick={() => startEditing(row)}
-                      disabled={isCreating || deletingId === row.tourItemId}
+                      disabled={
+                        isCreating ||
+                        deletingId === row.tourItemId ||
+                        row.status === 'IN_PROGRESS' || row.tourItemId === null
+                      }
                     >
                       Modifier
                     </button>
-                    <button
-                      type="button"
-                      className="rounded bg-red-600 px-3 py-1 text-white disabled:opacity-50"
-                      onClick={() => handleDelete(row)}
-                      disabled={deletingId === row.tourItemId}
-                    >
-                      Supprimer
-                    </button>
+                  <button
+                    type="button"
+                    className="rounded bg-red-600 px-3 py-1 text-white disabled:opacity-50"
+                    onClick={() => handleDelete(row)}
+                    disabled={
+                      deletingId === row.tourItemId || row.tourItemId === null
+                    }
+                  >
+                    Supprimer
+                  </button>
                   </div>
                 )}
               </td>

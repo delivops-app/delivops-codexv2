@@ -68,7 +68,7 @@ class TourRead(BaseModel):
 
 class DeclarationReportLine(BaseModel):
     tour_id: int = Field(alias="tourId")
-    tour_item_id: int = Field(alias="tourItemId")
+    tour_item_id: int | None = Field(alias="tourItemId")
     date: date
     driver_name: str = Field(alias="driverName")
     client_name: str = Field(alias="clientName")
@@ -78,6 +78,7 @@ class DeclarationReportLine(BaseModel):
     difference_quantity: int = Field(alias="differenceQuantity")
     estimated_amount_eur: Decimal = Field(alias="estimatedAmountEur")
     unit_price_ex_vat: Decimal = Field(alias="unitPriceExVat")
+    status: Literal["IN_PROGRESS", "COMPLETED"]
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 

@@ -15,6 +15,7 @@ from app.models.chauffeur import Chauffeur
 from app.models.client import Client
 from app.models.tariff import Tariff
 from app.models.tariff_group import TariffGroup
+from app.models.tour import Tour
 from app.models.tenant import Tenant
 from app.models.user import User
 
@@ -222,12 +223,65 @@ def test_report_declarations(client):
     data = resp.json()
     assert len(data) == 1
     assert data[0]["tourId"] > 0
-    assert data[0]["tourItemId"] > 0
+    assert data[0]["tourItemId"] is not None
     assert data[0]["pickupQuantity"] == 2
     assert data[0]["deliveryQuantity"] == 2
     assert data[0]["differenceQuantity"] == 0
     assert data[0]["unitPriceExVat"] == "3.00"
     assert data[0]["estimatedAmountEur"] == "6.00"
+    assert data[0]["status"] == "COMPLETED"
+
+
+def test_report_declarations_includes_in_progress(client):
+    with TestingSessionLocal() as db:
+        tenant_id, chauffeur_id, client_id, tg_id = _seed(db)
+
+    headers_driver = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "CHAUFFEUR",
+        "X-Dev-Sub": "dev|driver1",
+    }
+    pickup_payload = {
+        "date": date.today().isoformat(),
+        "clientId": client_id,
+        "items": [{"tariffGroupId": tg_id, "pickupQuantity": 3}],
+    }
+    pickup_resp = client.post("/tours/pickup", json=pickup_payload, headers=headers_driver)
+    assert pickup_resp.status_code == 201
+
+    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    resp = client.get("/reports/declarations", headers=headers_admin)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 1
+    assert data[0]["pickupQuantity"] == 3
+    assert data[0]["deliveryQuantity"] == 0
+    assert data[0]["status"] == "IN_PROGRESS"
+
+
+def test_report_declarations_includes_in_progress_without_items(client):
+    with TestingSessionLocal() as db:
+        tenant_id, chauffeur_id, client_id, _ = _seed(db)
+        tour = Tour(
+            tenant_id=tenant_id,
+            driver_id=chauffeur_id,
+            client_id=client_id,
+            date=date.today(),
+            status=Tour.STATUS_IN_PROGRESS,
+        )
+        db.add(tour)
+        db.commit()
+
+    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    resp = client.get("/reports/declarations", headers=headers_admin)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 1
+    assert data[0]["tourItemId"] is None
+    assert data[0]["pickupQuantity"] == 0
+    assert data[0]["deliveryQuantity"] == 0
+    assert data[0]["tariffGroupDisplayName"] == "—"
+    assert data[0]["status"] == "IN_PROGRESS"
 
 
 def test_admin_updates_declaration(client):
@@ -261,6 +315,8 @@ def test_admin_updates_declaration(client):
     headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
     report_resp = client.get("/reports/declarations", headers=headers_admin)
     tour_item_id = report_resp.json()[0]["tourItemId"]
+    assert tour_item_id is not None
+    assert report_resp.json()[0]["status"] == "COMPLETED"
 
     update_payload = {
         "pickupQuantity": 4,
@@ -279,6 +335,7 @@ def test_admin_updates_declaration(client):
     assert updated["differenceQuantity"] == 2
     assert updated["estimatedAmountEur"] == "25.50"
     assert updated["unitPriceExVat"] == "3.00"
+    assert updated["status"] == "COMPLETED"
 
     invalid_payload = {
         "pickupQuantity": 2,
@@ -320,6 +377,7 @@ def test_admin_creates_declaration(client):
     assert created["differenceQuantity"] == 1
     assert created["unitPriceExVat"] == "3.00"
     assert created["estimatedAmountEur"] == "12.00"
+    assert created["status"] == "COMPLETED"
 
     duplicate_resp = client.post(
         "/reports/declarations", json=payload, headers=headers_admin
@@ -341,6 +399,7 @@ def test_admin_creates_declaration(client):
     assert custom_resp.status_code == 201
     created_custom = custom_resp.json()
     assert created_custom["estimatedAmountEur"] == "42.00"
+    assert created_custom["status"] == "COMPLETED"
 
 
 def test_admin_deletes_declaration(client):

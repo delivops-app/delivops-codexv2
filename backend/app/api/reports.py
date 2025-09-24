@@ -27,26 +27,33 @@ router = APIRouter(prefix="/reports", tags=["reports"])
 
 
 def _serialize_declaration(
-    item: TourItem,
+    item: TourItem | None,
     tour: Tour,
     driver: Chauffeur,
     client: Client,
-    tg: TariffGroup,
+    tg: TariffGroup | None,
 ) -> DeclarationReportLine:
-    pickup_qty = item.pickup_quantity or 0
-    delivery_qty = item.delivery_quantity or 0
+    pickup_qty = item.pickup_quantity or 0 if item else 0
+    delivery_qty = item.delivery_quantity or 0 if item else 0
+    estimated_amount = (
+        item.amount_ex_vat_snapshot if item and item.amount_ex_vat_snapshot else None
+    )
+    unit_price = (
+        item.unit_price_ex_vat_snapshot if item and item.unit_price_ex_vat_snapshot else None
+    )
     return DeclarationReportLine(
         tour_id=tour.id,
-        tour_item_id=item.id,
+        tour_item_id=item.id if item else None,
         date=tour.date,
         driver_name=driver.display_name,
         client_name=client.name,
-        tariff_group_display_name=tg.display_name,
+        tariff_group_display_name=tg.display_name if tg else "—",
         pickup_quantity=pickup_qty,
         delivery_quantity=delivery_qty,
         difference_quantity=pickup_qty - delivery_qty,
-        estimated_amount_eur=item.amount_ex_vat_snapshot or Decimal("0"),
-        unit_price_ex_vat=item.unit_price_ex_vat_snapshot or Decimal("0"),
+        estimated_amount_eur=estimated_amount or Decimal("0"),
+        unit_price_ex_vat=unit_price or Decimal("0"),
+        status=tour.status,
     )
 
 
@@ -59,13 +66,15 @@ def _query_declarations(
     driver_id: Optional[int],
 ) -> List[DeclarationReportLine]:
     query = (
-        db.query(TourItem, Tour, Chauffeur, Client, TariffGroup)
-        .join(Tour, TourItem.tour_id == Tour.id)
+        db.query(Tour, TourItem, Chauffeur, Client, TariffGroup)
         .join(Chauffeur, Tour.driver_id == Chauffeur.id)
         .join(Client, Tour.client_id == Client.id)
-        .join(TariffGroup, TourItem.tariff_group_id == TariffGroup.id)
+        .outerjoin(TourItem, TourItem.tour_id == Tour.id)
+        .outerjoin(TariffGroup, TourItem.tariff_group_id == TariffGroup.id)
         .filter(Tour.tenant_id == tenant_id)
-        .filter(Tour.status == Tour.STATUS_COMPLETED)
+        .filter(
+            Tour.status.in_([Tour.STATUS_COMPLETED, Tour.STATUS_IN_PROGRESS])
+        )
     )
 
     if date_from:
@@ -77,11 +86,19 @@ def _query_declarations(
     if driver_id:
         query = query.filter(Tour.driver_id == driver_id)
 
-    query = query.order_by(Tour.date.desc())
+    query = query.order_by(Tour.date.desc(), Tour.id.desc(), TourItem.id.asc())
 
     rows = []
-    for item, tour, driver, client, tg in query.all():
+    for tour, item, driver, client, tg in query.all():
         rows.append(_serialize_declaration(item, tour, driver, client, tg))
+    if len(rows) > 1:
+        rows.sort(
+            key=lambda r: (
+                -r.date.toordinal(),
+                -r.tour_id,
+                r.tour_item_id if r.tour_item_id is not None else -1,
+            )
+        )
     return rows
 
 
