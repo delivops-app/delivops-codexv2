@@ -5,12 +5,14 @@ import Link from 'next/link'
 import { useUser } from '@auth0/nextjs-auth0/client'
 import { apiFetch, isApiFetchError } from '../../lib/api'
 import { normalizeRoles } from '../../lib/roles'
+import { formatRelativeLastSeen } from '../../lib/relativeTime'
 
 interface Chauffeur {
   id: number
   email: string
   display_name: string
   is_active: boolean
+  last_seen_at: string | null
 }
 
 export default function ChauffeursPage() {
@@ -64,7 +66,8 @@ export default function ChauffeursPage() {
           <tr>
             <th className="border px-4 py-2">Nom</th>
             <th className="border px-4 py-2">Email</th>
-            <th className="border px-4 py-2">Actif</th>
+            <th className="border px-4 py-2">Dernière activité</th>
+            <th className="border px-4 py-2">Statut</th>
           </tr>
         </thead>
         <tbody>
@@ -73,9 +76,12 @@ export default function ChauffeursPage() {
               <td className="border px-4 py-2">{c.display_name}</td>
               <td className="border px-4 py-2">{c.email}</td>
               <td className="border px-4 py-2">
-                {c.is_active ? 'Oui' : 'Non'}
+                {formatRelativeLastSeen(c.last_seen_at)}
               </td>
-            </tr>
+              <td className="border px-4 py-2">
+                {c.is_active ? 'Actif' : 'Inactif'}
+              </td>
+          </tr>
           ))}
         </tbody>
       </table>

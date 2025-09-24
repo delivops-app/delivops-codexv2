@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 
 from .base import Base
@@ -10,6 +10,7 @@ class Chauffeur(Base):
     email = Column(String, unique=True, nullable=False)
     display_name = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
+    last_seen_at = Column(DateTime, nullable=True)
 
     tenant = relationship("Tenant", backref="chauffeurs")
     user = relationship("User", backref="chauffeur", uselist=False)

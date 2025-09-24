@@ -130,5 +130,6 @@ def test_list_chauffeurs():
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 2
+    assert all("last_seen_at" in c for c in data)
     emails = {c["email"] for c in data}
     assert {"driver4@example.com", "driver5@example.com"} <= emails
