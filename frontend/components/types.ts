@@ -8,6 +8,7 @@ export type TariffCategory = {
 export type Client = {
   id: number
   name: string
+  isActive: boolean
   categories: TariffCategory[]
 }
 
@@ -20,5 +21,6 @@ export type ClientCategoryApiPayload = {
 export type ClientApiPayload = {
   id: number
   name: string
+  isActive?: boolean
   categories: ClientCategoryApiPayload[]
 }

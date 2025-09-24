@@ -57,6 +57,7 @@ const mapCategoryFromApi = (
 const mapClientFromApi = (client: ClientApiPayload): Client => ({
   id: client.id,
   name: client.name,
+  isActive: client.isActive ?? true,
   categories: client.categories.map((cat, idx) =>
     mapCategoryFromApi(cat, COLORS[idx % COLORS.length]),
   ),

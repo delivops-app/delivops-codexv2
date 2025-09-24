@@ -33,16 +33,25 @@ def slugify(text: str) -> str:
 @router.get("", response_model=List[ClientWithCategories], include_in_schema=False)
 @router.get("/", response_model=List[ClientWithCategories])
 def list_clients(
+    include_inactive: bool = False,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: str = Depends(get_tenant_id),  # noqa: B008
     user: dict = Depends(require_roles("CHAUFFEUR", "ADMIN")),  # noqa: B008
 ) -> List[ClientWithCategories]:
-    """Return all active clients with their tariff categories."""
+    """Return clients with their tariff categories.
+
+    By default only active clients are returned. Pass ``include_inactive=true``
+    to also include inactive ones, which is useful when displaying historical
+    data that still references them.
+    """
     tenant_id_int = int(tenant_id)
+    client_filters = [Client.tenant_id == tenant_id_int]
+    if not include_inactive:
+        client_filters.append(Client.is_active.is_(True))
     clients = (
         db.execute(
             select(Client)
-            .where(Client.tenant_id == tenant_id_int, Client.is_active.is_(True))
+            .where(*client_filters)
             .order_by(Client.name)
         )
         .scalars()
@@ -52,14 +61,16 @@ def list_clients(
     today = date.today()
     result: List[ClientWithCategories] = []
     for client in clients:
+        group_filters = [
+            TariffGroup.tenant_id == tenant_id_int,
+            TariffGroup.client_id == client.id,
+        ]
+        if not include_inactive:
+            group_filters.append(TariffGroup.is_active.is_(True))
         groups = (
             db.execute(
                 select(TariffGroup)
-                .where(
-                    TariffGroup.tenant_id == tenant_id_int,
-                    TariffGroup.client_id == client.id,
-                    TariffGroup.is_active.is_(True),
-                )
+                .where(*group_filters)
                 .order_by(TariffGroup.order)
             )
             .scalars()
@@ -85,7 +96,12 @@ def list_clients(
                 CategoryRead(id=g.id, name=g.display_name, unit_price_ex_vat=price)
             )
         result.append(
-            ClientWithCategories(id=client.id, name=client.name, categories=categories)
+            ClientWithCategories(
+                id=client.id,
+                name=client.name,
+                isActive=client.is_active,
+                categories=categories,
+            )
         )
     return result
 
@@ -106,7 +122,12 @@ def create_client(
     db.add(client)
     db.commit()
     db.refresh(client)
-    return ClientWithCategories(id=client.id, name=client.name, categories=[])
+    return ClientWithCategories(
+        id=client.id,
+        name=client.name,
+        isActive=client.is_active,
+        categories=[],
+    )
 
 
 @router.patch("/{client_id}", response_model=ClientWithCategories)
@@ -164,7 +185,12 @@ def update_client(
         categories.append(
             CategoryRead(id=g.id, name=g.display_name, unit_price_ex_vat=price)
         )
-    return ClientWithCategories(id=client.id, name=client.name, categories=categories)
+    return ClientWithCategories(
+        id=client.id,
+        name=client.name,
+        isActive=client.is_active,
+        categories=categories,
+    )
 
 
 @router.delete("/{client_id}", status_code=204)

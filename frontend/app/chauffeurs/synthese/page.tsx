@@ -36,6 +36,14 @@ interface ClientCategoryOption {
 interface ClientOption {
   id: number
   name: string
+  isActive: boolean
+  categories: ClientCategoryOption[]
+}
+
+interface ClientOptionApiPayload {
+  id: number
+  name: string
+  isActive?: boolean
   categories: ClientCategoryOption[]
 }
 
@@ -134,10 +142,21 @@ export default function SyntheseChauffeursPage() {
   }, [])
 
   const fetchClientsData = useCallback(async () => {
-    const res = await apiFetch('/clients/')
+    const res = await apiFetch('/clients/?include_inactive=true')
     if (res.ok) {
-      const json = await res.json()
-      setClients(json)
+      const json = (await res.json()) as ClientOptionApiPayload[]
+      setClients(
+        json.map((client) => ({
+          id: client.id,
+          name: client.name,
+          isActive: client.isActive ?? true,
+          categories: (client.categories ?? []).map((category) => ({
+            id: category.id,
+            name: category.name,
+            unitPriceExVat: category.unitPriceExVat,
+          })),
+        })),
+      )
     } else if (isApiFetchError(res)) {
       console.error('Failed to load clients for declarations summary', res.error)
       setError(
@@ -207,11 +226,14 @@ export default function SyntheseChauffeursPage() {
     () =>
       drivers
         .slice()
-        .sort((a, b) =>
-          a.displayName.localeCompare(b.displayName, 'fr', {
+        .sort((a, b) => {
+          if (a.isActive !== b.isActive) {
+            return a.isActive ? -1 : 1
+          }
+          return a.displayName.localeCompare(b.displayName, 'fr', {
             sensitivity: 'base',
-          }),
-        ),
+          })
+        }),
     [drivers],
   )
 
@@ -219,9 +241,12 @@ export default function SyntheseChauffeursPage() {
     () =>
       clients
         .slice()
-        .sort((a, b) =>
-          a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }),
-        ),
+        .sort((a, b) => {
+          if (a.isActive !== b.isActive) {
+            return a.isActive ? -1 : 1
+          }
+          return a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })
+        }),
     [clients],
   )
 
@@ -839,6 +864,7 @@ export default function SyntheseChauffeursPage() {
               {clientFilterOptions.map((client) => (
                 <option key={client.id} value={client.id}>
                   {client.name}
+                  {!client.isActive ? ' (inactif)' : ''}
                 </option>
               ))}
             </select>
@@ -945,8 +971,13 @@ export default function SyntheseChauffeursPage() {
                 >
                   <option value="">Sélectionner</option>
                   {clients.map((client) => (
-                    <option key={client.id} value={client.id}>
+                    <option
+                      key={client.id}
+                      value={client.id}
+                      disabled={!client.isActive}
+                    >
                       {client.name}
+                      {!client.isActive ? ' (inactif)' : ''}
                     </option>
                   ))}
                 </select>
