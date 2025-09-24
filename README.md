@@ -100,7 +100,23 @@ pgAdmin est intégré à l'environnement Docker Compose pour administrer la base
 - Identifiant : `admin@delivops.local`
 - Mot de passe : `changeme` (ou la valeur fournie via `PGADMIN_DEFAULT_PASSWORD`)
 
-Pour définir un mot de passe différent, exportez `PGADMIN_DEFAULT_PASSWORD` dans votre shell ou renseignez-le dans un fichier `.env` chargé par Docker Compose avant de lancer `make dev`.
+Pour définir un mot de passe différent :
+
+- exportez la variable dans votre shell **dans le même terminal que celui où vous lancerez** `make dev` :
+
+  ```bash
+  export PGADMIN_DEFAULT_PASSWORD='motdepasse-sécurisé'
+  make dev
+  ```
+
+- ou créez un fichier `.env` à la racine du dépôt (lu automatiquement par Docker Compose) contenant :
+
+  ```
+  PGADMIN_DEFAULT_PASSWORD=motdepasse-sécurisé
+  ```
+
+Dans les deux cas, relancez ensuite `make dev` pour (re)créer le conteneur pgAdmin avec ce mot de passe.
+
 
 ## Gestion des données
 
