@@ -74,6 +74,7 @@ Les services sont ensuite accessibles :
 
 - API : http://localhost:8000
 - Frontend : http://localhost:3000
+- pgAdmin : http://localhost:5050
 
 ## Rôles et permissions
 
@@ -90,6 +91,16 @@ Une stack Grafana/Loki accompagne le projet pour le suivi des `AuditLog` :
 
 - Grafana : http://localhost:3001
 - Dashboard "Chauffeurs par utilisateur" pré-provisionné.
+
+## Administration de la base de données
+
+pgAdmin est intégré à l'environnement Docker Compose pour administrer la base PostgreSQL.
+
+- URL : http://localhost:5050
+- Identifiant : `admin@delivops.local`
+- Mot de passe : `changeme` (ou la valeur fournie via `PGADMIN_DEFAULT_PASSWORD`)
+
+Pour définir un mot de passe différent, exportez `PGADMIN_DEFAULT_PASSWORD` dans votre shell ou renseignez-le dans un fichier `.env` chargé par Docker Compose avant de lancer `make dev`.
 
 ## Gestion des données
 
