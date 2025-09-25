@@ -163,8 +163,7 @@ Le script ajoute automatiquement `backend` au `PYTHONPATH` et se connecte par d�
 
 ### Export Excel des déclarations
 
-
-L'API expose un export Excel des déclarations via `GET /reports/declarations/export.xlsx`. En mode développement (`DEV_FAKE_AUTH=1`), pensez à ajouter les en-têtes `X-Tenant-Id` (identifiant ou slug du tenant) ainsi que `X-Dev-Role: ADMIN` et `X-Dev-Sub` pour récupérer le fichier `declarations.xlsx`. Dans l'interface « Synthèse des chauffeurs », un bouton **Exporter en Excel** déclenche le téléchargement de ce fichier.
+L'API expose un export Excel des déclarations via `GET /reports/declarations/export.xlsx`. En mode développement (`DEV_FAKE_AUTH=1`), pensez à ajouter les en-têtes `X-Tenant-Id` (identifiant ou slug du tenant) ainsi que `X-Dev-Role: ADMIN` et `X-Dev-Sub` pour récupérer le fichier `declarations.xlsx`.
 
 ## Tests
 

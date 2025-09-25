@@ -93,36 +93,6 @@ const formatIsoDateToFr = (value: string) => {
   return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`
 }
 
-const EXCEL_MIME_TYPE =
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-
-const extractFilenameFromContentDisposition = (
-  headerValue: string | null,
-): string | null => {
-  if (!headerValue) {
-    return null
-  }
-
-  const filenameStarMatch = headerValue.match(/filename\*\s*=\s*([^;]+)/i)
-  if (filenameStarMatch) {
-    const rawValue = filenameStarMatch[1].trim()
-    const withoutEncoding = rawValue.replace(/^UTF-8''/i, '')
-    const cleaned = withoutEncoding.replace(/^['"]|['"]$/g, '')
-    try {
-      return decodeURIComponent(cleaned)
-    } catch {
-      return cleaned
-    }
-  }
-
-  const filenameMatch = headerValue.match(/filename\s*=\s*"?([^";]+)"?/i)
-  if (filenameMatch) {
-    return filenameMatch[1].trim()
-  }
-
-  return null
-}
-
 export default function SyntheseChauffeursPage() {
   const { user } = useUser()
   const roles = normalizeRoles(
@@ -159,7 +129,6 @@ export default function SyntheseChauffeursPage() {
   })
   const [isNewAmountDirty, setIsNewAmountDirty] = useState(false)
   const [isSavingNewRow, setIsSavingNewRow] = useState(false)
-  const [isExporting, setIsExporting] = useState(false)
 
   const fetchDeclarations = useCallback(async () => {
     const res = await apiFetch('/reports/declarations')
@@ -225,80 +194,6 @@ export default function SyntheseChauffeursPage() {
       setError('Erreur lors du chargement des clients.')
     }
   }, [])
-
-  const handleExcelExport = useCallback(async () => {
-    if (isExporting) {
-      return
-    }
-
-    setIsExporting(true)
-    try {
-      const res = await apiFetch('/reports/declarations/export.xlsx', {
-        headers: { Accept: EXCEL_MIME_TYPE },
-      })
-
-      if (isApiFetchError(res)) {
-        console.error('Failed to download declarations Excel export', res.error)
-        setError(
-          "Impossible de télécharger l'export Excel. Vérifiez votre connexion et réessayez.",
-        )
-        return
-      }
-
-      if (!res.ok) {
-        const fallbackMessage =
-          "Impossible de télécharger l'export Excel. Réessayez plus tard."
-        let detail = ''
-
-        try {
-          const data = await res.clone().json()
-          if (data && typeof data === 'object') {
-            const maybeDetail = (data as { detail?: unknown }).detail
-            if (typeof maybeDetail === 'string' && maybeDetail.trim().length > 0) {
-              detail = maybeDetail
-            }
-          } else if (typeof data === 'string' && data.trim().length > 0) {
-            detail = data
-          }
-        } catch {
-          try {
-            const text = await res.clone().text()
-            if (text.trim().length > 0) {
-              detail = text
-            }
-          } catch {
-            detail = ''
-          }
-        }
-
-        setError(detail || fallbackMessage)
-        return
-      }
-
-      const blob = await res.blob()
-      const downloadUrl = URL.createObjectURL(blob)
-      const contentDisposition = res.headers.get('Content-Disposition')
-      const filename =
-        extractFilenameFromContentDisposition(contentDisposition) ||
-        'declarations.xlsx'
-
-      const anchor = document.createElement('a')
-      anchor.href = downloadUrl
-      anchor.download = filename
-      document.body.appendChild(anchor)
-      anchor.click()
-      document.body.removeChild(anchor)
-      setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000)
-      setError('')
-    } catch (error) {
-      console.error('Unexpected error while downloading Excel export', error)
-      setError(
-        "Erreur inattendue lors du téléchargement de l'export Excel. Réessayez plus tard.",
-      )
-    } finally {
-      setIsExporting(false)
-    }
-  }, [isExporting])
 
   useEffect(() => {
     if (!isAdmin) return
@@ -1053,25 +948,15 @@ export default function SyntheseChauffeursPage() {
             </select>
           </div>
         </div>
-        <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-            <button
-              type="button"
-              className="w-full rounded bg-gray-500 px-4 py-2 text-white disabled:opacity-50 sm:w-auto"
-              onClick={resetFilters}
-              disabled={!hasActiveFilters}
-            >
-              Réinitialiser les filtres
-            </button>
-            <button
-              type="button"
-              className="w-full rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50 sm:w-auto"
-              onClick={handleExcelExport}
-              disabled={isExporting}
-            >
-              {isExporting ? 'Export en cours...' : 'Exporter en Excel'}
-            </button>
-          </div>
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <button
+            type="button"
+            className="w-full rounded bg-gray-500 px-4 py-2 text-white disabled:opacity-50 sm:w-auto"
+            onClick={resetFilters}
+            disabled={!hasActiveFilters}
+          >
+            Réinitialiser les filtres
+          </button>
           <div className="text-base sm:text-lg sm:text-right">
             <p>
               Montant estimé total :{' '}
