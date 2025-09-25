@@ -63,13 +63,7 @@ def require_roles(*required_roles: str):
     """Dependency ensuring current user has at least one of required roles."""
 
     def _role_dependency(user: dict = Depends(auth_dependency)):  # noqa: B008
-        raw_roles = user.get("roles") or []
-        if isinstance(raw_roles, str):
-            raw_roles = [raw_roles]
-        elif not isinstance(raw_roles, (list, tuple, set)):
-            raw_roles = [raw_roles]
-
-        roles = [ROLE_ALIASES.get(r, r) for r in raw_roles if r]
+        roles = [ROLE_ALIASES.get(r, r) for r in user.get("roles", [])]
         if not any(role in roles for role in required_roles):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
