@@ -74,6 +74,8 @@ make dev
 
 La recette `make dev` invoque `docker compose up --build --remove-orphans` afin de nettoyer les éventuels conteneurs orphelins provenant d'anciennes versions de la stack.
 
+Le conteneur `web` attend désormais que l'API FastAPI réponde sur `/healthz` avant de démarrer Next.js. Ajustez les variables d'environnement `API_HEALTHCHECK_URL`, `API_HEALTHCHECK_PATH`, `API_HEALTHCHECK_INTERVAL` ou `API_HEALTHCHECK_RETRIES` pour personnaliser cette temporisation, ou définissez `SKIP_API_WAIT=1` si vous souhaitez lancer le frontend sans vérification préalable.
+
 Les services sont ensuite accessibles :
 
 - API : http://localhost:8000
