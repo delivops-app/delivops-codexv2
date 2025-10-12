@@ -6,6 +6,7 @@ frontend/.env.local
 node_modules/
 backend/storage/
 .venv/
+delivops.db
 frontend/.env
 # Next.js build
 frontend/.next/

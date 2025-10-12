@@ -1,4 +1,8 @@
+from __future__ import annotations
+
 import re
+import socket
+from pathlib import Path
 from urllib.parse import quote_plus
 
 from pydantic import AliasChoices, Field, field_validator, model_validator
@@ -80,12 +84,26 @@ class Settings(BaseSettings):
         return self
 
     def _build_database_url(self) -> str:
+        """Construct a SQLAlchemy URL with a graceful SQLite fallback."""
+
+        if self.database_scheme.startswith("sqlite"):
+            return self._build_sqlite_url(self.database_scheme)
+
+        try:
+            socket.getaddrinfo(self.database_host, self.database_port)
+        except socket.gaierror:
+            return self._build_sqlite_url("sqlite+pysqlite")
+
         user = quote_plus(self.database_user)
         password = quote_plus(self.database_password)
         return (
             f"{self.database_scheme}://{user}:{password}@"
             f"{self.database_host}:{self.database_port}/{self.database_name}"
         )
+
+    def _build_sqlite_url(self, scheme: str) -> str:
+        db_path = Path.cwd() / "delivops.db"
+        return f"{scheme}:///{db_path}"
 
 
 settings = Settings()
