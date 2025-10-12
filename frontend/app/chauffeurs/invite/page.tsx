@@ -13,6 +13,29 @@ type ChauffeurQuota = {
   subscribed: number
 }
 
+async function extractErrorDetail(response: Response) {
+  try {
+    const body = await response.text()
+    if (!body) return null
+
+    try {
+      const data = JSON.parse(body) as { detail?: string }
+      if (typeof data?.detail === 'string' && data.detail.trim().length > 0) {
+        return data.detail
+      }
+    } catch {
+      const trimmedBody = body.trim()
+      if (trimmedBody.length > 0) {
+        return trimmedBody
+      }
+    }
+  } catch (error) {
+    console.error('Failed to read chauffeur error response body', error)
+  }
+
+  return null
+}
+
 export default function InviteChauffeurPage() {
   const router = useRouter()
   const { user } = useUser()
@@ -48,16 +71,8 @@ export default function InviteChauffeurPage() {
         )
       } else {
         setQuota(null)
-        let detail = 'Erreur lors du chargement du quota.'
-        try {
-          const data = (await res.json()) as { detail?: string }
-          if (typeof data?.detail === 'string' && data.detail.trim().length > 0) {
-            detail = data.detail
-          }
-        } catch (parseError) {
-          console.error('Failed to parse chauffeur quota error response', parseError)
-        }
-        setQuotaError(detail)
+        const detail = await extractErrorDetail(res)
+        setQuotaError(detail ?? 'Erreur lors du chargement du quota.')
       }
     } catch (error) {
       console.error('Unexpected error while loading chauffeur quota', error)
@@ -102,16 +117,8 @@ export default function InviteChauffeurPage() {
           'Impossible de contacter le serveur. Vérifiez votre connexion et réessayez.',
         )
       } else {
-        let detail = "Erreur lors de l'invitation."
-        try {
-          const data = (await res.json()) as { detail?: string }
-          if (typeof data?.detail === 'string' && data.detail.trim().length > 0) {
-            detail = data.detail
-          }
-        } catch (parseError) {
-          console.error('Failed to parse chauffeur invite error response', parseError)
-        }
-        setSubmitError(detail)
+        const detail = await extractErrorDetail(res)
+        setSubmitError(detail ?? "Erreur lors de l'invitation.")
       }
     } catch (error) {
       console.error('Unexpected error during chauffeur invitation', error)
