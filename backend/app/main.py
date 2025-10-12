@@ -11,6 +11,7 @@ from app.api.clients import router as clients_router
 from app.api.deps import get_tenant_id, auth_dependency
 from app.core.config import settings
 from app.middleware.audit import AuditMiddleware
+from app.db.migrations import run_migrations
 from app.core.logging import setup_logging
 
 setup_logging()
@@ -25,6 +26,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(AuditMiddleware)
+
+
+@app.on_event("startup")
+def apply_migrations() -> None:
+    """Ensure the database schema is up to date before handling requests."""
+
+    run_migrations()
 
 app.include_router(chauffeurs_router)
 app.include_router(tarifs_router)
