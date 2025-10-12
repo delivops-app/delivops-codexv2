@@ -7,7 +7,8 @@ RUN apk add --no-cache curl
 COPY package.json package-lock.json* ./
 RUN npm install
 COPY . .
-RUN chmod +x docker-entrypoint.sh
+RUN cp docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh \
+  && chmod +x /usr/local/bin/docker-entrypoint.sh
 
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["npm", "run", "dev"]
