@@ -13,7 +13,9 @@ depends_on = None
 
 def upgrade() -> None:
     connection = op.get_bind()
-    connection.execute(sa.text("UPDATE chauffeur SET is_active = 1 WHERE is_active IS NULL"))
+    connection.execute(
+        sa.text("UPDATE chauffeur SET is_active = true WHERE is_active IS NULL")
+    )
     op.alter_column(
         "chauffeur",
         "is_active",
