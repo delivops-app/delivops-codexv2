@@ -2,7 +2,7 @@
 .PHONY: dev migrate seed test fmt lint
 
 dev:
->docker compose up --build
+>docker compose up --build --remove-orphans
 
 migrate:
 >docker compose up -d db
