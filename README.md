@@ -72,6 +72,8 @@ Le fichier `.env.local` est automatiquement pris en compte par `docker-compose`.
 make dev
 ```
 
+La recette `make dev` invoque `docker compose up --build --remove-orphans` afin de nettoyer les éventuels conteneurs orphelins provenant d'anciennes versions de la stack.
+
 Les services sont ensuite accessibles :
 
 - API : http://localhost:8000
