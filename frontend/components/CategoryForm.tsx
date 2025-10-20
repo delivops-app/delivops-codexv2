@@ -78,7 +78,7 @@ export default function CategoryForm({
           Marge
         </label>
         <p className="mb-2 text-sm text-gray-600">
-          Montant que l'entreprise ajoute au tarif chauffeur et conserve.
+          Bénéfice par colis
         </p>
         <input
           id="margin"
