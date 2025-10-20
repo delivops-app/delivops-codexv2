@@ -241,9 +241,50 @@ export default function SyntheseChauffeursPage() {
     setFilters(createDefaultFiltersState())
   }
 
+  const rowsMatchingDateFilters = useMemo(() => {
+    return rows.filter((row) => {
+      if (filters.dateMode === 'day') {
+        if (filters.day && row.date !== filters.day) {
+          return false
+        }
+        return true
+      }
+
+      if (filters.dateMode === 'month') {
+        if (filters.month && row.date.slice(0, 7) !== filters.month) {
+          return false
+        }
+        return true
+      }
+
+      if (filters.dateMode === 'range') {
+        if (filters.dateFrom && row.date < filters.dateFrom) {
+          return false
+        }
+        if (filters.dateTo && row.date > filters.dateTo) {
+          return false
+        }
+        return true
+      }
+
+      return true
+    })
+  }, [rows, filters.dateMode, filters.day, filters.month, filters.dateFrom, filters.dateTo])
+
+  const availableDriverNames = useMemo(() => {
+    const names = new Set<string>()
+    rowsMatchingDateFilters.forEach((row) => {
+      if (row.driverName) {
+        names.add(row.driverName)
+      }
+    })
+    return names
+  }, [rowsMatchingDateFilters])
+
   const driverFilterOptions = useMemo(
     () =>
       drivers
+        .filter((driver) => availableDriverNames.has(driver.displayName))
         .slice()
         .sort((a, b) => {
           if (a.isActive !== b.isActive) {
@@ -253,8 +294,9 @@ export default function SyntheseChauffeursPage() {
             sensitivity: 'base',
           })
         }),
-    [drivers],
+    [drivers, availableDriverNames],
   )
+
 
   const rowsMatchingDateFilters = useMemo(() => {
     return rows.filter((row) => {
@@ -340,6 +382,23 @@ export default function SyntheseChauffeursPage() {
   }, [availableTariffGroupNames])
 
   useEffect(() => {
+
+    if (!filters.driverId) {
+      return
+    }
+    const selectedDriver = drivers.find(
+      (driver) => driver.id === Number.parseInt(filters.driverId, 10),
+    )
+    if (!selectedDriver) {
+      return
+    }
+    if (!availableDriverNames.has(selectedDriver.displayName)) {
+      setFilters((prev) => ({ ...prev, driverId: '' }))
+    }
+  }, [filters.driverId, drivers, availableDriverNames])
+
+  useEffect(() => {
+
     if (!filters.clientId) {
       return
     }
