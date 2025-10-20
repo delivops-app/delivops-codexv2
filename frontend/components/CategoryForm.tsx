@@ -55,8 +55,12 @@ export default function CategoryForm({
       </div>
       <div className="mb-4">
         <label className="mb-1 block font-medium" htmlFor="price">
-          Tarif
+          Tarif chauffeur (hors marge)
         </label>
+        <p className="mb-2 text-sm text-gray-600">
+          Correspond au montant versé au chauffeur. La marge est ajoutée en
+          supplément.
+        </p>
         <input
           id="price"
           type="number"
@@ -65,14 +69,17 @@ export default function CategoryForm({
           onChange={(e) => setPrice(e.target.value)}
           onBlur={(e) => setPrice(formatPrice(e.target.value))}
           className="w-full rounded border p-2"
-          placeholder="Tarif en €"
+          placeholder="Tarif chauffeur en € (hors marge)"
           required
         />
       </div>
       <div className="mb-4">
         <label className="mb-1 block font-medium" htmlFor="margin">
-          Marge
+          Marge Codex
         </label>
+        <p className="mb-2 text-sm text-gray-600">
+          Somme facturée au client en plus du tarif chauffeur.
+        </p>
         <input
           id="margin"
           type="number"
@@ -81,7 +88,7 @@ export default function CategoryForm({
           onChange={(e) => setMargin(e.target.value)}
           onBlur={(e) => setMargin(formatPrice(e.target.value))}
           className="w-full rounded border p-2"
-          placeholder="Marge en €"
+          placeholder="Marge Codex en € (ajoutée au tarif chauffeur)"
           required
         />
       </div>

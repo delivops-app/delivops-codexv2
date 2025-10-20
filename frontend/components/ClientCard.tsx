@@ -63,8 +63,14 @@ export default function ClientCard({
               <div className="flex justify-between">
                 <div>
                   <p className="font-medium">{cat.name}</p>
-                  <p>Tarif : {formatAmount(cat.price)} €</p>
-                  <p>Marge : {formatAmount(cat.margin)} €</p>
+                  <p>
+                    Tarif chauffeur (hors marge) : {formatAmount(cat.price)} €
+                  </p>
+                  <p>
+                    Marge Codex (ajoutée au tarif chauffeur) :
+                    {' '}
+                    {formatAmount(cat.margin)} €
+                  </p>
                 </div>
                 <div className="space-x-2 text-sm">
                   <button
