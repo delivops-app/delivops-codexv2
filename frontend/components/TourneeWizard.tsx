@@ -118,8 +118,16 @@ function PickupWizard() {
     setStep(3)
   }
 
-  const changeQty = (id: number, value: number) => {
-    setQuantities((prev) => ({ ...prev, [id]: value }))
+  const changeQty = (id: number, value: string) => {
+    setQuantities((prev) => {
+      if (value === '') {
+        const updated = { ...prev }
+        delete updated[id]
+        return updated
+      }
+
+      return { ...prev, [id]: Number(value) }
+    })
   }
 
   const nextFromQuantities = () => {
@@ -258,7 +266,7 @@ function PickupWizard() {
                 type="number"
                 min="0"
                 value={quantities[cat.id] ?? ''}
-                onChange={(e) => changeQty(cat.id, Number(e.target.value))}
+                onChange={(e) => changeQty(cat.id, e.target.value)}
                 className="w-48 rounded border px-2 py-1"
               />
             </div>
@@ -393,8 +401,16 @@ function DeliveryWizard() {
     setStep(2)
   }
 
-  const changeQty = (id: number, value: number) => {
-    setDeliveryQuantities((prev) => ({ ...prev, [id]: value }))
+  const changeQty = (id: number, value: string) => {
+    setDeliveryQuantities((prev) => {
+      if (value === '') {
+        const updated = { ...prev }
+        delete updated[id]
+        return updated
+      }
+
+      return { ...prev, [id]: Number(value) }
+    })
   }
 
   const nextFromQuantities = () => {
@@ -495,7 +511,7 @@ function DeliveryWizard() {
                 min="0"
                 max={item.pickupQuantity}
                 value={deliveryQuantities[item.tariffGroupId] ?? ''}
-                onChange={(e) => changeQty(item.tariffGroupId, Number(e.target.value))}
+                onChange={(e) => changeQty(item.tariffGroupId, e.target.value)}
                 className="w-48 rounded border px-2 py-1"
               />
             </div>
