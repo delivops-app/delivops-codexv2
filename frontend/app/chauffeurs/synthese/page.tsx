@@ -297,6 +297,37 @@ export default function SyntheseChauffeursPage() {
     [drivers, availableDriverNames],
   )
 
+
+  const rowsMatchingDateFilters = useMemo(() => {
+    return rows.filter((row) => {
+      if (filters.dateMode === 'day') {
+        if (filters.day && row.date !== filters.day) {
+          return false
+        }
+        return true
+      }
+
+      if (filters.dateMode === 'month') {
+        if (filters.month && row.date.slice(0, 7) !== filters.month) {
+          return false
+        }
+        return true
+      }
+
+      if (filters.dateMode === 'range') {
+        if (filters.dateFrom && row.date < filters.dateFrom) {
+          return false
+        }
+        if (filters.dateTo && row.date > filters.dateTo) {
+          return false
+        }
+        return true
+      }
+
+      return true
+    })
+  }, [rows, filters.dateMode, filters.day, filters.month, filters.dateFrom, filters.dateTo])
+
   const availableClientNames = useMemo(() => {
     const names = new Set<string>()
     rowsMatchingDateFilters.forEach((row) => {
@@ -351,6 +382,7 @@ export default function SyntheseChauffeursPage() {
   }, [availableTariffGroupNames])
 
   useEffect(() => {
+
     if (!filters.driverId) {
       return
     }
@@ -366,6 +398,7 @@ export default function SyntheseChauffeursPage() {
   }, [filters.driverId, drivers, availableDriverNames])
 
   useEffect(() => {
+
     if (!filters.clientId) {
       return
     }
