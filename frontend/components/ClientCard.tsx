@@ -67,9 +67,7 @@ export default function ClientCard({
                     Tarif chauffeur (hors marge) : {formatAmount(cat.price)} €
                   </p>
                   <p>
-                    Marge Codex (ajoutée au tarif chauffeur) :
-                    {' '}
-                    {formatAmount(cat.margin)} €
+                    Marge (ajoutée au tarif chauffeur) : {formatAmount(cat.margin)} €
                   </p>
                 </div>
                 <div className="space-x-2 text-sm">
