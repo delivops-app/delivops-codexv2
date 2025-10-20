@@ -67,7 +67,6 @@ export default function ChauffeursPage() {
             <th className="border px-4 py-2">Nom</th>
             <th className="border px-4 py-2">Email</th>
             <th className="border px-4 py-2">Dernière activité</th>
-            <th className="border px-4 py-2">Statut</th>
           </tr>
         </thead>
         <tbody>
@@ -78,10 +77,7 @@ export default function ChauffeursPage() {
               <td className="border px-4 py-2">
                 {formatRelativeLastSeen(c.last_seen_at)}
               </td>
-              <td className="border px-4 py-2">
-                {c.is_active ? 'Actif' : 'Inactif'}
-              </td>
-          </tr>
+            </tr>
           ))}
         </tbody>
       </table>
