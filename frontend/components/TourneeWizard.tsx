@@ -44,6 +44,25 @@ if (DEV_DRIVER_SUB) {
   DEV_DRIVER_HEADERS['X-Dev-Sub'] = DEV_DRIVER_SUB
 }
 
+const formatDateForDisplay = (date: string | null | undefined) => {
+  if (!date) {
+    return ''
+  }
+
+  const isoMatch = date.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (isoMatch) {
+    const [, year, month, day] = isoMatch
+    return `${day}/${month}/${year}`
+  }
+
+  const parsed = new Date(date)
+  if (!Number.isNaN(parsed.valueOf())) {
+    return parsed.toLocaleDateString('fr-FR')
+  }
+
+  return date
+}
+
 function PickupWizard() {
   const [step, setStep] = useState(1)
   const [clients, setClients] = useState<Client[]>([])
@@ -267,7 +286,7 @@ function PickupWizard() {
           <h1 className="mb-4 text-2xl font-semibold">Récapitulatif</h1>
           <p className="mb-4">
             <span className="font-semibold">Date :</span>{' '}
-            {tourDate || 'Non définie'}
+            {tourDate ? formatDateForDisplay(tourDate) : 'Non définie'}
           </p>
           <ul className="mb-4">
             {selectedCats.map((cat) => (
@@ -463,7 +482,9 @@ function DeliveryWizard() {
           <h1 className="mb-4 text-2xl font-semibold">
             Colis livrés pour {selectedTour.client.name}
           </h1>
-          <p className="mb-2">Date de récupération : {selectedTour.date}</p>
+          <p className="mb-2">
+            Date de récupération : {formatDateForDisplay(selectedTour.date)}
+          </p>
           {selectedTour.items.map((item) => (
             <div key={item.tariffGroupId} className="mb-2 flex flex-col">
               <label className="mb-1">
@@ -501,7 +522,9 @@ function DeliveryWizard() {
         <>
           <h1 className="mb-4 text-2xl font-semibold">Récapitulatif</h1>
           <p className="mb-2">Client : {selectedTour.client.name}</p>
-          <p className="mb-4">Date de récupération : {selectedTour.date}</p>
+          <p className="mb-4">
+            Date de récupération : {formatDateForDisplay(selectedTour.date)}
+          </p>
           <ul className="mb-4">
             {selectedTour.items.map((item) => (
               <li key={item.tariffGroupId}>
