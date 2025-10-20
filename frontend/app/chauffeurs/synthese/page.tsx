@@ -93,6 +93,26 @@ const formatIsoDateToFr = (value: string) => {
   return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`
 }
 
+const escapeHtml = (value: string | number | null | undefined) => {
+  if (value === null || value === undefined) {
+    return ''
+  }
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+const parseAmountForExport = (value: string) => {
+  const parsed = Number.parseFloat(value)
+  if (Number.isNaN(parsed)) {
+    return ''
+  }
+  return parsed
+}
+
 export default function SyntheseChauffeursPage() {
   const { user } = useUser()
   const roles = normalizeRoles(
@@ -478,6 +498,75 @@ export default function SyntheseChauffeursPage() {
     (filters.dateMode === 'month' && filters.month.trim().length > 0) ||
     (filters.dateMode === 'range' &&
       (filters.dateFrom.trim().length > 0 || filters.dateTo.trim().length > 0))
+
+  const handleExport = useCallback(() => {
+    if (filteredRows.length === 0) {
+      return
+    }
+
+    const headers = [
+      'Date',
+      'Chauffeur',
+      "Client donneur d'ordre",
+      'Catégorie de groupe tarifaire',
+      'Colis récupérés',
+      'Colis livrés',
+      'Écart',
+      'Montant estimé (€)',
+      'Marge (€)',
+      'Statut',
+    ]
+
+    const rowsHtml = filteredRows
+      .map((row) => {
+        const deliveryValue =
+          row.status === 'IN_PROGRESS'
+            ? 'En cours de livraison'
+            : row.deliveryQuantity
+
+        const statusLabel =
+          row.status === 'IN_PROGRESS' ? 'En cours de livraison' : 'Livrée'
+
+        const cells = [
+          formatIsoDateToFr(row.date),
+          row.driverName,
+          row.clientName,
+          row.tariffGroupDisplayName,
+          row.pickupQuantity,
+          deliveryValue,
+          row.differenceQuantity,
+          parseAmountForExport(row.estimatedAmountEur),
+          parseAmountForExport(row.marginAmountEur),
+          statusLabel,
+        ]
+
+        const cellsHtml = cells
+          .map((cell) => `<td>${escapeHtml(cell)}</td>`)
+          .join('')
+
+        return `<tr>${cellsHtml}</tr>`
+      })
+      .join('')
+
+    const headerHtml = `<tr>${headers
+      .map((header) => `<th>${escapeHtml(header)}</th>`)
+      .join('')}</tr>`
+
+    const htmlContent = `<!DOCTYPE html><html><head><meta charset="UTF-8" /></head><body><table>${headerHtml}${rowsHtml}</table></body></html>`
+
+    const blob = new Blob([htmlContent], {
+      type: 'application/vnd.ms-excel',
+    })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    const today = new Date().toISOString().slice(0, 10)
+    link.href = url
+    link.download = `synthese_chauffeurs_${today}.xls`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  }, [filteredRows])
 
   const hasActiveFilters = Boolean(
     hasDateFilter || filters.driverId || filters.clientId || filters.tariffGroupName,
@@ -1039,7 +1128,15 @@ export default function SyntheseChauffeursPage() {
           </div>
         </div>
       </div>
-      <div className="mb-4 flex w-full justify-end">
+      <div className="mb-4 flex w-full flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <button
+          type="button"
+          className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
+          onClick={handleExport}
+          disabled={filteredRows.length === 0}
+        >
+          Exporter au format Excel
+        </button>
         <button
           type="button"
           className="rounded bg-green-600 px-4 py-2 text-white disabled:opacity-50"
