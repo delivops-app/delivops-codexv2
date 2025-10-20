@@ -14,6 +14,8 @@ from app.models.client import Client
 from app.models.tariff import Tariff
 from app.models.tariff_group import TariffGroup
 from app.models.tenant import Tenant
+from app.models.tour import Tour
+from app.models.tour_item import TourItem
 from app.schemas.client import (
     ClientWithCategories,
     CategoryRead,
@@ -21,6 +23,7 @@ from app.schemas.client import (
     ClientUpdate,
     CategoryCreate,
     CategoryUpdate,
+    ClientHistoryEntry,
 )
 
 router = APIRouter(prefix="/clients", tags=["clients"])
@@ -30,139 +33,24 @@ def slugify(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
 
 
-@router.get("", response_model=List[ClientWithCategories], include_in_schema=False)
-@router.get("/", response_model=List[ClientWithCategories])
-def list_clients(
-    include_inactive: bool = False,
-    db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("CHAUFFEUR", "ADMIN")),  # noqa: B008
-) -> List[ClientWithCategories]:
-    """Return clients with their tariff categories.
-
-    By default only active clients are returned. Pass ``include_inactive=true``
-    to also include inactive ones, which is useful when displaying historical
-    data that still references them.
-    """
-    client_filters = [Client.tenant_id == tenant_id]
-    if not include_inactive:
-        client_filters.append(Client.is_active.is_(True))
-    clients = (
-        db.execute(
-            select(Client)
-            .where(*client_filters)
-            .order_by(Client.name)
-        )
-        .scalars()
-        .all()
-    )
-
-    today = date.today()
-    result: List[ClientWithCategories] = []
-    for client in clients:
-        group_filters = [
-            TariffGroup.tenant_id == tenant_id,
-            TariffGroup.client_id == client.id,
-        ]
-        if not include_inactive:
-            group_filters.append(TariffGroup.is_active.is_(True))
-        groups = (
-            db.execute(
-                select(TariffGroup)
-                .where(*group_filters)
-                .order_by(TariffGroup.order)
-            )
-            .scalars()
-            .all()
-        )
-        categories: list[CategoryRead] = []
-        for g in groups:
-            tariff = (
-                db.execute(
-                    select(Tariff)
-                    .where(
-                        Tariff.tariff_group_id == g.id,
-                        Tariff.effective_from <= today,
-                        or_(Tariff.effective_to.is_(None), Tariff.effective_to >= today),
-                    )
-                    .order_by(Tariff.effective_from.desc())
-                )
-                .scalars()
-                .first()
-            )
-            price = tariff.price_ex_vat if tariff else Decimal("0")
-            margin = tariff.margin_ex_vat if tariff else Decimal("0")
-            categories.append(
-                CategoryRead(
-                    id=g.id,
-                    name=g.display_name,
-                    unit_price_ex_vat=price,
-                    margin_ex_vat=margin,
-                )
-            )
-        result.append(
-            ClientWithCategories(
-                id=client.id,
-                name=client.name,
-                isActive=client.is_active,
-                categories=categories,
-            )
-        )
-    return result
-
-
-@router.post("", response_model=ClientWithCategories, status_code=201, include_in_schema=False)
-@router.post("/", response_model=ClientWithCategories, status_code=201)
-def create_client(
-    payload: ClientCreate,
-    db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+def _serialize_client(
+    db: Session,
+    tenant_id: int,
+    client: Client,
+    *,
+    include_inactive_groups: bool,
 ) -> ClientWithCategories:
-    tenant = db.get(Tenant, tenant_id)
-    if tenant is None:
-        raise HTTPException(status_code=404, detail="Tenant not found")
-    client = Client(tenant_id=tenant_id, name=payload.name, is_active=True)
-    db.add(client)
-    db.commit()
-    db.refresh(client)
-    return ClientWithCategories(
-        id=client.id,
-        name=client.name,
-        isActive=client.is_active,
-        categories=[],
-    )
-
-
-@router.patch("/{client_id}", response_model=ClientWithCategories)
-def update_client(
-    client_id: int,
-    payload: ClientUpdate,
-    db: Session = Depends(get_db),  # noqa: B008
-    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
-) -> ClientWithCategories:
-    client = db.execute(
-        select(Client).where(
-            Client.tenant_id == tenant_id,
-            Client.id == client_id,
-            Client.is_active.is_(True),
-        )
-    ).scalar_one_or_none()
-    if not client:
-        raise HTTPException(status_code=404, detail="Client not found")
-    client.name = payload.name
-    db.commit()
-    db.refresh(client)
+    group_filters = [
+        TariffGroup.tenant_id == tenant_id,
+        TariffGroup.client_id == client.id,
+    ]
+    if not include_inactive_groups:
+        group_filters.append(TariffGroup.is_active.is_(True))
 
     groups = (
         db.execute(
             select(TariffGroup)
-            .where(
-                TariffGroup.tenant_id == tenant_id,
-                TariffGroup.client_id == client.id,
-                TariffGroup.is_active.is_(True),
-            )
+            .where(*group_filters)
             .order_by(TariffGroup.order)
         )
         .scalars()
@@ -194,11 +82,135 @@ def update_client(
                 margin_ex_vat=margin,
             )
         )
+
     return ClientWithCategories(
         id=client.id,
         name=client.name,
         isActive=client.is_active,
         categories=categories,
+    )
+
+
+@router.get("", response_model=List[ClientWithCategories], include_in_schema=False)
+@router.get("/", response_model=List[ClientWithCategories])
+def list_clients(
+    include_inactive: bool = False,
+    db: Session = Depends(get_db),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
+    user: dict = Depends(require_roles("CHAUFFEUR", "ADMIN")),  # noqa: B008
+) -> List[ClientWithCategories]:
+    """Return clients with their tariff categories.
+
+    By default only active clients are returned. Pass ``include_inactive=true``
+    to also include inactive ones, which is useful when displaying historical
+    data that still references them.
+    """
+    client_filters = [Client.tenant_id == tenant_id]
+    if not include_inactive:
+        client_filters.append(Client.is_active.is_(True))
+    clients = (
+        db.execute(
+            select(Client)
+            .where(*client_filters)
+            .order_by(Client.name)
+        )
+        .scalars()
+        .all()
+    )
+
+    return [
+        _serialize_client(
+            db,
+            tenant_id,
+            client,
+            include_inactive_groups=include_inactive,
+        )
+        for client in clients
+    ]
+
+
+@router.get("/history", response_model=List[ClientHistoryEntry])
+def list_client_history(
+    db: Session = Depends(get_db),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
+    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+) -> List[ClientHistoryEntry]:
+    history_rows = (
+        db.query(
+            Client,
+            func.count(TourItem.id).label("declaration_count"),
+            func.max(Tour.date).label("last_declaration"),
+        )
+        .join(Tour, Tour.client_id == Client.id)
+        .join(TourItem, TourItem.tour_id == Tour.id)
+        .filter(Client.tenant_id == tenant_id)
+        .filter(Tour.tenant_id == tenant_id)
+        .filter(TourItem.tenant_id == tenant_id)
+        .group_by(Client.id)
+        .order_by(func.max(Tour.date).desc(), Client.name)
+        .all()
+    )
+
+    return [
+        ClientHistoryEntry(
+            id=client.id,
+            name=client.name,
+            isActive=client.is_active,
+            lastDeclarationDate=last_declaration,
+            declarationCount=declaration_count,
+        )
+        for client, declaration_count, last_declaration in history_rows
+    ]
+
+
+@router.post("", response_model=ClientWithCategories, status_code=201, include_in_schema=False)
+@router.post("/", response_model=ClientWithCategories, status_code=201)
+def create_client(
+    payload: ClientCreate,
+    db: Session = Depends(get_db),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
+    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+) -> ClientWithCategories:
+    tenant = db.get(Tenant, tenant_id)
+    if tenant is None:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    client = Client(tenant_id=tenant_id, name=payload.name, is_active=True)
+    db.add(client)
+    db.commit()
+    db.refresh(client)
+    return _serialize_client(
+        db,
+        tenant_id,
+        client,
+        include_inactive_groups=False,
+    )
+
+
+@router.patch("/{client_id}", response_model=ClientWithCategories)
+def update_client(
+    client_id: int,
+    payload: ClientUpdate,
+    db: Session = Depends(get_db),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
+    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+) -> ClientWithCategories:
+    client = db.execute(
+        select(Client).where(
+            Client.tenant_id == tenant_id,
+            Client.id == client_id,
+            Client.is_active.is_(True),
+        )
+    ).scalar_one_or_none()
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+    client.name = payload.name
+    db.commit()
+    db.refresh(client)
+    return _serialize_client(
+        db,
+        tenant_id,
+        client,
+        include_inactive_groups=False,
     )
 
 
@@ -234,6 +246,47 @@ def delete_client(
     client.is_active = False
     db.commit()
     return None
+
+
+@router.post("/{client_id}/reactivate", response_model=ClientWithCategories)
+def reactivate_client(
+    client_id: int,
+    db: Session = Depends(get_db),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
+    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+) -> ClientWithCategories:
+    client = db.execute(
+        select(Client).where(
+            Client.tenant_id == tenant_id,
+            Client.id == client_id,
+        )
+    ).scalar_one_or_none()
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+
+    client.is_active = True
+    groups = (
+        db.execute(
+            select(TariffGroup).where(
+                TariffGroup.tenant_id == tenant_id,
+                TariffGroup.client_id == client.id,
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for group in groups:
+        group.is_active = True
+
+    db.commit()
+    db.refresh(client)
+
+    return _serialize_client(
+        db,
+        tenant_id,
+        client,
+        include_inactive_groups=False,
+    )
 
 
 @router.post("/{client_id}/categories", response_model=CategoryRead, status_code=201)

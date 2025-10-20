@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 from typing import List
 
@@ -46,3 +47,13 @@ class ClientCreate(BaseModel):
 
 class ClientUpdate(BaseModel):
     name: str
+
+
+class ClientHistoryEntry(BaseModel):
+    id: int
+    name: str
+    is_active: bool = Field(alias="isActive")
+    last_declaration_date: date = Field(alias="lastDeclarationDate")
+    declaration_count: int = Field(alias="declarationCount")
+
+    model_config = ConfigDict(populate_by_name=True)

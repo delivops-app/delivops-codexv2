@@ -50,6 +50,14 @@ interface ClientOptionApiPayload {
   categories: ClientCategoryOption[]
 }
 
+interface ClientHistoryEntry {
+  id: number
+  name: string
+  isActive: boolean
+  lastDeclarationDate: string
+  declarationCount: number
+}
+
 type DateFilterMode = 'day' | 'month' | 'range'
 
 interface FiltersState {
@@ -78,6 +86,18 @@ const createDefaultFiltersState = (): FiltersState => ({
   driverId: '',
   clientId: '',
   tariffGroupName: '',
+})
+
+const mapClientFromApi = (client: ClientOptionApiPayload): ClientOption => ({
+  id: client.id,
+  name: client.name,
+  isActive: client.isActive ?? true,
+  categories: (client.categories ?? []).map((category) => ({
+    id: category.id,
+    name: category.name,
+    unitPriceExVat: category.unitPriceExVat,
+    marginExVat: category.marginExVat,
+  })),
 })
 
 const formatIsoDateToFr = (value: string) => {
@@ -122,6 +142,7 @@ export default function SyntheseChauffeursPage() {
   const [rows, setRows] = useState<DeclarationRow[]>([])
   const [drivers, setDrivers] = useState<DriverOption[]>([])
   const [clients, setClients] = useState<ClientOption[]>([])
+  const [clientHistory, setClientHistory] = useState<ClientHistoryEntry[]>([])
   const [filters, setFilters] = useState<FiltersState>(() =>
     createDefaultFiltersState(),
   )
@@ -149,6 +170,13 @@ export default function SyntheseChauffeursPage() {
   })
   const [isNewAmountDirty, setIsNewAmountDirty] = useState(false)
   const [isSavingNewRow, setIsSavingNewRow] = useState(false)
+  const [showClientHistory, setShowClientHistory] = useState(false)
+  const [isLoadingClientHistory, setIsLoadingClientHistory] = useState(false)
+  const [clientHistoryError, setClientHistoryError] = useState('')
+  const [hasLoadedClientHistory, setHasLoadedClientHistory] = useState(false)
+  const [reactivatingClientId, setReactivatingClientId] = useState<number | null>(
+    null,
+  )
 
   const fetchDeclarations = useCallback(async () => {
     const res = await apiFetch('/reports/declarations')
@@ -192,19 +220,7 @@ export default function SyntheseChauffeursPage() {
     const res = await apiFetch('/clients/?include_inactive=true')
     if (res.ok) {
       const json = (await res.json()) as ClientOptionApiPayload[]
-      setClients(
-        json.map((client) => ({
-          id: client.id,
-          name: client.name,
-          isActive: client.isActive ?? true,
-          categories: (client.categories ?? []).map((category) => ({
-            id: category.id,
-            name: category.name,
-            unitPriceExVat: category.unitPriceExVat,
-            marginExVat: category.marginExVat,
-          })),
-        })),
-      )
+      setClients(json.map((client) => mapClientFromApi(client)))
     } else if (isApiFetchError(res)) {
       console.error('Failed to load clients for declarations summary', res.error)
       setError(
@@ -215,12 +231,86 @@ export default function SyntheseChauffeursPage() {
     }
   }, [])
 
+  const fetchClientHistory = useCallback(async () => {
+    setIsLoadingClientHistory(true)
+    const res = await apiFetch('/clients/history')
+    if (res.ok) {
+      const json = (await res.json()) as ClientHistoryEntry[]
+      setClientHistory(json)
+      setClientHistoryError('')
+      setHasLoadedClientHistory(true)
+    } else if (isApiFetchError(res)) {
+      console.error('Failed to load client history', res.error)
+      setClientHistoryError(
+        'Impossible de charger l\'historique des donneurs d\'ordres. Vérifiez votre connexion et réessayez.',
+      )
+      setHasLoadedClientHistory(false)
+    } else {
+      setClientHistoryError(
+        "Erreur lors du chargement de l'historique des donneurs d'ordres.",
+      )
+      setHasLoadedClientHistory(false)
+    }
+    setIsLoadingClientHistory(false)
+  }, [])
+
   useEffect(() => {
     if (!isAdmin) return
     fetchDeclarations()
     fetchDrivers()
     fetchClientsData()
   }, [isAdmin, fetchDeclarations, fetchDrivers, fetchClientsData])
+
+  const handleOpenClientHistory = useCallback(() => {
+    setShowClientHistory(true)
+    if (!hasLoadedClientHistory) {
+      fetchClientHistory()
+    }
+  }, [fetchClientHistory, hasLoadedClientHistory])
+
+  const handleCloseClientHistory = useCallback(() => {
+    setShowClientHistory(false)
+  }, [])
+
+  const handleReactivateClient = useCallback(
+    async (clientId: number) => {
+      setReactivatingClientId(clientId)
+      try {
+        const res = await apiFetch(`/clients/${clientId}/reactivate`, {
+          method: 'POST',
+        })
+        if (res.ok) {
+          const json = (await res.json()) as ClientOptionApiPayload
+          const mapped = mapClientFromApi(json)
+          setClients((prev) => {
+            const existingIndex = prev.findIndex((client) => client.id === mapped.id)
+            if (existingIndex === -1) {
+              return [...prev, mapped].sort((a, b) => a.name.localeCompare(b.name))
+            }
+            const next = [...prev]
+            next[existingIndex] = mapped
+            return next
+          })
+          setClientHistory((prev) =>
+            prev.map((entry) =>
+              entry.id === clientId ? { ...entry, isActive: true } : entry,
+            ),
+          )
+          setClientHistoryError('')
+        } else if (isApiFetchError(res)) {
+          console.error('Failed to reactivate client', res.error)
+          setClientHistoryError(
+            'Impossible de réactiver le client. Vérifiez votre connexion et réessayez.',
+          )
+        } else {
+          setClientHistoryError('Erreur lors de la réactivation du client.')
+        }
+      } finally {
+        setReactivatingClientId(null)
+      }
+    },
+    [],
+  )
 
   const handleFilterChange = (field: keyof FiltersState, value: string) => {
     setFilters((prev) => {
@@ -949,6 +1039,15 @@ export default function SyntheseChauffeursPage() {
       )}
       <div className="mb-6 w-full rounded border border-gray-300 bg-white p-4">
         <h2 className="mb-4 text-xl font-semibold">Filtres</h2>
+        <div className="mb-4 flex justify-end">
+          <button
+            type="button"
+            className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            onClick={handleOpenClientHistory}
+          >
+            Historique des donneurs d'ordres
+          </button>
+        </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="flex flex-col">
             <label
@@ -1465,6 +1564,104 @@ export default function SyntheseChauffeursPage() {
       <Link href="/" className="mt-4 rounded bg-gray-600 px-4 py-2 text-white">
         Retour
       </Link>
+      {showClientHistory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-3xl rounded bg-white p-6 shadow-lg">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-xl font-semibold">
+                Historique des donneurs d'ordres
+              </h2>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="rounded bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 disabled:opacity-60"
+                  onClick={fetchClientHistory}
+                  disabled={isLoadingClientHistory}
+                >
+                  Actualiser
+                </button>
+                <button
+                  type="button"
+                  className="rounded bg-gray-200 px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+                  onClick={handleCloseClientHistory}
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+            {clientHistoryError && (
+              <p className="mb-4 text-sm text-red-600" role="alert">
+                {clientHistoryError}
+              </p>
+            )}
+            {isLoadingClientHistory ? (
+              <p className="text-sm text-gray-600">Chargement de l'historique…</p>
+            ) : clientHistory.length === 0 ? (
+              <p className="text-sm text-gray-600">
+                Aucune déclaration enregistrée pour le moment.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full border-collapse">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">
+                        Donneur d'ordre
+                      </th>
+                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">
+                        Statut
+                      </th>
+                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">
+                        Dernière déclaration
+                      </th>
+                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">
+                        Déclarations
+                      </th>
+                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {clientHistory.map((entry) => {
+                      const isReactivating = reactivatingClientId === entry.id
+                      return (
+                        <tr key={entry.id} className="border-b last:border-b-0">
+                          <td className="px-4 py-2 text-sm text-gray-900">{entry.name}</td>
+                          <td className="px-4 py-2 text-sm text-gray-700">
+                            {entry.isActive ? 'Actif' : 'Inactif'}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-gray-700">
+                            {formatIsoDateToFr(entry.lastDeclarationDate) ||
+                              entry.lastDeclarationDate}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-gray-700">
+                            {entry.declarationCount}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-gray-700">
+                            {entry.isActive ? (
+                              <span className="text-sm text-gray-500">Actif</span>
+                            ) : (
+                              <button
+                                type="button"
+                                className="rounded bg-blue-600 px-3 py-1 text-sm font-medium text-white shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                                onClick={() => handleReactivateClient(entry.id)}
+                                disabled={isReactivating}
+                              >
+                                {isReactivating ? 'Réactivation…' : 'Réactiver'}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   )
 }
