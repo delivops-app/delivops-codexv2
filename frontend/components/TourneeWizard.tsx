@@ -471,7 +471,9 @@ function DeliveryWizard() {
     <main className="flex min-h-screen flex-col items-center p-8">
       {step === 1 && (
         <>
-          <h1 className="mb-6 text-3xl font-bold">Sélectionnez une tournée</h1>
+          <h1 className="mb-6 text-3xl font-bold">
+            Sélectionnez une tournée à clôturer
+          </h1>
           {loading && <p>Chargement...</p>}
           {!loading && pendingTours.length === 0 && (
             <p className="mb-4 text-center">
