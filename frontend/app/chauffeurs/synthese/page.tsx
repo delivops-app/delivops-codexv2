@@ -256,18 +256,57 @@ export default function SyntheseChauffeursPage() {
     [drivers],
   )
 
-  const clientFilterOptions = useMemo(
-    () =>
-      clients
-        .slice()
-        .sort((a, b) => {
-          if (a.isActive !== b.isActive) {
-            return a.isActive ? -1 : 1
-          }
-          return a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })
-        }),
-    [clients],
-  )
+  const rowsMatchingDateFilters = useMemo(() => {
+    return rows.filter((row) => {
+      if (filters.dateMode === 'day') {
+        if (filters.day && row.date !== filters.day) {
+          return false
+        }
+        return true
+      }
+
+      if (filters.dateMode === 'month') {
+        if (filters.month && row.date.slice(0, 7) !== filters.month) {
+          return false
+        }
+        return true
+      }
+
+      if (filters.dateMode === 'range') {
+        if (filters.dateFrom && row.date < filters.dateFrom) {
+          return false
+        }
+        if (filters.dateTo && row.date > filters.dateTo) {
+          return false
+        }
+        return true
+      }
+
+      return true
+    })
+  }, [rows, filters.dateMode, filters.day, filters.month, filters.dateFrom, filters.dateTo])
+
+  const availableClientNames = useMemo(() => {
+    const names = new Set<string>()
+    rowsMatchingDateFilters.forEach((row) => {
+      if (row.clientName) {
+        names.add(row.clientName)
+      }
+    })
+    return names
+  }, [rowsMatchingDateFilters])
+
+  const clientFilterOptions = useMemo(() => {
+    return clients
+      .filter((client) => availableClientNames.has(client.name))
+      .slice()
+      .sort((a, b) => {
+        if (a.isActive !== b.isActive) {
+          return a.isActive ? -1 : 1
+        }
+        return a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })
+      })
+  }, [clients, availableClientNames])
 
   const selectedFilterClient = useMemo(
     () =>
@@ -279,31 +318,50 @@ export default function SyntheseChauffeursPage() {
     [filters.clientId, clients],
   )
 
-  const tariffGroupFilterOptions = useMemo(() => {
+  const availableTariffGroupNames = useMemo(() => {
     const names = new Set<string>()
-    if (selectedFilterClient) {
-      selectedFilterClient.categories.forEach((category) => {
-        if (category.name) {
-          names.add(category.name)
-        }
-      })
-      rows
-        .filter((row) => row.clientName === selectedFilterClient.name)
-        .forEach((row) => names.add(row.tariffGroupDisplayName))
-    } else {
-      clients.forEach((client) => {
-        client.categories.forEach((category) => {
-          if (category.name) {
-            names.add(category.name)
-          }
-        })
-      })
-      rows.forEach((row) => names.add(row.tariffGroupDisplayName))
-    }
-    return Array.from(names).sort((a, b) =>
+    const relevantRows = selectedFilterClient
+      ? rowsMatchingDateFilters.filter(
+          (row) => row.clientName === selectedFilterClient.name,
+        )
+      : rowsMatchingDateFilters
+    relevantRows.forEach((row) => {
+      if (row.tariffGroupDisplayName) {
+        names.add(row.tariffGroupDisplayName)
+      }
+    })
+    return names
+  }, [rowsMatchingDateFilters, selectedFilterClient])
+
+  const tariffGroupFilterOptions = useMemo(() => {
+    return Array.from(availableTariffGroupNames).sort((a, b) =>
       a.localeCompare(b, 'fr', { sensitivity: 'base' }),
     )
-  }, [selectedFilterClient, clients, rows])
+  }, [availableTariffGroupNames])
+
+  useEffect(() => {
+    if (!filters.clientId) {
+      return
+    }
+    const selectedClient = clients.find(
+      (client) => client.id === Number.parseInt(filters.clientId, 10),
+    )
+    if (!selectedClient) {
+      return
+    }
+    if (!availableClientNames.has(selectedClient.name)) {
+      setFilters((prev) => ({ ...prev, clientId: '', tariffGroupName: '' }))
+    }
+  }, [filters.clientId, clients, availableClientNames])
+
+  useEffect(() => {
+    if (!filters.tariffGroupName) {
+      return
+    }
+    if (!availableTariffGroupNames.has(filters.tariffGroupName)) {
+      setFilters((prev) => ({ ...prev, tariffGroupName: '' }))
+    }
+  }, [filters.tariffGroupName, availableTariffGroupNames])
 
   const filteredRows = useMemo(() => {
     const driverNameById = new Map<number, string>()
@@ -322,28 +380,7 @@ export default function SyntheseChauffeursPage() {
       ? Number.parseInt(filters.clientId, 10)
       : undefined
 
-    return rows.filter((row) => {
-      if (filters.dateMode === 'day' && filters.day && row.date !== filters.day) {
-        return false
-      }
-
-      if (
-        filters.dateMode === 'month' &&
-        filters.month &&
-        row.date.slice(0, 7) !== filters.month
-      ) {
-        return false
-      }
-
-      if (filters.dateMode === 'range') {
-        if (filters.dateFrom && row.date < filters.dateFrom) {
-          return false
-        }
-        if (filters.dateTo && row.date > filters.dateTo) {
-          return false
-        }
-      }
-
+    return rowsMatchingDateFilters.filter((row) => {
       if (driverId !== undefined && !Number.isNaN(driverId)) {
         const driverName = driverNameById.get(driverId)
         if (!driverName || row.driverName !== driverName) {
@@ -367,7 +404,7 @@ export default function SyntheseChauffeursPage() {
 
       return true
     })
-  }, [rows, filters, drivers, clients])
+  }, [rowsMatchingDateFilters, filters, drivers, clients])
 
   const totalEstimatedAmount = useMemo(() => {
     return filteredRows.reduce((acc, row) => {
