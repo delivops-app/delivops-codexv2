@@ -559,9 +559,12 @@ export default function SyntheseChauffeursPage() {
     })
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
-    const today = new Date().toISOString().slice(0, 10)
+    const today = new Date()
+    const formattedDate = today
+      .toLocaleDateString('fr-FR')
+      .replace(/\//g, '-')
     link.href = url
-    link.download = `synthese_chauffeurs_${today}.xls`
+    link.download = `synthese_chauffeurs_${formattedDate}.xls`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
