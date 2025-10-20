@@ -13,6 +13,9 @@ from app.models.tenant import Tenant
 from app.models.client import Client
 from app.models.tariff import Tariff
 from app.models.tariff_group import TariffGroup
+from app.models.tour import Tour
+from app.models.tour_item import TourItem
+from app.models.chauffeur import Chauffeur
 from app.core.config import settings
 
 
@@ -253,3 +256,172 @@ def test_list_clients_include_inactive_flag(client):
     data = {entry["name"]: entry["isActive"] for entry in resp.json()}
     assert data == {"Client Active": True, "Client Inactive": False}
 
+
+def test_reactivate_client_restores_client_and_categories(client):
+    with TestingSessionLocal() as db:
+        tenant = Tenant(name="Acme", slug="acme-reactivate")
+        db.add(tenant)
+        db.commit()
+        db.refresh(tenant)
+        tenant_id = tenant.id
+
+    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+
+    resp = client.post("/clients/", json={"name": "Client React"}, headers=headers_admin)
+    assert resp.status_code == 201
+    client_id = resp.json()["id"]
+
+    resp = client.post(
+        f"/clients/{client_id}/categories",
+        json={"name": "React Cat"},
+        headers=headers_admin,
+    )
+    assert resp.status_code == 201
+    category_id = resp.json()["id"]
+
+    resp = client.delete(f"/clients/{client_id}", headers=headers_admin)
+    assert resp.status_code == 204
+
+    resp = client.post(f"/clients/{client_id}/reactivate", headers=headers_admin)
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["isActive"] is True
+    assert payload["categories"]
+    assert payload["categories"][0]["id"] == category_id
+
+    with TestingSessionLocal() as db:
+        db_client = db.get(Client, client_id)
+        assert db_client is not None
+        assert db_client.is_active is True
+        db_group = db.get(TariffGroup, category_id)
+        assert db_group is not None
+        assert db_group.is_active is True
+
+
+def test_client_history_returns_clients_with_declarations(client):
+    with TestingSessionLocal() as db:
+        tenant = Tenant(name="Acme", slug="acme-history")
+        db.add(tenant)
+        db.commit()
+        db.refresh(tenant)
+
+        chauffeur = Chauffeur(
+            tenant_id=tenant.id,
+            email="driver@example.com",
+            display_name="Driver",
+        )
+        client_active = Client(
+            tenant_id=tenant.id,
+            name="Client Hist A",
+            is_active=True,
+        )
+        client_inactive = Client(
+            tenant_id=tenant.id,
+            name="Client Hist B",
+            is_active=True,
+        )
+        db.add_all([chauffeur, client_active, client_inactive])
+        db.commit()
+        db.refresh(chauffeur)
+        db.refresh(client_active)
+        db.refresh(client_inactive)
+
+        tg_active = TariffGroup(
+            tenant_id=tenant.id,
+            client_id=client_active.id,
+            code="A",
+            display_name="A",
+            unit="COLIS",
+            order=0,
+            is_active=True,
+        )
+        tg_inactive = TariffGroup(
+            tenant_id=tenant.id,
+            client_id=client_inactive.id,
+            code="B",
+            display_name="B",
+            unit="COLIS",
+            order=0,
+            is_active=True,
+        )
+        db.add_all([tg_active, tg_inactive])
+        db.commit()
+        db.refresh(tg_active)
+        db.refresh(tg_inactive)
+
+        tour_a = Tour(
+            tenant_id=tenant.id,
+            driver_id=chauffeur.id,
+            client_id=client_active.id,
+            date=date(2023, 4, 5),
+            status=Tour.STATUS_COMPLETED,
+        )
+        tour_b1 = Tour(
+            tenant_id=tenant.id,
+            driver_id=chauffeur.id,
+            client_id=client_inactive.id,
+            date=date(2023, 6, 15),
+            status=Tour.STATUS_COMPLETED,
+        )
+        tour_b2 = Tour(
+            tenant_id=tenant.id,
+            driver_id=chauffeur.id,
+            client_id=client_inactive.id,
+            date=date(2023, 5, 10),
+            status=Tour.STATUS_COMPLETED,
+        )
+        db.add_all([tour_a, tour_b1, tour_b2])
+        db.commit()
+        db.refresh(tour_a)
+        db.refresh(tour_b1)
+        db.refresh(tour_b2)
+
+        db.add_all(
+            [
+                TourItem(
+                    tenant_id=tenant.id,
+                    tour_id=tour_a.id,
+                    tariff_group_id=tg_active.id,
+                    pickup_quantity=5,
+                    delivery_quantity=4,
+                ),
+                TourItem(
+                    tenant_id=tenant.id,
+                    tour_id=tour_b1.id,
+                    tariff_group_id=tg_inactive.id,
+                    pickup_quantity=7,
+                    delivery_quantity=7,
+                ),
+                TourItem(
+                    tenant_id=tenant.id,
+                    tour_id=tour_b2.id,
+                    tariff_group_id=tg_inactive.id,
+                    pickup_quantity=3,
+                    delivery_quantity=1,
+                ),
+            ]
+        )
+        client_inactive.is_active = False
+        tg_inactive.is_active = False
+        db.commit()
+        tenant_id = tenant.id
+
+    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    resp = client.get("/clients/history", headers=headers_admin)
+    assert resp.status_code == 200
+    data = resp.json()
+
+    assert [entry["name"] for entry in data] == [
+        "Client Hist B",
+        "Client Hist A",
+    ]
+
+    hist_b = data[0]
+    assert hist_b["isActive"] is False
+    assert hist_b["lastDeclarationDate"] == "2023-06-15"
+    assert hist_b["declarationCount"] == 2
+
+    hist_a = data[1]
+    assert hist_a["isActive"] is True
+    assert hist_a["lastDeclarationDate"] == "2023-04-05"
+    assert hist_a["declarationCount"] == 1
