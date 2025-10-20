@@ -6,7 +6,11 @@ export function formatRelativeLastSeen(
     return 'Jamais connecté'
   }
 
-  const seenDate = new Date(lastSeenAt)
+  const trimmed = lastSeenAt.trim()
+  const hasTimezone = /(?:[zZ]|[+-]\d\d(?::?\d\d)?)$/.test(trimmed)
+  const normalizedIso = hasTimezone ? trimmed : `${trimmed}Z`
+
+  const seenDate = new Date(normalizedIso)
   if (Number.isNaN(seenDate.getTime())) {
     return 'Jamais connecté'
   }

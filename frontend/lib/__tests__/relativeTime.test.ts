@@ -20,6 +20,13 @@ test('formats past dates relative to now', () => {
   )
 })
 
+test('assumes UTC when the backend sends naive timestamps', () => {
+  const now = new Date('2024-01-01T12:00:00Z')
+  const naiveTimestamp = '2024-01-01T12:00:00'
+
+  assert.equal(formatRelativeLastSeen(naiveTimestamp, now), 'maintenant')
+})
+
 test('handles invalid dates', () => {
   assert.equal(
     formatRelativeLastSeen('not-a-date', new Date('2024-01-01T00:00:00Z')),
