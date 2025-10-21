@@ -6,7 +6,7 @@ from sqlalchemy.pool import StaticPool
 from app.main import app
 from app.db.session import get_db
 from app.models.base import Base
-from app.models.tenant import Tenant
+from app.models.tenant import Tenant, TenantSubscription
 from app.models.chauffeur import Chauffeur  # noqa: F401
 from app.models.user import User  # noqa: F401
 from app.models.client import Client  # noqa: F401
@@ -36,6 +36,23 @@ app.dependency_overrides[get_db] = override_get_db
 settings.dev_fake_auth = True
 
 
+def create_tenant_with_subscription(db, slug: str, max_chauffeurs: int) -> Tenant:
+    tenant = Tenant(name="Acme", slug=slug, max_chauffeurs=max_chauffeurs)
+    subscription = TenantSubscription(
+        tenant=tenant,
+        shopify_plan_id=f"plan-{slug}",
+        max_chauffeurs=max_chauffeurs,
+        status="active",
+        period=None,
+        metadata=None,
+    )
+    tenant.active_subscription = subscription
+    db.add(tenant)
+    db.commit()
+    db.refresh(tenant)
+    return tenant
+
+
 def test_create_chauffeur_and_limit(monkeypatch):
     sent = {}
 
@@ -49,10 +66,7 @@ def test_create_chauffeur_and_limit(monkeypatch):
 
     # create tenant
     with TestingSessionLocal() as db:
-        tenant = Tenant(name="Acme", slug="acme2", max_chauffeurs=1)
-        db.add(tenant)
-        db.commit()
-        db.refresh(tenant)
+        tenant = create_tenant_with_subscription(db, "acme2", 1)
         tenant_id = tenant.id
 
     headers = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
@@ -86,10 +100,7 @@ def test_create_chauffeur_requires_admin():
 
     # create tenant
     with TestingSessionLocal() as db:
-        tenant = Tenant(name="Acme", slug="acme", max_chauffeurs=1)
-        db.add(tenant)
-        db.commit()
-        db.refresh(tenant)
+        tenant = create_tenant_with_subscription(db, "acme", 1)
         tenant_id = tenant.id
 
     headers = {"X-Tenant-Id": str(tenant_id)}
@@ -107,10 +118,7 @@ def test_list_chauffeurs():
 
     # create tenant
     with TestingSessionLocal() as db:
-        tenant = Tenant(name="Acme", slug="acme3", max_chauffeurs=5)
-        db.add(tenant)
-        db.commit()
-        db.refresh(tenant)
+        tenant = create_tenant_with_subscription(db, "acme3", 5)
         tenant_id = tenant.id
 
     headers = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}

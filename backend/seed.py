@@ -2,7 +2,7 @@ from datetime import date
 from decimal import Decimal
 
 from app.db.session import SessionLocal
-from app.models.tenant import Tenant
+from app.models.tenant import Tenant, TenantSubscription
 from app.models.user import User
 from app.models.chauffeur import Chauffeur
 from app.models.client import Client
@@ -18,6 +18,20 @@ def run():
 
     tenant = Tenant(name="Demo", slug="demo")
     db.add(tenant)
+    db.commit()
+    db.refresh(tenant)
+
+    subscription = TenantSubscription(
+        tenant_id=tenant.id,
+        shopify_plan_id="demo-plan",
+        max_chauffeurs=5,
+        status="active",
+        period={"start": "2020-01-01", "end": None},
+        metadata={"seed": True},
+    )
+    tenant.max_chauffeurs = subscription.max_chauffeurs
+    tenant.active_subscription = subscription
+    db.add(subscription)
     db.commit()
     db.refresh(tenant)
 
