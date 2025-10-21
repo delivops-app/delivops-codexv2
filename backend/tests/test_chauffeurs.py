@@ -1,6 +1,10 @@
+from contextlib import contextmanager
+
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+import uuid
+
 from sqlalchemy.pool import StaticPool
 
 from app.main import app
@@ -8,7 +12,7 @@ from app.db.session import get_db
 from app.models.base import Base
 from app.models.tenant import Tenant, TenantSubscription
 from app.models.chauffeur import Chauffeur  # noqa: F401
-from app.models.user import User  # noqa: F401
+from app.models.user import User
 from app.models.client import Client  # noqa: F401
 from app.models.tarif import Tarif  # noqa: F401
 from app.core.config import settings
@@ -32,8 +36,21 @@ TestingSessionLocal = sessionmaker(
     bind=engine, autocommit=False, autoflush=False, future=True
 )
 Base.metadata.create_all(bind=engine)
-app.dependency_overrides[get_db] = override_get_db
 settings.dev_fake_auth = True
+
+
+@contextmanager
+def app_test_client():
+    previous_override = app.dependency_overrides.get(get_db)
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with TestClient(app) as client:
+            yield client
+    finally:
+        if previous_override is not None:
+            app.dependency_overrides[get_db] = previous_override
+        else:
+            app.dependency_overrides.pop(get_db, None)
 
 
 def create_tenant_with_subscription(db, slug: str, max_chauffeurs: int) -> Tenant:
@@ -53,6 +70,21 @@ def create_tenant_with_subscription(db, slug: str, max_chauffeurs: int) -> Tenan
     return tenant
 
 
+def create_admin_user(db, tenant_id: int) -> str:
+    identifier = uuid.uuid4().hex
+    sub = f"auth0|admin-{identifier}"
+    admin = User(
+        tenant_id=tenant_id,
+        auth0_sub=sub,
+        email=f"admin-{identifier}@example.com",
+        role="ADMIN",
+        is_active=True,
+    )
+    db.add(admin)
+    db.commit()
+    return sub
+
+
 def test_create_chauffeur_and_limit(monkeypatch):
     sent = {}
 
@@ -62,82 +94,89 @@ def test_create_chauffeur_and_limit(monkeypatch):
 
     monkeypatch.setattr("app.api.chauffeurs.send_activation_email", fake_send)
 
-    client = TestClient(app)
+    with app_test_client() as client:
+        # create tenant
+        with TestingSessionLocal() as db:
+            tenant = create_tenant_with_subscription(db, "acme2", 1)
+            tenant_id = tenant.id
+            admin_sub = create_admin_user(db, tenant_id)
 
-    # create tenant
-    with TestingSessionLocal() as db:
-        tenant = create_tenant_with_subscription(db, "acme2", 1)
-        tenant_id = tenant.id
+        headers = {
+            "X-Tenant-Id": str(tenant_id),
+            "X-Dev-Role": "ADMIN",
+            "X-Dev-Sub": admin_sub,
+        }
 
-    headers = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+        # create first chauffeur
+        response = client.post(
+            "/chauffeurs/",
+            json={"email": "driver1@example.com", "display_name": "Driver One"},
+            headers=headers,
+        )
+        assert response.status_code == 201
+        assert sent["email"] == "driver1@example.com"
+        assert "activate" in sent["link"]
 
-    # create first chauffeur
-    response = client.post(
-        "/chauffeurs/",
-        json={"email": "driver1@example.com", "display_name": "Driver One"},
-        headers=headers,
-    )
-    assert response.status_code == 201
-    assert sent["email"] == "driver1@example.com"
-    assert "activate" in sent["link"]
+        # count should be 1 and reflect subscription
+        response = client.get("/chauffeurs/count", headers=headers)
+        assert response.status_code == 200
+        assert response.json() == {"count": 1, "subscribed": 1}
 
-    # count should be 1 and reflect subscription
-    response = client.get("/chauffeurs/count", headers=headers)
-    assert response.status_code == 200
-    assert response.json() == {"count": 1, "subscribed": 1}
-
-    # second chauffeur exceeds limit
-    response = client.post(
-        "/chauffeurs/",
-        json={"email": "driver2@example.com", "display_name": "Driver Two"},
-        headers=headers,
-    )
-    assert response.status_code == 400
+        # second chauffeur exceeds limit
+        response = client.post(
+            "/chauffeurs/",
+            json={"email": "driver2@example.com", "display_name": "Driver Two"},
+            headers=headers,
+        )
+        assert response.status_code == 400
 
 
 def test_create_chauffeur_requires_admin():
-    client = TestClient(app)
+    with app_test_client() as client:
+        # create tenant
+        with TestingSessionLocal() as db:
+            tenant = create_tenant_with_subscription(db, "acme", 1)
+            tenant_id = tenant.id
 
-    # create tenant
-    with TestingSessionLocal() as db:
-        tenant = create_tenant_with_subscription(db, "acme", 1)
-        tenant_id = tenant.id
+        headers = {"X-Tenant-Id": str(tenant_id)}
 
-    headers = {"X-Tenant-Id": str(tenant_id)}
-
-    response = client.post(
-        "/chauffeurs/",
-        json={"email": "driver3@example.com", "display_name": "Driver Three"},
-        headers=headers,
-    )
-    assert response.status_code == 403
+        response = client.post(
+            "/chauffeurs/",
+            json={"email": "driver3@example.com", "display_name": "Driver Three"},
+            headers=headers,
+        )
+        assert response.status_code == 403
 
 
 def test_list_chauffeurs():
-    client = TestClient(app)
+    with app_test_client() as client:
+        # create tenant
+        with TestingSessionLocal() as db:
+            tenant = create_tenant_with_subscription(db, "acme3", 5)
+            tenant_id = tenant.id
+            admin_sub = create_admin_user(db, tenant_id)
 
-    # create tenant
-    with TestingSessionLocal() as db:
-        tenant = create_tenant_with_subscription(db, "acme3", 5)
-        tenant_id = tenant.id
+        headers = {
+            "X-Tenant-Id": str(tenant_id),
+            "X-Dev-Role": "ADMIN",
+            "X-Dev-Sub": admin_sub,
+        }
 
-    headers = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+        client.post(
+            "/chauffeurs/",
+            json={"email": "driver4@example.com", "display_name": "Driver Four"},
+            headers=headers,
+        )
+        client.post(
+            "/chauffeurs/",
+            json={"email": "driver5@example.com", "display_name": "Driver Five"},
+            headers=headers,
+        )
 
-    client.post(
-        "/chauffeurs/",
-        json={"email": "driver4@example.com", "display_name": "Driver Four"},
-        headers=headers,
-    )
-    client.post(
-        "/chauffeurs/",
-        json={"email": "driver5@example.com", "display_name": "Driver Five"},
-        headers=headers,
-    )
-
-    response = client.get("/chauffeurs/", headers=headers)
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data) == 2
-    assert all("last_seen_at" in c for c in data)
-    emails = {c["email"] for c in data}
-    assert {"driver4@example.com", "driver5@example.com"} <= emails
+        response = client.get("/chauffeurs/", headers=headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 2
+        assert all("last_seen_at" in c for c in data)
+        emails = {c["email"] for c in data}
+        assert {"driver4@example.com", "driver5@example.com"} <= emails

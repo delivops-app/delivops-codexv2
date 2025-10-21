@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_tenant_id, require_roles
+from app.api.deps import get_tenant_id, require_tenant_roles
 from app.db.session import get_db
 from app.models.chauffeur import Chauffeur
 from app.models.client import Client
@@ -177,7 +177,7 @@ def report_declarations(
     driver_id: Optional[int] = None,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ):
     return _query_declarations(db, tenant_id, date_from, date_to, client_id, driver_id)
 
@@ -197,7 +197,7 @@ def create_declaration(
     declaration_create: DeclarationReportCreate,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ):
     driver = db.get(Chauffeur, declaration_create.driver_id)
     if driver is None or driver.tenant_id != tenant_id:
@@ -317,7 +317,7 @@ def update_declaration(
     declaration_update: DeclarationReportUpdate,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ):
     declaration = _get_single_declaration(db, tenant_id, tour_item_id)
     if declaration is None:
@@ -377,7 +377,7 @@ def delete_declaration(
     tour_item_id: int,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ):
     declaration = _get_single_declaration(db, tenant_id, tour_item_id)
     if declaration is None:
@@ -407,7 +407,7 @@ def report_declarations_csv(
     driver_id: Optional[int] = None,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ):
     rows = _query_declarations(db, tenant_id, date_from, date_to, client_id, driver_id)
     output = StringIO()
@@ -431,7 +431,7 @@ def report_declarations_excel(
     driver_id: Optional[int] = None,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ):
     rows = _query_declarations(db, tenant_id, date_from, date_to, client_id, driver_id)
     workbook = Workbook()

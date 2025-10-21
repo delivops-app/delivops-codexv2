@@ -1,4 +1,5 @@
 from decimal import Decimal
+import uuid
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,6 +12,7 @@ from app.db.session import get_db
 from app.models.base import Base
 from app.models.tenant import Tenant
 from app.models.client import Client
+from app.models.user import User
 from app.models.tarif import Tarif
 from app.core.config import settings
 
@@ -47,6 +49,21 @@ def client():
         app.dependency_overrides.pop(get_db, None)
 
 
+def _create_admin_user(db, tenant_id: int) -> str:
+    identifier = uuid.uuid4().hex
+    sub = f"auth0|admin-{identifier}"
+    admin = User(
+        tenant_id=tenant_id,
+        auth0_sub=sub,
+        email=f"admin-{identifier}@example.com",
+        role="ADMIN",
+        is_active=True,
+    )
+    db.add(admin)
+    db.commit()
+    return sub
+
+
 def test_create_tarif_rejects_client_from_other_tenant(client):
     with TestingSessionLocal() as db:
         tenant_main = Tenant(name="Tenant Main", slug="tenant-tarif-main")
@@ -66,7 +83,14 @@ def test_create_tarif_rejects_client_from_other_tenant(client):
         tenant_main_id = tenant_main.id
         foreign_client_id = client_other.id
 
-    headers = {"X-Tenant-Id": str(tenant_main_id), "X-Dev-Role": "ADMIN"}
+    with TestingSessionLocal() as db:
+        admin_sub = _create_admin_user(db, tenant_main_id)
+
+    headers = {
+        "X-Tenant-Id": str(tenant_main_id),
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": admin_sub,
+    }
     response = client.post(
         "/tarifs/",
         json={
@@ -119,7 +143,14 @@ def test_update_tarif_rejects_switch_to_other_tenant_client(client):
         tarif_id = tarif.id
         foreign_client_id = client_other.id
 
-    headers = {"X-Tenant-Id": str(tenant_main_id), "X-Dev-Role": "ADMIN"}
+    with TestingSessionLocal() as db:
+        admin_sub = _create_admin_user(db, tenant_main_id)
+
+    headers = {
+        "X-Tenant-Id": str(tenant_main_id),
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": admin_sub,
+    }
     response = client.put(
         f"/tarifs/{tarif_id}",
         json={"client_id": foreign_client_id},

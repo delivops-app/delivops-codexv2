@@ -3,14 +3,10 @@ import hmac
 import json
 from typing import Any
 
-from fastapi.testclient import TestClient
-
 from app.core.config import settings
 from app.models.integration import IntegrationEvent
 from app.models.tenant import Tenant, TenantSubscription
-from tests.test_chauffeurs import TestingSessionLocal, app
-
-client = TestClient(app)
+from tests.test_chauffeurs import TestingSessionLocal, app_test_client
 
 
 def _sign(payload: dict[str, Any], secret: str) -> tuple[str, bytes]:
@@ -46,15 +42,16 @@ def test_shopify_webhook_creates_subscription():
 
         signature, raw_body = _sign(payload, secret)
 
-        response = client.post(
-            "/integrations/shopify/webhooks/subscription",
-            headers={
-                "Content-Type": "application/json",
-                "X-Shopify-Hmac-Sha256": signature,
-                "X-Shopify-Topic": "subscriptions/update",
-            },
-            content=raw_body,
-        )
+        with app_test_client() as client:
+            response = client.post(
+                "/integrations/shopify/webhooks/subscription",
+                headers={
+                    "Content-Type": "application/json",
+                    "X-Shopify-Hmac-Sha256": signature,
+                    "X-Shopify-Topic": "subscriptions/update",
+                },
+                content=raw_body,
+            )
 
         assert response.status_code == 200
         assert response.json()["status"] == "updated"
@@ -110,25 +107,27 @@ def test_shopify_webhook_duplicate_event():
 
         signature, raw_body = _sign(payload, secret)
 
-        response_first = client.post(
-            "/integrations/shopify/webhooks/subscription",
-            headers={
-                "Content-Type": "application/json",
-                "X-Shopify-Hmac-Sha256": signature,
-            },
-            content=raw_body,
-        )
+        with app_test_client() as client:
+            response_first = client.post(
+                "/integrations/shopify/webhooks/subscription",
+                headers={
+                    "Content-Type": "application/json",
+                    "X-Shopify-Hmac-Sha256": signature,
+                },
+                content=raw_body,
+            )
         assert response_first.status_code == 200
         assert response_first.json()["status"] == "updated"
 
-        response_second = client.post(
-            "/integrations/shopify/webhooks/subscription",
-            headers={
-                "Content-Type": "application/json",
-                "X-Shopify-Hmac-Sha256": signature,
-            },
-            content=raw_body,
-        )
+        with app_test_client() as client:
+            response_second = client.post(
+                "/integrations/shopify/webhooks/subscription",
+                headers={
+                    "Content-Type": "application/json",
+                    "X-Shopify-Hmac-Sha256": signature,
+                },
+                content=raw_body,
+            )
         assert response_second.status_code == 200
         assert response_second.json()["status"] == "ignored"
     finally:

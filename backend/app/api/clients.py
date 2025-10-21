@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_tenant_id, require_roles
+from app.api.deps import get_tenant_id, require_tenant_roles
 from app.db.session import get_db
 from app.models.client import Client
 from app.models.tariff import Tariff
@@ -97,7 +97,7 @@ def list_clients(
     include_inactive: bool = False,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("CHAUFFEUR", "ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ) -> List[ClientWithCategories]:
     """Return clients with their tariff categories.
 
@@ -133,7 +133,7 @@ def list_clients(
 def list_client_history(
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ) -> List[ClientHistoryEntry]:
     history_rows = (
         db.query(
@@ -169,7 +169,7 @@ def create_client(
     payload: ClientCreate,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ) -> ClientWithCategories:
     tenant = db.get(Tenant, tenant_id)
     if tenant is None:
@@ -192,7 +192,7 @@ def update_client(
     payload: ClientUpdate,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ) -> ClientWithCategories:
     client = db.execute(
         select(Client).where(
@@ -219,7 +219,7 @@ def delete_client(
     client_id: int,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ) -> None:
     client = db.execute(
         select(Client).where(
@@ -253,7 +253,7 @@ def reactivate_client(
     client_id: int,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ) -> ClientWithCategories:
     client = db.execute(
         select(Client).where(
@@ -295,7 +295,7 @@ def create_category(
     payload: CategoryCreate,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ) -> CategoryRead:
     client = db.execute(
         select(Client).where(
@@ -361,7 +361,7 @@ def update_category(
     payload: CategoryUpdate,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ) -> CategoryRead:
     group = db.execute(
         select(TariffGroup).where(
@@ -438,7 +438,7 @@ def delete_category(
     category_id: int,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ) -> None:
     group = db.execute(
         select(TariffGroup).where(

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.api.deps import get_tenant_id, require_roles
+from app.api.deps import get_tenant_id, require_tenant_roles
 from app.schemas.chauffeur import ChauffeurCreate, ChauffeurRead, ChauffeurUpdate
 from app.core.email import send_activation_email
 from app.services.chauffeurs import (
@@ -21,6 +21,7 @@ router = APIRouter(prefix="/chauffeurs", tags=["chauffeurs"])
 def count_chauffeurs(
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ):
     service = ChauffeurService(db, tenant_id)
     count, subscribed = service.count_and_subscription()
@@ -32,7 +33,7 @@ def count_chauffeurs(
 def list_chauffeurs(
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ):
     service = ChauffeurService(db, tenant_id)
     return service.list()
@@ -44,7 +45,7 @@ def create_chauffeur(
     chauffeur_in: ChauffeurCreate,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ):
     service = ChauffeurService(db, tenant_id)
     user_sub = user.get("sub") if isinstance(user, dict) else None
@@ -73,7 +74,7 @@ def update_chauffeur(
     chauffeur_in: ChauffeurUpdate,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ):
     service = ChauffeurService(db, tenant_id)
     user_sub = user.get("sub") if isinstance(user, dict) else None
@@ -91,7 +92,7 @@ def delete_chauffeur(
     chauffeur_id: int,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ):
     service = ChauffeurService(db, tenant_id)
     user_sub = user.get("sub") if isinstance(user, dict) else None

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_tenant_id, require_roles
+from app.api.deps import get_tenant_id, require_tenant_roles
 from app.db.session import get_db
 from app.models.saisie import Saisie
 from app.models.tournee import Tournee
@@ -16,7 +16,7 @@ def create_saisie(
     saisie_in: SaisieCreate,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ):
     tournee = db.get(Tournee, saisie_in.tournee_id)
     if tournee is None or tournee.tenant_id != tenant_id:
@@ -42,7 +42,7 @@ def update_saisie(
     saisie_in: SaisieUpdate,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ):
     saisie = db.get(Saisie, saisie_id)
     if saisie is None or saisie.tenant_id != tenant_id:

@@ -74,6 +74,16 @@ def _seed(db):
     db.commit()
     db.refresh(user_driver)
 
+    admin_user = User(
+        tenant_id=tenant.id,
+        auth0_sub="dev|admin",
+        email="admin@example.com",
+        role="ADMIN",
+    )
+    db.add(admin_user)
+    db.commit()
+    db.refresh(admin_user)
+
     chauffeur = Chauffeur(
         tenant_id=tenant.id,
         user_id=user_driver.id,
@@ -118,12 +128,12 @@ def _seed(db):
     db.add_all([tariff_current, tariff_old])
     db.commit()
 
-    return tenant.id, chauffeur.id, client_model.id, tg.id
+    return tenant.id, chauffeur.id, client_model.id, tg.id, admin_user.auth0_sub
 
 
 def test_create_pickup_and_close_tour(client):
     with TestingSessionLocal() as db:
-        tenant_id, chauffeur_id, client_id, tg_id = _seed(db)
+        tenant_id, chauffeur_id, client_id, tg_id, _ = _seed(db)
 
     headers = {
         "X-Tenant-Id": str(tenant_id),
@@ -168,7 +178,7 @@ def test_create_pickup_and_close_tour(client):
 
 def test_create_pickup_rejects_tariff_group_from_other_client(client):
     with TestingSessionLocal() as db:
-        tenant_id, chauffeur_id, client_id, tg_id = _seed(db)
+        tenant_id, chauffeur_id, client_id, tg_id, _ = _seed(db)
         other_client = Client(tenant_id=tenant_id, name="Globex")
         db.add(other_client)
         db.commit()
@@ -205,12 +215,12 @@ def test_create_pickup_rejects_tariff_group_from_other_client(client):
 
 def test_export_declarations_excel_returns_expected_header(client):
     with TestingSessionLocal() as db:
-        tenant_id, *_ = _seed(db)
+        tenant_id, _, _, _, admin_sub = _seed(db)
 
     headers = {
         "X-Tenant-Id": str(tenant_id),
         "X-Dev-Role": "ADMIN",
-        "X-Dev-Sub": "dev|admin",
+        "X-Dev-Sub": admin_sub,
     }
 
     response = client.get("/reports/declarations/export.xlsx", headers=headers)
@@ -231,7 +241,7 @@ def test_export_declarations_excel_returns_expected_header(client):
 
 def test_report_declarations(client):
     with TestingSessionLocal() as db:
-        tenant_id, chauffeur_id, client_id, tg_id = _seed(db)
+        tenant_id, chauffeur_id, client_id, tg_id, admin_sub = _seed(db)
 
     headers = {
         "X-Tenant-Id": str(tenant_id),
@@ -255,7 +265,11 @@ def test_report_declarations(client):
         headers=headers,
     )
 
-    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    headers_admin = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": admin_sub,
+    }
     resp = client.get("/reports/declarations", headers=headers_admin)
     assert resp.status_code == 200
     data = resp.json()
@@ -274,7 +288,7 @@ def test_report_declarations(client):
 
 def test_report_declarations_includes_in_progress(client):
     with TestingSessionLocal() as db:
-        tenant_id, chauffeur_id, client_id, tg_id = _seed(db)
+        tenant_id, chauffeur_id, client_id, tg_id, admin_sub = _seed(db)
 
     headers_driver = {
         "X-Tenant-Id": str(tenant_id),
@@ -289,7 +303,11 @@ def test_report_declarations_includes_in_progress(client):
     pickup_resp = client.post("/tours/pickup", json=pickup_payload, headers=headers_driver)
     assert pickup_resp.status_code == 201
 
-    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    headers_admin = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": admin_sub,
+    }
     resp = client.get("/reports/declarations", headers=headers_admin)
     assert resp.status_code == 200
     data = resp.json()
@@ -303,7 +321,7 @@ def test_report_declarations_includes_in_progress(client):
 
 def test_report_declarations_includes_in_progress_without_items(client):
     with TestingSessionLocal() as db:
-        tenant_id, chauffeur_id, client_id, _ = _seed(db)
+        tenant_id, chauffeur_id, client_id, _, admin_sub = _seed(db)
         tour = Tour(
             tenant_id=tenant_id,
             driver_id=chauffeur_id,
@@ -314,7 +332,11 @@ def test_report_declarations_includes_in_progress_without_items(client):
         db.add(tour)
         db.commit()
 
-    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    headers_admin = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": admin_sub,
+    }
     resp = client.get("/reports/declarations", headers=headers_admin)
     assert resp.status_code == 200
     data = resp.json()
@@ -331,7 +353,7 @@ def test_report_declarations_includes_in_progress_without_items(client):
 
 def test_admin_updates_declaration(client):
     with TestingSessionLocal() as db:
-        tenant_id, chauffeur_id, client_id, tg_id = _seed(db)
+        tenant_id, chauffeur_id, client_id, tg_id, admin_sub = _seed(db)
 
     headers_driver = {
         "X-Tenant-Id": str(tenant_id),
@@ -357,7 +379,11 @@ def test_admin_updates_declaration(client):
         headers=headers_driver,
     )
 
-    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    headers_admin = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": admin_sub,
+    }
     report_resp = client.get("/reports/declarations", headers=headers_admin)
     tour_item_id = report_resp.json()[0]["tourItemId"]
 
@@ -404,9 +430,13 @@ def test_admin_updates_declaration(client):
 
 def test_admin_creates_declaration(client):
     with TestingSessionLocal() as db:
-        tenant_id, chauffeur_id, client_id, tg_id = _seed(db)
+        tenant_id, chauffeur_id, client_id, tg_id, admin_sub = _seed(db)
 
-    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    headers_admin = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": admin_sub,
+    }
     payload = {
         "date": date.today().isoformat(),
         "driverId": chauffeur_id,
@@ -457,7 +487,7 @@ def test_admin_creates_declaration(client):
 
 def test_admin_deletes_declaration(client):
     with TestingSessionLocal() as db:
-        tenant_id, chauffeur_id, client_id, tg_id = _seed(db)
+        tenant_id, chauffeur_id, client_id, tg_id, admin_sub = _seed(db)
 
     headers_driver = {
         "X-Tenant-Id": str(tenant_id),
@@ -483,7 +513,11 @@ def test_admin_deletes_declaration(client):
         headers=headers_driver,
     )
 
-    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    headers_admin = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": admin_sub,
+    }
     report_resp = client.get("/reports/declarations", headers=headers_admin)
     assert report_resp.status_code == 200
     tour_item_id = report_resp.json()[0]["tourItemId"]

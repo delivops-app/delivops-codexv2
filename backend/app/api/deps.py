@@ -7,6 +7,7 @@ from app.core.auth import get_current_user, dev_fake_auth
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.tenant import Tenant
+from app.models.user import User
 
 
 ROLE_ALIASES = {
@@ -74,3 +75,50 @@ def require_roles(*required_roles: str):
         return user
 
     return _role_dependency
+
+
+def require_tenant_roles(*required_roles: str):
+    """Ensure the current user has the roles and belongs to the requested tenant."""
+
+    def _tenant_role_dependency(  # noqa: B008
+        user: dict = Depends(auth_dependency),
+        tenant_id: int = Depends(get_tenant_id),
+        db: Session = Depends(get_db),
+    ):
+        roles = [ROLE_ALIASES.get(r, r) for r in user.get("roles", [])]
+        if not any(role in roles for role in required_roles):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient role",
+            )
+
+        tenant_exists = db.execute(
+            select(Tenant.id).where(Tenant.id == tenant_id)
+        ).scalar_one_or_none()
+        if tenant_exists is None:
+            raise HTTPException(status_code=404, detail="Tenant not found")
+
+        sub = user.get("sub")
+        if not sub:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User not associated with tenant",
+            )
+
+        membership = db.execute(
+            select(User.id).where(
+                User.auth0_sub == sub,
+                User.tenant_id == tenant_id,
+                User.is_active.is_(True),
+            )
+        ).scalar_one_or_none()
+
+        if membership is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User not associated with tenant",
+            )
+
+        return user
+
+    return _tenant_role_dependency
