@@ -1,6 +1,7 @@
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.admin import router as admin_router
 from app.api.chauffeurs import router as chauffeurs_router
 from app.api.tarifs import router as tarifs_router
 from app.api.tournees import router as tournees_router
@@ -36,6 +37,7 @@ def apply_migrations() -> None:
 
     run_migrations()
 
+app.include_router(admin_router)
 app.include_router(chauffeurs_router)
 app.include_router(tarifs_router)
 app.include_router(tournees_router)
