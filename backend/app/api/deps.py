@@ -85,12 +85,19 @@ def require_tenant_roles(*required_roles: str):
         tenant_id: int = Depends(get_tenant_id),
         db: Session = Depends(get_db),
     ):
-        roles = [ROLE_ALIASES.get(r, r) for r in user.get("roles", [])]
+        roles = {ROLE_ALIASES.get(r, r) for r in user.get("roles", [])}
+        if "GLOBAL_SUPERVISION" in roles:
+            # Global supervision users must be able to impersonate tenant admins
+            # without belonging to each tenant explicitly.
+            roles.add("ADMIN")
         if not any(role in roles for role in required_roles):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Insufficient role",
             )
+
+        if "GLOBAL_SUPERVISION" in roles:
+            return user
 
         tenant_exists = db.execute(
             select(Tenant.id).where(Tenant.id == tenant_id)

@@ -521,3 +521,22 @@ def test_admin_cannot_switch_tenant_scope(client):
     resp = client.get("/clients/", headers=headers_other)
     assert resp.status_code == 403
     assert resp.json()["detail"] == "User not associated with tenant"
+
+
+def test_global_supervision_can_bypass_tenant_membership(client):
+    with TestingSessionLocal() as db:
+        tenant = Tenant(name="Tenant Global", slug="tenant-global")
+        db.add(tenant)
+        db.commit()
+        db.refresh(tenant)
+        tenant_id = tenant.id
+
+    headers = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "GLOBAL_SUPERVISION",
+        "X-Dev-Sub": "auth0|global-supervisor",
+    }
+
+    resp = client.get("/clients/", headers=headers)
+
+    assert resp.status_code == 200
