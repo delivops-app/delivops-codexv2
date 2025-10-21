@@ -24,6 +24,7 @@ def run():
     subscription = TenantSubscription(
         tenant_id=tenant.id,
         shopify_plan_id="demo-plan",
+        shopify_subscription_id="demo-subscription",
         max_chauffeurs=5,
         status="active",
         period={"start": "2020-01-01", "end": None},
