@@ -8,6 +8,7 @@ from app.api.saisies import router as saisies_router
 from app.api.tours import router as tours_router
 from app.api.reports import router as reports_router
 from app.api.clients import router as clients_router
+from app.api.monitoring import router as monitoring_router
 from app.api.shopify import router as shopify_router
 from app.api.deps import get_tenant_id, auth_dependency
 from app.core.config import settings
@@ -42,6 +43,7 @@ app.include_router(saisies_router)
 app.include_router(tours_router)
 app.include_router(reports_router)
 app.include_router(clients_router)
+app.include_router(monitoring_router)
 app.include_router(shopify_router)
 
 
