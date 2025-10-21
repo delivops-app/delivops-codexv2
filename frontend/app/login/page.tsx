@@ -29,7 +29,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md rounded-lg bg-white p-8 text-center shadow">
         <h1 className="mb-4 text-2xl font-semibold">Redirection en cours...</h1>
         <p className="text-sm text-slate-600">
-          Veuillez patienter pendant que nous vous redirigeons vers notre page d'authentification
+          Veuillez patienter pendant que nous vous redirigeons vers notre page d&apos;authentification
           sécurisée.
         </p>
       </div>
