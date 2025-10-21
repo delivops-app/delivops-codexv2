@@ -1,6 +1,8 @@
+import re
 from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user, dev_fake_auth
@@ -121,11 +123,72 @@ def require_tenant_roles(*required_roles: str):
         ).scalar_one_or_none()
 
         if membership is None:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User not associated with tenant",
+            auto_provisioned = _auto_provision_membership(
+                db=db,
+                tenant_id=tenant_id,
+                sub=sub,
+                roles=roles,
+                user=user,
             )
+            if not auto_provisioned:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="User not associated with tenant",
+                )
 
         return user
 
     return _tenant_role_dependency
+AUTO_PROVISION_EMAIL_DOMAIN = "autoprovision.delivops"
+
+
+def _extract_user_email(user: dict, sub: str) -> str:
+    """Return an email for the user, generating a placeholder if missing."""
+
+    email = user.get("email")
+    if isinstance(email, str) and email.strip():
+        return email.strip().lower()
+
+    sanitized = re.sub(r"[^a-z0-9._+-]", ".", sub.lower())
+    sanitized = re.sub(r"\.\.+", ".", sanitized).strip(".")
+    if not sanitized:
+        sanitized = "auto"
+    return f"{sanitized}@{AUTO_PROVISION_EMAIL_DOMAIN}"
+
+
+def _auto_provision_membership(
+    db: Session, tenant_id: int, sub: str, roles: set[str], user: dict
+) -> bool:
+    """Create an admin membership on-the-fly when missing.
+
+    The best experience for Delivops operators is to avoid manual backoffice steps
+    when a freshly invited admin connects for the first time. We only auto-provision
+    administrators because they are the actors allowed to manage tenant data.
+    """
+
+    if "ADMIN" not in roles:
+        return False
+
+    email = _extract_user_email(user, sub)
+    new_user = User(
+        tenant_id=tenant_id,
+        auth0_sub=sub,
+        email=email,
+        role="ADMIN",
+        is_active=True,
+    )
+    db.add(new_user)
+    try:
+        db.commit()
+        return True
+    except IntegrityError:
+        db.rollback()
+        existing = db.execute(
+            select(User.id).where(
+                User.auth0_sub == sub,
+                User.tenant_id == tenant_id,
+                User.is_active.is_(True),
+            )
+        ).scalar_one_or_none()
+        return existing is not None
+
