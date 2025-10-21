@@ -2,7 +2,70 @@ import { getAccessToken } from '@auth0/nextjs-auth0'
 
 const API_BASE_EXTERNAL = process.env.NEXT_PUBLIC_API_BASE?.trim()
 const API_BASE_INTERNAL = process.env.API_BASE_INTERNAL?.trim()
-const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || '1'
+
+const TENANT_HEADER_NAME = 'X-Tenant-Id'
+
+function normalizeTenantId(value?: string | null): string | undefined {
+  if (!value) {
+    return undefined
+  }
+
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : undefined
+}
+
+const ENV_TENANT_ID = normalizeTenantId(process.env.NEXT_PUBLIC_TENANT_ID)
+
+const DEV_DEFAULT_TENANT_ID =
+  process.env.NODE_ENV !== 'production' ? '1' : undefined
+
+function deriveTenantIdFromHostname(
+  hostname?: string | null,
+): string | undefined {
+  if (!hostname) {
+    return undefined
+  }
+
+  const normalized = hostname.trim().toLowerCase()
+  if (!normalized) {
+    return undefined
+  }
+
+  if (
+    normalized === 'localhost' ||
+    normalized === '127.0.0.1' ||
+    /^[0-9.]+$/.test(normalized)
+  ) {
+    return undefined
+  }
+
+  const parts = normalized.split('.')
+  if (parts.length === 0) {
+    return undefined
+  }
+
+  const [first] = parts
+  if (!first || first === 'www') {
+    return undefined
+  }
+
+  return first
+}
+
+export function resolveTenantId(): string | undefined {
+  if (ENV_TENANT_ID) {
+    return ENV_TENANT_ID
+  }
+
+  if (typeof window !== 'undefined') {
+    const derived = deriveTenantIdFromHostname(window.location?.hostname)
+    if (derived) {
+      return derived
+    }
+  }
+
+  return DEV_DEFAULT_TENANT_ID
+}
 
 const rawDevRole = process.env.NEXT_PUBLIC_DEV_ROLE
 const normalizedDevRole = rawDevRole?.trim().toUpperCase()
@@ -178,7 +241,6 @@ export async function apiFetch(
   init: RequestInit = {},
 ): Promise<ApiFetchResponse> {
   const headers = {
-    'X-Tenant-Id': TENANT_ID,
     ...(init.headers || {}),
   } as Record<string, string>
 
@@ -190,6 +252,11 @@ export async function apiFetch(
   const hasHeader = (name: string) => {
     const lowerName = name.toLowerCase()
     return Object.keys(headers).some((key) => key.toLowerCase() === lowerName)
+  }
+
+  const tenantId = resolveTenantId()
+  if (tenantId && !hasHeader(TENANT_HEADER_NAME)) {
+    headers[TENANT_HEADER_NAME] = tenantId
   }
 
   const ensureDevHeader = (name: string, value: string | undefined) => {
