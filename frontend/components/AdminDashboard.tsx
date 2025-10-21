@@ -6,9 +6,12 @@ import ClientManager from './ClientManager'
 
 type AdminDashboardProps = {
   onInvite: () => void
+  roles: string[]
 }
 
-export default function AdminDashboard({ onInvite }: AdminDashboardProps) {
+export default function AdminDashboard({ onInvite, roles }: AdminDashboardProps) {
+  const hasSupervisionAccess = roles.includes('GLOBAL_SUPERVISION')
+
   return (
     <section className="mt-6 flex w-full max-w-4xl flex-col items-center gap-6">
       <div className="flex flex-col items-center">
@@ -31,12 +34,14 @@ export default function AdminDashboard({ onInvite }: AdminDashboardProps) {
         >
           Synthèse des chauffeurs
         </Link>
-        <Link
-          href="/monitoring"
-          className="mt-2 rounded bg-indigo-600 px-4 py-2 text-white"
-        >
-          Supervision globale
-        </Link>
+        {hasSupervisionAccess && (
+          <Link
+            href="/monitoring"
+            className="mt-2 rounded bg-indigo-600 px-4 py-2 text-white"
+          >
+            Supervision globale
+          </Link>
+        )}
         <Link
           href="/aide/admin"
           className="mt-2 rounded bg-amber-500 px-4 py-2 text-white"

@@ -26,7 +26,7 @@ export default function Home() {
       {error && <p>Erreur: {error.message}</p>}
       {user && <p className="mb-4">Bonjour {user.name}</p>}
       <AuthButton />
-      {isAdmin && <AdminDashboard onInvite={openInviteForm} />}
+      {isAdmin && <AdminDashboard onInvite={openInviteForm} roles={roles} />}
       {isDriver && <DriverActions />}
     </main>
   )
