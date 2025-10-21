@@ -42,6 +42,14 @@ export default function AdminDashboard({ onInvite, roles }: AdminDashboardProps)
             Supervision globale
           </Link>
         )}
+        {hasSupervisionAccess && (
+          <Link
+            href="/admin/tenants-users"
+            className="mt-2 rounded bg-teal-600 px-4 py-2 text-white"
+          >
+            Correspondance utilisateurs/tenants
+          </Link>
+        )}
         <Link
           href="/aide/admin"
           className="mt-2 rounded bg-amber-500 px-4 py-2 text-white"

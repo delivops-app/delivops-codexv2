@@ -1,5 +1,6 @@
 from .chauffeur import ChauffeurCreate, ChauffeurRead, ChauffeurUpdate
 from .saisie import SaisieCreate, SaisieRead, SaisieUpdate
+from .user import UserTenantLink
 
 __all__ = [
     "ChauffeurCreate",
@@ -8,4 +9,5 @@ __all__ = [
     "SaisieCreate",
     "SaisieRead",
     "SaisieUpdate",
+    "UserTenantLink",
 ]
