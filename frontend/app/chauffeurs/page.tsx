@@ -54,33 +54,35 @@ export default function ChauffeursPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-8">
+    <main className="flex min-h-screen w-full flex-col items-center p-8">
       <h1 className="mb-6 text-3xl font-bold">Chauffeurs</h1>
       {error && (
         <p className="mb-4 text-red-600" role="alert">
           {error}
         </p>
       )}
-      <table className="min-w-full table-auto border-collapse">
-        <thead>
-          <tr>
-            <th className="border px-4 py-2">Nom</th>
-            <th className="border px-4 py-2">Email</th>
-            <th className="border px-4 py-2">Dernière activité</th>
-          </tr>
-        </thead>
-        <tbody>
-          {chauffeurs.map((c) => (
-            <tr key={c.id}>
-              <td className="border px-4 py-2">{c.display_name}</td>
-              <td className="border px-4 py-2">{c.email}</td>
-              <td className="border px-4 py-2">
-                {formatRelativeLastSeen(c.last_seen_at)}
-              </td>
+      <div className="w-full max-w-5xl overflow-x-auto">
+        <table className="w-full table-auto border-collapse">
+          <thead>
+            <tr>
+              <th className="border px-4 py-2 text-left">Nom</th>
+              <th className="border px-4 py-2 text-left">Email</th>
+              <th className="border px-4 py-2 text-left">Dernière activité</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {chauffeurs.map((c) => (
+              <tr key={c.id}>
+                <td className="border px-4 py-2">{c.display_name}</td>
+                <td className="border px-4 py-2 whitespace-nowrap">{c.email}</td>
+                <td className="border px-4 py-2">
+                  {formatRelativeLastSeen(c.last_seen_at)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       <Link href="/" className="mt-4 rounded bg-gray-600 px-4 py-2 text-white">
         Retour
       </Link>
