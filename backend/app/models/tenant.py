@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, JSON
+from sqlalchemy import Column, ForeignKey, Integer, String, JSON, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from .base import Base
@@ -30,11 +30,18 @@ class Tenant(Base):
 
 class TenantSubscription(Base):
     __tablename__ = "tenant_subscriptions"
+    __table_args__ = (
+        UniqueConstraint(
+            "shopify_subscription_id",
+            name="uq_tenant_subscriptions_shopify_subscription_id",
+        ),
+    )
 
     tenant_id = Column(
         Integer, ForeignKey("tenant.id", ondelete="CASCADE"), nullable=False
     )
     shopify_plan_id = Column(String, nullable=False)
+    shopify_subscription_id = Column(String, index=True, nullable=True)
     max_chauffeurs = Column(Integer, nullable=False)
     status = Column(String, nullable=False)
     period = Column(JSON, nullable=True)

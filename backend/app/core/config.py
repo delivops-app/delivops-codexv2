@@ -56,6 +56,12 @@ class Settings(BaseSettings):
         default_factory=lambda: list(DEFAULT_LOCALHOST_ORIGINS)
     )
     cors_allow_origin_regex: str | None = r"https?://(localhost|127\.0\.0\.1)(:\d+)?$"
+    shopify_webhook_secret: str | None = Field(
+        default=None, validation_alias="SHOPIFY_WEBHOOK_SECRET"
+    )
+    shopify_shop_domain: str | None = Field(
+        default=None, validation_alias="SHOPIFY_SHOP_DOMAIN"
+    )
 
     @field_validator("cors_allow_origins", mode="before")
     @classmethod
