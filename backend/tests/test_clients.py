@@ -71,6 +71,35 @@ def _create_admin_user(db, tenant_id: int) -> str:
     return sub
 
 
+def test_admin_auto_provisioned_on_first_request(client):
+    with TestingSessionLocal() as db:
+        tenant = Tenant(name="Auto", slug="auto-tenant")
+        db.add(tenant)
+        db.commit()
+        db.refresh(tenant)
+        tenant_id = tenant.id
+
+    sub = "auth0|auto-admin"
+    headers_admin = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": sub,
+    }
+
+    resp = client.get("/clients/", headers=headers_admin)
+    assert resp.status_code == 200
+
+    with TestingSessionLocal() as db:
+        user = (
+            db.query(User)
+            .filter(User.auth0_sub == sub, User.tenant_id == tenant_id)
+            .one()
+        )
+        assert user.email == "auth0.auto-admin@autoprovision.delivops"
+        assert user.role == "ADMIN"
+        assert user.is_active is True
+
+
 def test_list_clients_requires_admin_role(client):
     with TestingSessionLocal() as db:
         tenant = Tenant(name="Acme", slug="acme6")
