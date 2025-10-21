@@ -32,6 +32,12 @@ export default function AdminDashboard({ onInvite }: AdminDashboardProps) {
           Synthèse des chauffeurs
         </Link>
         <Link
+          href="/monitoring"
+          className="mt-2 rounded bg-indigo-600 px-4 py-2 text-white"
+        >
+          Supervision globale
+        </Link>
+        <Link
           href="/aide/admin"
           className="mt-2 rounded bg-amber-500 px-4 py-2 text-white"
         >
