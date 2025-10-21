@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.api.deps import get_tenant_id, require_roles
+from app.api.deps import get_tenant_id, require_tenant_roles
 from app.models.tarif import Tarif
 from app.schemas.tarif import TarifCreate, TarifRead, TarifUpdate
 from app.models.client import Client
@@ -25,7 +25,7 @@ def create_tarif(
     tarif_in: TarifCreate,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ):
     _get_client_for_tenant(db, tarif_in.client_id, tenant_id)
     tarif = Tarif(tenant_id=tenant_id, **tarif_in.model_dump())
@@ -41,7 +41,7 @@ def update_tarif(
     tarif_in: TarifUpdate,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ):
     tarif = (
         db.query(Tarif)
@@ -66,7 +66,7 @@ def delete_tarif(
     tarif_id: int,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ):
     tarif = (
         db.query(Tarif)

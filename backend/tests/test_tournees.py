@@ -1,4 +1,5 @@
 from datetime import date
+import uuid
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,6 +15,7 @@ from app.models.chauffeur import Chauffeur
 from app.models.client import Client
 from app.models.tournee import Tournee
 from app.models.saisie import Saisie
+from app.models.user import User
 from app.core.config import settings
 
 
@@ -32,6 +34,8 @@ settings.dev_fake_auth = True
 
 @pytest.fixture
 def client():
+    previous_override = app.dependency_overrides.get(get_db)
+
     def override_get_db():
         try:
             db = TestingSessionLocal()
@@ -40,9 +44,29 @@ def client():
             db.close()
 
     app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as c:
-        yield c
-    app.dependency_overrides.clear()
+    try:
+        with TestClient(app) as c:
+            yield c
+    finally:
+        if previous_override is not None:
+            app.dependency_overrides[get_db] = previous_override
+        else:
+            app.dependency_overrides.pop(get_db, None)
+
+
+def _create_admin_user(db, tenant_id: int) -> str:
+    identifier = uuid.uuid4().hex
+    sub = f"auth0|admin-{identifier}"
+    admin = User(
+        tenant_id=tenant_id,
+        auth0_sub=sub,
+        email=f"admin-{identifier}@example.com",
+        role="ADMIN",
+        is_active=True,
+    )
+    db.add(admin)
+    db.commit()
+    return sub
 
 
 def test_synthese_handles_null_nb_livres(client):
@@ -85,7 +109,14 @@ def test_synthese_handles_null_nb_livres(client):
 
         tenant_id = tenant.id
 
-    headers = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    with TestingSessionLocal() as db:
+        admin_sub = _create_admin_user(db, tenant_id)
+
+    headers = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": admin_sub,
+    }
     response = client.get("/tournees/synthese", headers=headers)
     assert response.status_code == 200
     data = response.json()
@@ -141,7 +172,14 @@ def test_synthese_sums_saisies_same_group(client):
 
         tenant_id = tenant.id
 
-    headers = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    with TestingSessionLocal() as db:
+        admin_sub = _create_admin_user(db, tenant_id)
+
+    headers = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": admin_sub,
+    }
     response = client.get("/tournees/synthese", headers=headers)
     assert response.status_code == 200
     data = response.json()

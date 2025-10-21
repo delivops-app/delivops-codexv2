@@ -1,4 +1,5 @@
 import pytest
+import uuid
 from datetime import date
 from decimal import Decimal
 from fastapi.testclient import TestClient
@@ -16,6 +17,7 @@ from app.models.tariff_group import TariffGroup
 from app.models.tour import Tour
 from app.models.tour_item import TourItem
 from app.models.chauffeur import Chauffeur
+from app.models.user import User
 from app.core.config import settings
 
 
@@ -34,6 +36,8 @@ settings.dev_fake_auth = True
 
 @pytest.fixture
 def client():
+    previous_override = app.dependency_overrides.get(get_db)
+
     def override_get_db():
         try:
             db = TestingSessionLocal()
@@ -42,20 +46,45 @@ def client():
             db.close()
 
     app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as c:
-        yield c
-    app.dependency_overrides.clear()
+    try:
+        with TestClient(app) as c:
+            yield c
+    finally:
+        if previous_override is not None:
+            app.dependency_overrides[get_db] = previous_override
+        else:
+            app.dependency_overrides.pop(get_db, None)
 
 
-def test_create_client_and_category_visible_to_driver(client):
+def _create_admin_user(db, tenant_id: int) -> str:
+    identifier = uuid.uuid4().hex
+    sub = f"auth0|admin-{identifier}"
+    admin = User(
+        tenant_id=tenant_id,
+        auth0_sub=sub,
+        email=f"admin-{identifier}@example.com",
+        role="ADMIN",
+        is_active=True,
+    )
+    db.add(admin)
+    db.commit()
+    return sub
+
+
+def test_list_clients_requires_admin_role(client):
     with TestingSessionLocal() as db:
         tenant = Tenant(name="Acme", slug="acme6")
         db.add(tenant)
         db.commit()
         db.refresh(tenant)
         tenant_id = tenant.id
+        admin_sub = _create_admin_user(db, tenant_id)
 
-    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    headers_admin = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": admin_sub,
+    }
     headers_driver = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "CHAUFFEUR"}
 
     resp = client.post("/clients/", json={"name": "Client X"}, headers=headers_admin)
@@ -87,7 +116,7 @@ def test_create_client_and_category_visible_to_driver(client):
         assert tariff.margin_ex_vat == Decimal("2.50")
         assert tariff.effective_from == date.today()
 
-    resp = client.get("/clients/", headers=headers_driver)
+    resp = client.get("/clients/", headers=headers_admin)
     assert resp.status_code == 200
     data = resp.json()
     assert any(
@@ -100,6 +129,9 @@ def test_create_client_and_category_visible_to_driver(client):
         for c in data
     )
 
+    resp = client.get("/clients/", headers=headers_driver)
+    assert resp.status_code == 403
+
 
 def test_client_routes_accept_tenant_slug(client):
     with TestingSessionLocal() as db:
@@ -107,9 +139,14 @@ def test_client_routes_accept_tenant_slug(client):
         db.add(tenant)
         db.commit()
         db.refresh(tenant)
+        admin_sub = _create_admin_user(db, tenant.id)
+        slug_header = tenant.slug.upper()
 
-    slug_header = tenant.slug.upper()
-    headers_admin = {"X-Tenant-Id": slug_header, "X-Dev-Role": "ADMIN"}
+    headers_admin = {
+        "X-Tenant-Id": slug_header,
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": admin_sub,
+    }
 
     resp = client.post("/clients/", json={"name": "Slug Client"}, headers=headers_admin)
     assert resp.status_code == 201
@@ -126,8 +163,13 @@ def test_update_category_updates_tariff_price(client):
         db.commit()
         db.refresh(tenant)
         tenant_id = tenant.id
+        admin_sub = _create_admin_user(db, tenant_id)
 
-    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    headers_admin = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": admin_sub,
+    }
 
     resp = client.post("/clients/", json={"name": "Client Y"}, headers=headers_admin)
     assert resp.status_code == 201
@@ -183,7 +225,11 @@ def test_update_category_updates_tariff_price(client):
 
 
 def test_create_client_missing_tenant_returns_404(client):
-    headers_admin = {"X-Tenant-Id": "999", "X-Dev-Role": "ADMIN"}
+    headers_admin = {
+        "X-Tenant-Id": "999",
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": "auth0|admin-missing",
+    }
     resp = client.post("/clients/", json={"name": "Test"}, headers=headers_admin)
     assert resp.status_code == 404
     assert resp.json()["detail"] == "Tenant not found"
@@ -196,8 +242,13 @@ def test_delete_client_marks_client_and_categories_inactive(client):
         db.commit()
         db.refresh(tenant)
         tenant_id = tenant.id
+        admin_sub = _create_admin_user(db, tenant_id)
 
-    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    headers_admin = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": admin_sub,
+    }
 
     resp = client.post("/clients/", json={"name": "Client Z"}, headers=headers_admin)
     assert resp.status_code == 201
@@ -231,8 +282,13 @@ def test_list_clients_include_inactive_flag(client):
         db.commit()
         db.refresh(tenant)
         tenant_id = tenant.id
+        admin_sub = _create_admin_user(db, tenant_id)
 
-    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    headers_admin = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": admin_sub,
+    }
 
     resp = client.post("/clients/", json={"name": "Client Active"}, headers=headers_admin)
     assert resp.status_code == 201
@@ -264,8 +320,13 @@ def test_reactivate_client_restores_client_and_categories(client):
         db.commit()
         db.refresh(tenant)
         tenant_id = tenant.id
+        admin_sub = _create_admin_user(db, tenant_id)
 
-    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    headers_admin = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": admin_sub,
+    }
 
     resp = client.post("/clients/", json={"name": "Client React"}, headers=headers_admin)
     assert resp.status_code == 201
@@ -405,8 +466,13 @@ def test_client_history_returns_clients_with_declarations(client):
         tg_inactive.is_active = False
         db.commit()
         tenant_id = tenant.id
+        admin_sub = _create_admin_user(db, tenant_id)
 
-    headers_admin = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    headers_admin = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": admin_sub,
+    }
     resp = client.get("/clients/history", headers=headers_admin)
     assert resp.status_code == 200
     data = resp.json()
@@ -425,3 +491,33 @@ def test_client_history_returns_clients_with_declarations(client):
     assert hist_a["isActive"] is True
     assert hist_a["lastDeclarationDate"] == "2023-04-05"
     assert hist_a["declarationCount"] == 1
+
+
+def test_admin_cannot_switch_tenant_scope(client):
+    with TestingSessionLocal() as db:
+        tenant_primary = Tenant(name="Tenant Primary", slug="tenant-primary")
+        tenant_other = Tenant(name="Tenant Other", slug="tenant-other")
+        db.add_all([tenant_primary, tenant_other])
+        db.commit()
+        db.refresh(tenant_primary)
+        db.refresh(tenant_other)
+        primary_id = tenant_primary.id
+        other_id = tenant_other.id
+        primary_sub = _create_admin_user(db, primary_id)
+
+    headers_primary = {
+        "X-Tenant-Id": str(primary_id),
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": primary_sub,
+    }
+    resp = client.get("/clients/", headers=headers_primary)
+    assert resp.status_code == 200
+
+    headers_other = {
+        "X-Tenant-Id": str(other_id),
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": primary_sub,
+    }
+    resp = client.get("/clients/", headers=headers_other)
+    assert resp.status_code == 403
+    assert resp.json()["detail"] == "User not associated with tenant"

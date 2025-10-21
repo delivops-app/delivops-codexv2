@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_tenant_id, require_roles
+from app.api.deps import get_tenant_id, require_tenant_roles
 from app.db.session import get_db
 from app.models.tournee import Tournee
 
@@ -13,7 +13,7 @@ router = APIRouter(prefix="/tournees", tags=["tournees"])
 def synthese_tournees(
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ):
     tournees = (
         db.query(Tournee)
