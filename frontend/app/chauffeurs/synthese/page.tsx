@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useUser } from '@auth0/nextjs-auth0/client'
 import { apiFetch, isApiFetchError } from '../../../lib/api'
@@ -177,6 +177,26 @@ export default function SyntheseChauffeursPage() {
   const [reactivatingClientId, setReactivatingClientId] = useState<number | null>(
     null,
   )
+  const tableContainerRef = useRef<HTMLDivElement | null>(null)
+  const newDeclarationDateInputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    if (!isCreating) {
+      return
+    }
+
+    const container = tableContainerRef.current
+    if (container) {
+      container.scrollTo({ left: 0, behavior: 'smooth' })
+    }
+
+    const dateInput = newDeclarationDateInputRef.current
+    if (dateInput) {
+      requestAnimationFrame(() => {
+        dateInput.focus({ preventScroll: true })
+      })
+    }
+  }, [isCreating])
 
   const fetchDeclarations = useCallback(async () => {
     const res = await apiFetch('/reports/declarations')
@@ -1248,7 +1268,7 @@ export default function SyntheseChauffeursPage() {
           Ajouter une déclaration
         </button>
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" ref={tableContainerRef}>
         <table className="min-w-full table-auto border-collapse">
           <thead>
             <tr>
@@ -1269,6 +1289,7 @@ export default function SyntheseChauffeursPage() {
             <tr>
               <td className="border px-4 py-2">
                 <input
+                  ref={newDeclarationDateInputRef}
                   type="date"
                   className="w-40 rounded border px-2 py-1"
                   value={newFormValues.date}
