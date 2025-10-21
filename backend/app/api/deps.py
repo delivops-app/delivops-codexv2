@@ -12,6 +12,8 @@ from app.models.tenant import Tenant
 ROLE_ALIASES = {
     "Admin Codex": "ADMIN",
     "Chauffeur Codex": "CHAUFFEUR",
+    "Supervision Globale": "GLOBAL_SUPERVISION",
+    "Delivops Team": "GLOBAL_SUPERVISION",
 }
 
 
