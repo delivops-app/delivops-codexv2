@@ -4,6 +4,15 @@ const API_BASE_EXTERNAL = process.env.NEXT_PUBLIC_API_BASE?.trim()
 const API_BASE_INTERNAL = process.env.API_BASE_INTERNAL?.trim()
 
 const TENANT_HEADER_NAME = 'X-Tenant-Id'
+const TENANT_STORAGE_KEY = 'delivops.tenant.id'
+const TENANT_QUERY_PARAM_CANDIDATES = [
+  'tenant',
+  'tenant_id',
+  'tenantId',
+  'tenant_slug',
+  'tenantSlug',
+  'slug',
+]
 
 function normalizeTenantId(value?: string | null): string | undefined {
   if (!value) {
@@ -18,6 +27,80 @@ const ENV_TENANT_ID = normalizeTenantId(process.env.NEXT_PUBLIC_TENANT_ID)
 
 const DEV_DEFAULT_TENANT_ID =
   process.env.NODE_ENV !== 'production' ? '1' : undefined
+
+function tryReadFromStorage(storage: Storage | undefined): string | undefined {
+  if (!storage) {
+    return undefined
+  }
+
+  try {
+    return normalizeTenantId(storage.getItem(TENANT_STORAGE_KEY))
+  } catch {
+    return undefined
+  }
+}
+
+function readTenantIdFromStorage(): string | undefined {
+  if (typeof window === 'undefined') {
+    return undefined
+  }
+
+  const storages: (Storage | undefined)[] = [
+    window.localStorage,
+    window.sessionStorage,
+  ]
+
+  for (const storage of storages) {
+    const value = tryReadFromStorage(storage)
+    if (value) {
+      return value
+    }
+  }
+
+  return undefined
+}
+
+function persistTenantId(value: string | undefined): void {
+  const normalized = normalizeTenantId(value)
+  if (!normalized || typeof window === 'undefined') {
+    return
+  }
+
+  try {
+    window.localStorage.setItem(TENANT_STORAGE_KEY, normalized)
+  } catch {
+    // Ignore storage errors (e.g., disabled cookies/private mode).
+  }
+
+  try {
+    window.sessionStorage.setItem(TENANT_STORAGE_KEY, normalized)
+  } catch {
+    // Ignore storage errors while still keeping the best effort behavior.
+  }
+}
+
+export function extractTenantIdFromSearch(
+  search?: string | null,
+): string | undefined {
+  if (!search) {
+    return undefined
+  }
+
+  try {
+    const params = new URLSearchParams(search)
+    for (const key of TENANT_QUERY_PARAM_CANDIDATES) {
+      const candidate = params.get(key)
+      const normalized = normalizeTenantId(candidate)
+      if (normalized) {
+        return normalized
+      }
+    }
+  } catch {
+    // Ignore invalid search params
+  }
+
+  return undefined
+}
 
 function deriveTenantIdFromHostname(
   hostname?: string | null,
@@ -52,14 +135,30 @@ function deriveTenantIdFromHostname(
   return first
 }
 
+export function rememberTenantId(tenantId: string | undefined): void {
+  persistTenantId(tenantId)
+}
+
 export function resolveTenantId(): string | undefined {
   if (ENV_TENANT_ID) {
     return ENV_TENANT_ID
   }
 
   if (typeof window !== 'undefined') {
+    const storedTenant = readTenantIdFromStorage()
+    if (storedTenant) {
+      return storedTenant
+    }
+
+    const fromQuery = extractTenantIdFromSearch(window.location?.search)
+    if (fromQuery) {
+      persistTenantId(fromQuery)
+      return fromQuery
+    }
+
     const derived = deriveTenantIdFromHostname(window.location?.hostname)
     if (derived) {
+      persistTenantId(derived)
       return derived
     }
   }

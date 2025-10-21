@@ -3,6 +3,8 @@
 import { useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
+import { extractTenantIdFromSearch, rememberTenantId } from '../../lib/api'
+
 export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -11,7 +13,31 @@ export default function LoginPage() {
     const params = new URLSearchParams()
     params.set('prompt', 'login')
 
+    const searchString = searchParams.toString()
+    const fromQuery =
+      searchString.length > 0
+        ? extractTenantIdFromSearch(`?${searchString}`)
+        : undefined
+
     const returnTo = searchParams.get('returnTo') ?? '/'
+    let tenantFromReturnTo: string | undefined
+    if (returnTo) {
+      try {
+        const maybeUrl = new URL(
+          returnTo,
+          typeof window !== 'undefined' ? window.location.origin : 'http://localhost',
+        )
+        tenantFromReturnTo = extractTenantIdFromSearch(maybeUrl.search)
+      } catch {
+        tenantFromReturnTo = undefined
+      }
+    }
+
+    const tenantCandidate = fromQuery ?? tenantFromReturnTo
+    if (tenantCandidate) {
+      rememberTenantId(tenantCandidate)
+    }
+
     if (returnTo) {
       params.set('returnTo', returnTo)
     }
