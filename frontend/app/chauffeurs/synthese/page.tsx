@@ -1269,37 +1269,37 @@ export default function SyntheseChauffeursPage() {
         </button>
       </div>
       <div className="overflow-x-auto" ref={tableContainerRef}>
-        <table className="min-w-full table-auto border-collapse">
+        <table className="min-w-full table-auto border-collapse text-sm">
           <thead>
             <tr>
-              <th className="border px-4 py-2">Date</th>
-              <th className="border px-4 py-2">Chauffeur</th>
-              <th className="border px-4 py-2">Client donneur d&apos;ordre</th>
-              <th className="border px-4 py-2">Catégorie de groupe tarifaire</th>
-              <th className="border px-4 py-2">Colis récupérés</th>
-              <th className="border px-4 py-2">Colis livrés</th>
-              <th className="border px-4 py-2">Écart</th>
-              <th className="border px-4 py-2">Montant estimé (€)</th>
-              <th className="border px-4 py-2">Marge (€)</th>
-              <th className="border px-4 py-2">Actions</th>
+              <th className="border px-2 py-2">Date</th>
+              <th className="border px-2 py-2">Chauffeur</th>
+              <th className="border px-2 py-2">Client donneur d&apos;ordre</th>
+              <th className="border px-2 py-2">Catégorie de groupe tarifaire</th>
+              <th className="border px-2 py-2">Colis récupérés</th>
+              <th className="border px-2 py-2">Colis livrés</th>
+              <th className="border px-2 py-2">Écart</th>
+              <th className="border px-2 py-2">Montant estimé (€)</th>
+              <th className="border px-2 py-2">Marge (€)</th>
+              <th className="border px-2 py-2">Actions</th>
             </tr>
           </thead>
           <tbody>
           {isCreating && (
             <tr>
-              <td className="border px-4 py-2">
+              <td className="border px-2 py-2">
                 <input
                   ref={newDeclarationDateInputRef}
                   type="date"
-                  className="w-40 rounded border px-2 py-1"
+                  className="w-28 rounded border px-2 py-1"
                   value={newFormValues.date}
                   onChange={(e) => handleNewFieldChange('date', e.target.value)}
                   disabled={isSavingNewRow}
                 />
               </td>
-              <td className="border px-4 py-2">
+              <td className="border px-2 py-2">
                 <select
-                  className="w-48 rounded border px-2 py-1"
+                  className="w-36 rounded border px-2 py-1"
                   value={newFormValues.driverId}
                   onChange={(e) => handleNewFieldChange('driverId', e.target.value)}
                   disabled={isSavingNewRow}
@@ -1313,9 +1313,9 @@ export default function SyntheseChauffeursPage() {
                   ))}
                 </select>
               </td>
-              <td className="border px-4 py-2">
+              <td className="border px-2 py-2">
                 <select
-                  className="w-48 rounded border px-2 py-1"
+                  className="w-36 rounded border px-2 py-1"
                   value={newFormValues.clientId}
                   onChange={(e) => handleNewFieldChange('clientId', e.target.value)}
                   disabled={isSavingNewRow}
@@ -1333,9 +1333,9 @@ export default function SyntheseChauffeursPage() {
                   ))}
                 </select>
               </td>
-              <td className="border px-4 py-2">
+              <td className="border px-2 py-2">
                 <select
-                  className="w-56 rounded border px-2 py-1"
+                  className="w-40 rounded border px-2 py-1"
                   value={newFormValues.tariffGroupId}
                   onChange={(e) =>
                     handleNewFieldChange('tariffGroupId', e.target.value)
@@ -1350,11 +1350,11 @@ export default function SyntheseChauffeursPage() {
                   ))}
                 </select>
               </td>
-              <td className="border px-4 py-2">
+              <td className="border px-2 py-2">
                 <input
                   type="number"
                   min={0}
-                  className="w-24 rounded border px-2 py-1"
+                  className="w-20 rounded border px-2 py-1"
                   value={newFormValues.pickupQuantity}
                   onChange={(e) =>
                     handleNewFieldChange('pickupQuantity', e.target.value)
@@ -1362,12 +1362,12 @@ export default function SyntheseChauffeursPage() {
                   disabled={isSavingNewRow}
                 />
               </td>
-              <td className="border px-4 py-2">
+              <td className="border px-2 py-2">
                 <input
                   type="number"
                   min={0}
                   max={deliveryMax}
-                  className="w-24 rounded border px-2 py-1"
+                  className="w-20 rounded border px-2 py-1"
                   value={newFormValues.deliveryQuantity}
                   onChange={(e) =>
                     handleNewFieldChange('deliveryQuantity', e.target.value)
@@ -1375,15 +1375,15 @@ export default function SyntheseChauffeursPage() {
                   disabled={isSavingNewRow}
                 />
               </td>
-              <td className="border px-4 py-2">
+              <td className="border px-2 py-2">
                 {newDifference !== null ? newDifference : '—'}
               </td>
-              <td className="border px-4 py-2">
+              <td className="border px-2 py-2">
                 <input
                   type="number"
                   min={0}
                   step="0.01"
-                  className="w-28 rounded border px-2 py-1"
+                  className="w-24 rounded border px-2 py-1"
                   value={newFormValues.estimatedAmountEur}
                   onChange={(e) =>
                     handleNewFieldChange('estimatedAmountEur', e.target.value)
@@ -1391,16 +1391,16 @@ export default function SyntheseChauffeursPage() {
                   disabled={isSavingNewRow}
                 />
               </td>
-              <td className="border px-4 py-2">
+              <td className="border px-2 py-2">
                 {newMarginAmount !== null
                   ? newMarginAmount.toFixed(2)
                   : '—'}
               </td>
-              <td className="border px-4 py-2">
-                <div className="flex gap-2">
+              <td className="border px-2 py-2">
+                <div className="flex flex-wrap gap-1">
                   <button
                     type="button"
-                    className="rounded bg-green-600 px-3 py-1 text-white disabled:opacity-50"
+                    className="rounded bg-green-600 px-2 py-1 text-white disabled:opacity-50"
                     onClick={handleCreateSave}
                     disabled={isSavingNewRow}
                   >
@@ -1408,7 +1408,7 @@ export default function SyntheseChauffeursPage() {
                   </button>
                   <button
                     type="button"
-                    className="rounded bg-gray-500 px-3 py-1 text-white disabled:opacity-50"
+                    className="rounded bg-gray-500 px-2 py-1 text-white disabled:opacity-50"
                     onClick={cancelCreating}
                     disabled={isSavingNewRow}
                   >
@@ -1426,16 +1426,16 @@ export default function SyntheseChauffeursPage() {
                   : `tour-${row.tourId}`
               }
             >
-              <td className="border px-4 py-2">{formatIsoDateToFr(row.date)}</td>
-              <td className="border px-4 py-2">{row.driverName}</td>
-              <td className="border px-4 py-2">{row.clientName}</td>
-              <td className="border px-4 py-2">{row.tariffGroupDisplayName}</td>
-              <td className="border px-4 py-2">
+              <td className="border px-2 py-2">{formatIsoDateToFr(row.date)}</td>
+              <td className="border px-2 py-2">{row.driverName}</td>
+              <td className="border px-2 py-2">{row.clientName}</td>
+              <td className="border px-2 py-2">{row.tariffGroupDisplayName}</td>
+              <td className="border px-2 py-2">
                 {editingId === row.tourItemId ? (
                   <input
                     type="number"
                     min={0}
-                    className="w-24 rounded border px-2 py-1"
+                    className="w-20 rounded border px-2 py-1"
                     value={formValues.pickupQuantity}
                     onChange={(e) =>
                       handleInputChange('pickupQuantity', e.target.value)
@@ -1445,12 +1445,12 @@ export default function SyntheseChauffeursPage() {
                   row.pickupQuantity
                 )}
               </td>
-              <td className="border px-4 py-2">
+              <td className="border px-2 py-2">
                 {editingId === row.tourItemId ? (
                   <input
                     type="number"
                     min={0}
-                    className="w-24 rounded border px-2 py-1"
+                    className="w-20 rounded border px-2 py-1"
                     value={formValues.deliveryQuantity}
                     onChange={(e) =>
                       handleInputChange('deliveryQuantity', e.target.value)
@@ -1462,7 +1462,7 @@ export default function SyntheseChauffeursPage() {
                   row.deliveryQuantity
                 )}
               </td>
-              <td className="border px-4 py-2">
+              <td className="border px-2 py-2">
                 {editingId === row.tourItemId
                   ? (() => {
                       const pickup = parseInt(formValues.pickupQuantity, 10)
@@ -1474,13 +1474,13 @@ export default function SyntheseChauffeursPage() {
                     })()
                   : row.differenceQuantity}
               </td>
-              <td className="border px-4 py-2">
+              <td className="border px-2 py-2">
                 {editingId === row.tourItemId ? (
                   <input
                     type="number"
                     min={0}
                     step="0.01"
-                    className="w-28 rounded border px-2 py-1"
+                    className="w-24 rounded border px-2 py-1"
                     value={formValues.estimatedAmountEur}
                     onChange={(e) =>
                       handleInputChange('estimatedAmountEur', e.target.value)
@@ -1490,7 +1490,7 @@ export default function SyntheseChauffeursPage() {
                   Number(row.estimatedAmountEur || 0).toFixed(2)
                 )}
               </td>
-              <td className="border px-4 py-2">
+              <td className="border px-2 py-2">
                 {editingId === row.tourItemId
                   ? (() => {
                       const delivery = parseInt(
@@ -1508,12 +1508,12 @@ export default function SyntheseChauffeursPage() {
                     })()
                   : Number(row.marginAmountEur || 0).toFixed(2)}
               </td>
-              <td className="border px-4 py-2">
+              <td className="border px-2 py-2">
                 {editingId === row.tourItemId ? (
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-1">
                     <button
                       type="button"
-                      className="rounded bg-green-600 px-3 py-1 text-white disabled:opacity-50"
+                      className="rounded bg-green-600 px-2 py-1 text-white disabled:opacity-50"
                       onClick={handleSave}
                       disabled={isSaving}
                     >
@@ -1521,7 +1521,7 @@ export default function SyntheseChauffeursPage() {
                     </button>
                     <button
                       type="button"
-                      className="rounded bg-gray-500 px-3 py-1 text-white disabled:opacity-50"
+                      className="rounded bg-gray-500 px-2 py-1 text-white disabled:opacity-50"
                       onClick={cancelEditing}
                       disabled={isSaving}
                     >
@@ -1529,10 +1529,10 @@ export default function SyntheseChauffeursPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-1">
                     <button
                       type="button"
-                      className="rounded bg-blue-600 px-3 py-1 text-white disabled:opacity-50"
+                      className="rounded bg-blue-600 px-2 py-1 text-white disabled:opacity-50"
                       onClick={() => startEditing(row)}
                       disabled={
                         isCreating ||
@@ -1542,17 +1542,16 @@ export default function SyntheseChauffeursPage() {
                     >
                       Modifier
                     </button>
-                  <button
-                    type="button"
-                    className="rounded bg-red-600 px-3 py-1 text-white disabled:opacity-50"
-                    onClick={() => handleDelete(row)}
-                    disabled={
-                      deletingId === row.tourItemId || row.tourItemId === null
-                    }
-                  >
-                    Supprimer
-                  </button>
-
+                    <button
+                      type="button"
+                      className="rounded bg-red-600 px-2 py-1 text-white disabled:opacity-50"
+                      onClick={() => handleDelete(row)}
+                      disabled={
+                        deletingId === row.tourItemId || row.tourItemId === null
+                      }
+                    >
+                      Supprimer
+                    </button>
                   </div>
                 )}
               </td>
@@ -1560,7 +1559,7 @@ export default function SyntheseChauffeursPage() {
           ))}
           {filteredRows.length === 0 && !isCreating && (
             <tr>
-              <td className="border px-4 py-6 text-center" colSpan={10}>
+              <td className="border px-2 py-6 text-center" colSpan={10}>
                 {rows.length === 0
                   ? 'Aucune déclaration disponible.'
                   : 'Aucune déclaration ne correspond aux filtres.'}
@@ -1570,16 +1569,16 @@ export default function SyntheseChauffeursPage() {
         </tbody>
         <tfoot>
           <tr>
-            <td className="border px-4 py-2 font-semibold" colSpan={7}>
+            <td className="border px-2 py-2 font-semibold" colSpan={7}>
               Totaux
             </td>
-            <td className="border px-4 py-2 font-semibold">
+            <td className="border px-2 py-2 font-semibold">
               {formattedTotalEstimatedAmount} €
             </td>
-            <td className="border px-4 py-2 font-semibold">
+            <td className="border px-2 py-2 font-semibold">
               {formattedTotalMarginAmount} €
             </td>
-            <td className="border px-4 py-2" />
+            <td className="border px-2 py-2" />
           </tr>
         </tfoot>
       </table>
