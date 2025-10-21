@@ -1045,7 +1045,7 @@ export default function SyntheseChauffeursPage() {
             className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             onClick={handleOpenClientHistory}
           >
-            Historique des donneurs d'ordres
+            Historique des donneurs d&apos;ordres
           </button>
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -1248,22 +1248,23 @@ export default function SyntheseChauffeursPage() {
           Ajouter une déclaration
         </button>
       </div>
-      <table className="min-w-full table-auto border-collapse">
-        <thead>
-          <tr>
-            <th className="border px-4 py-2">Date</th>
-            <th className="border px-4 py-2">Chauffeur</th>
-            <th className="border px-4 py-2">Client donneur d&apos;ordre</th>
-            <th className="border px-4 py-2">Catégorie de groupe tarifaire</th>
-            <th className="border px-4 py-2">Colis récupérés</th>
-            <th className="border px-4 py-2">Colis livrés</th>
-            <th className="border px-4 py-2">Écart</th>
-            <th className="border px-4 py-2">Montant estimé (€)</th>
-            <th className="border px-4 py-2">Marge (€)</th>
-            <th className="border px-4 py-2">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
+      <div className="overflow-x-auto">
+        <table className="min-w-full table-auto border-collapse">
+          <thead>
+            <tr>
+              <th className="border px-4 py-2">Date</th>
+              <th className="border px-4 py-2">Chauffeur</th>
+              <th className="border px-4 py-2">Client donneur d&apos;ordre</th>
+              <th className="border px-4 py-2">Catégorie de groupe tarifaire</th>
+              <th className="border px-4 py-2">Colis récupérés</th>
+              <th className="border px-4 py-2">Colis livrés</th>
+              <th className="border px-4 py-2">Écart</th>
+              <th className="border px-4 py-2">Montant estimé (€)</th>
+              <th className="border px-4 py-2">Marge (€)</th>
+              <th className="border px-4 py-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
           {isCreating && (
             <tr>
               <td className="border px-4 py-2">
@@ -1561,6 +1562,7 @@ export default function SyntheseChauffeursPage() {
           </tr>
         </tfoot>
       </table>
+      </div>
       <Link href="/" className="mt-4 rounded bg-gray-600 px-4 py-2 text-white">
         Retour
       </Link>
@@ -1569,7 +1571,7 @@ export default function SyntheseChauffeursPage() {
           <div className="w-full max-w-3xl rounded bg-white p-6 shadow-lg">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-xl font-semibold">
-                Historique des donneurs d'ordres
+                Historique des donneurs d&apos;ordres
               </h2>
               <div className="flex items-center gap-2">
                 <button
@@ -1595,7 +1597,7 @@ export default function SyntheseChauffeursPage() {
               </p>
             )}
             {isLoadingClientHistory ? (
-              <p className="text-sm text-gray-600">Chargement de l'historique…</p>
+              <p className="text-sm text-gray-600">Chargement de l&apos;historique…</p>
             ) : clientHistory.length === 0 ? (
               <p className="text-sm text-gray-600">
                 Aucune déclaration enregistrée pour le moment.
@@ -1606,7 +1608,7 @@ export default function SyntheseChauffeursPage() {
                   <thead>
                     <tr className="border-b">
                       <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">
-                        Donneur d'ordre
+                        Donneur d&apos;ordre
                       </th>
                       <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">
                         Statut
