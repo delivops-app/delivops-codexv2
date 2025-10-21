@@ -68,14 +68,14 @@ export default function MonitoringPage() {
   const roles = normalizeRoles(
     ((user?.['https://delivops/roles'] as string[]) || []),
   )
-  const isAdmin = roles.includes('ADMIN')
+  const hasSupervisionAccess = roles.includes('GLOBAL_SUPERVISION')
 
   const [overview, setOverview] = useState<MonitoringOverview | null>(null)
   const [state, setState] = useState<FetchState>('idle')
   const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
-    if (!isAdmin) return
+    if (!hasSupervisionAccess) return
 
     const loadOverview = async () => {
       setState('loading')
@@ -98,7 +98,7 @@ export default function MonitoringPage() {
     }
 
     void loadOverview()
-  }, [isAdmin])
+  }, [hasSupervisionAccess])
 
   const kpis = useMemo(() => {
     if (!overview) return []
@@ -140,12 +140,12 @@ export default function MonitoringPage() {
     )
   }
 
-  if (!isAdmin) {
+  if (!hasSupervisionAccess) {
     return (
       <main className="flex min-h-screen flex-col items-center p-8">
         <h1 className="mb-4 text-3xl font-bold">Accès restreint</h1>
         <p className="mb-4 text-center">
-          Cette page est réservée aux administrateurs en charge de la supervision globale.
+          Cette page est réservée à l&apos;équipe Delivops en charge de la supervision globale.
         </p>
         <Link href="/" className="rounded bg-gray-600 px-4 py-2 text-white">
           Retour à l&apos;accueil

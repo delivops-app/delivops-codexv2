@@ -13,7 +13,7 @@ router = APIRouter(prefix="/monitoring", tags=["monitoring"])
 def get_monitoring_overview(
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    _: dict = Depends(require_roles("ADMIN")),  # noqa: B008
+    _: dict = Depends(require_roles("GLOBAL_SUPERVISION")),  # noqa: B008
 ) -> MonitoringOverview:
     service = MonitoringService(db, tenant_id)
     return service.get_overview()

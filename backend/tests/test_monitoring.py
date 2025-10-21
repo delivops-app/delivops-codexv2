@@ -116,7 +116,7 @@ def test_monitoring_overview_provides_aggregated_metrics():
         db.add_all([audit_admin, audit_public])
         db.commit()
 
-    headers = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+    headers = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "GLOBAL_SUPERVISION"}
 
     response = client.get("/monitoring/overview", headers=headers)
     assert response.status_code == 200
@@ -136,3 +136,17 @@ def test_monitoring_overview_provides_aggregated_metrics():
     assert "/chauffeurs/:id" in entities
     assert any(event["actor_role"] == "ADMIN" for event in payload["recent_events"])
     assert any(event["actor_role"] == "ANONYMOUS" for event in payload["recent_events"])
+
+
+def test_monitoring_overview_is_forbidden_for_admin_role():
+    client = TestClient(app)
+
+    with TestingSessionLocal() as db:
+        tenant = create_tenant(db, "forbidden", 1)
+        tenant_id = tenant.id
+
+    headers = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "ADMIN"}
+
+    response = client.get("/monitoring/overview", headers=headers)
+
+    assert response.status_code == 403
