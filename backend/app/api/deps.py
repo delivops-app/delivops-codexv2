@@ -20,6 +20,48 @@ ROLE_ALIASES = {
 }
 
 
+def _iter_role_values(value) -> set[str]:
+    """Yield individual role strings from heterogeneous claim payloads."""
+
+    collected: set[str] = set()
+
+    def _collect(item) -> None:
+        if isinstance(item, str):
+            normalized = item.strip()
+            if normalized:
+                collected.add(normalized)
+        elif isinstance(item, (list, tuple, set)):
+            for element in item:
+                _collect(element)
+
+    _collect(value)
+    return collected
+
+
+def _extract_roles(user: dict) -> set[str]:
+    """Return normalized roles for the authenticated user.
+
+    Auth0 exposes custom claims under a namespace (e.g. ``https://delivops/roles``).
+    In development we also rely on the plain ``roles`` attribute through ``DEV_FAKE_AUTH``.
+    To make sure permissions are enforced consistently we merge every supported claim
+    into a single normalized set while applying the configured aliases.
+    """
+
+    if not isinstance(user, dict):
+        return set()
+
+    discovered: set[str] = set()
+    for key, value in user.items():
+        if not isinstance(key, str):
+            continue
+        key_lower = key.lower()
+        if key == "roles" or key_lower.endswith("/roles"):
+            discovered.update(_iter_role_values(value))
+
+    normalized = {ROLE_ALIASES.get(role, role) for role in discovered}
+    return normalized
+
+
 def get_tenant_id(
     x_tenant_id: str = Header(..., alias=settings.tenant_header_name),
     db: Session = Depends(get_db),  # noqa: B008
@@ -68,7 +110,7 @@ def require_roles(*required_roles: str):
     """Dependency ensuring current user has at least one of required roles."""
 
     def _role_dependency(user: dict = Depends(auth_dependency)):  # noqa: B008
-        roles = [ROLE_ALIASES.get(r, r) for r in user.get("roles", [])]
+        roles = _extract_roles(user)
         if not any(role in roles for role in required_roles):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -87,7 +129,7 @@ def require_tenant_roles(*required_roles: str):
         tenant_id: int = Depends(get_tenant_id),
         db: Session = Depends(get_db),
     ):
-        roles = {ROLE_ALIASES.get(r, r) for r in user.get("roles", [])}
+        roles = _extract_roles(user)
         if "GLOBAL_SUPERVISION" in roles:
             # Global supervision users must be able to impersonate tenant admins
             # without belonging to each tenant explicitly.

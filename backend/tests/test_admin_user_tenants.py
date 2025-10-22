@@ -3,6 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.api.deps import auth_dependency
 from app.core.config import settings
 from app.db.session import get_db
 from app.main import app
@@ -120,3 +121,63 @@ def test_user_tenant_links_forbidden_for_non_supervision():
     response = client.get("/admin/user-tenants", headers={"X-Dev-Role": "ADMIN"})
 
     assert response.status_code == 403
+
+
+def test_user_tenant_links_visible_with_namespaced_roles_claim():
+    reset_database()
+    client = TestClient(app)
+
+    with TestingSessionLocal() as db:
+        tenant_alpha = create_tenant(db, "Alpha", "alpha")
+        tenant_beta = create_tenant(db, "Beta", "beta")
+
+        user_one = create_user(db, tenant_alpha.id, "admin.one@example.com", "ADMIN")
+        user_two = create_user(
+            db, tenant_beta.id, "admin.two@example.com", "ADMIN", is_active=False
+        )
+
+        tenant_alpha_id = tenant_alpha.id
+        tenant_beta_id = tenant_beta.id
+        user_one_id = user_one.id
+        user_two_id = user_two.id
+
+    assert tenant_alpha_id is not None and tenant_beta_id is not None
+    assert user_one_id is not None and user_two_id is not None
+
+    override_user = {
+        "https://delivops/roles": ["Delivops Team"],
+    }
+
+    previous_override = app.dependency_overrides.get(auth_dependency)
+    app.dependency_overrides[auth_dependency] = lambda: override_user
+    try:
+        response = client.get("/admin/user-tenants")
+    finally:
+        if previous_override is not None:
+            app.dependency_overrides[auth_dependency] = previous_override
+        else:
+            app.dependency_overrides.pop(auth_dependency, None)
+
+    assert response.status_code == 200
+    payload = response.json()
+
+    assert payload == [
+        {
+            "userId": user_one_id,
+            "email": "admin.one@example.com",
+            "role": "ADMIN",
+            "isActive": True,
+            "tenantId": tenant_alpha_id,
+            "tenantName": "Alpha",
+            "tenantSlug": "alpha",
+        },
+        {
+            "userId": user_two_id,
+            "email": "admin.two@example.com",
+            "role": "ADMIN",
+            "isActive": False,
+            "tenantId": tenant_beta_id,
+            "tenantName": "Beta",
+            "tenantSlug": "beta",
+        },
+    ]
