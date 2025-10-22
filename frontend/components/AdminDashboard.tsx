@@ -36,6 +36,14 @@ export default function AdminDashboard({ onInvite, roles }: AdminDashboardProps)
         </Link>
         {hasSupervisionAccess && (
           <Link
+            href="/admin"
+            className="mt-2 rounded bg-slate-700 px-4 py-2 text-white"
+          >
+            Espace Delivops
+          </Link>
+        )}
+        {hasSupervisionAccess && (
+          <Link
             href="/monitoring"
             className="mt-2 rounded bg-indigo-600 px-4 py-2 text-white"
           >
