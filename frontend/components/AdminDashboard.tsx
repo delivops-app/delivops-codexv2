@@ -20,13 +20,13 @@ export default function AdminDashboard({ onInvite, roles }: AdminDashboardProps)
           onClick={onInvite}
           className="rounded bg-green-600 px-4 py-2 text-white"
         >
-          Inviter un chauffeur
+          Ajouter un chauffeur
         </button>
         <Link
           href="/chauffeurs"
           className="mt-2 rounded bg-blue-600 px-4 py-2 text-white"
         >
-          Voir les chauffeurs
+          Liste des chauffeurs
         </Link>
         <Link
           href="/chauffeurs/synthese"
