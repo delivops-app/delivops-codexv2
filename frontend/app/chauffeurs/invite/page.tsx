@@ -151,7 +151,7 @@ export default function InviteChauffeurPage() {
         >
           Retour
         </button>
-        <h1 className="mb-6 text-3xl font-bold">Inviter un chauffeur</h1>
+        <h1 className="mb-6 text-3xl font-bold">Ajouter un chauffeur</h1>
         <div className="mb-6">
           <p>
             <span className="font-medium">Quota actuel:</span>{' '}

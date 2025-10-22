@@ -7,14 +7,14 @@ const steps = [
       "Connectez-vous avec votre compte administrateur via le bouton « Se connecter » sur la page d’accueil.",
   },
   {
-    title: 'Inviter un chauffeur',
+    title: 'Ajouter un chauffeur',
     description:
-      "Depuis le tableau de bord, cliquez sur « Inviter un chauffeur » pour ouvrir le formulaire d’invitation et envoyer une invitation par email.",
+      "Depuis le tableau de bord, cliquez sur « Ajouter un chauffeur » pour ouvrir le formulaire d’invitation et envoyer une invitation par email.",
   },
   {
     title: 'Consulter les chauffeurs',
     description:
-      "Accédez à la liste complète des chauffeurs via « Voir les chauffeurs » pour suivre leur statut et leurs informations.",
+      "Accédez à la liste complète des chauffeurs via « Liste des chauffeurs » pour suivre leur statut et leurs informations.",
   },
   {
     title: 'Analyser la synthèse',
