@@ -64,7 +64,9 @@ export default function ClientCard({
                 <div>
                   <p className="font-medium">{cat.name}</p>
                   <p>
-                    Tarif chauffeur (hors marge) : {formatAmount(cat.price)} €
+                    Tarif chauffeur (par colis, hors marge) :
+                    {' '}
+                    {formatAmount(cat.price)} €
                   </p>
                   <p>
                     Marge (bénéfice par colis) : {formatAmount(cat.margin)} €
