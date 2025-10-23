@@ -2,34 +2,14 @@ import Link from 'next/link'
 
 const faqs = [
   {
-    question: 'Comment me connecter pour la première fois ?',
-    answer:
-      'Utilisez le bouton « Se connecter » sur la page d’accueil, puis saisissez les identifiants reçus dans votre email d’invitation. Vous serez automatiquement redirigé vers votre espace chauffeur.',
-  },
-  {
     question: 'Où récupérer ma première tournée ?',
     answer:
-      'Depuis votre espace chauffeur, cliquez sur « Je récupère une tournée ». La liste des tournées disponibles s’affiche et vous pouvez en accepter une en un clic.',
-  },
-  {
-    question: 'Comment suivre le déroulé des livraisons ?',
-    answer:
-      'Ouvrez la tournée acceptée pour voir chaque étape, les horaires prévus et les instructions spécifiques. Marquez les étapes comme effectuées au fur et à mesure pour garder le suivi à jour.',
-  },
-  {
-    question: 'Que faire en cas d’imprévu pendant une tournée ?',
-    answer:
-      'Indiquez l’imprévu dans la note de l’étape concernée et prévenez votre contact opérationnel. Toutes les informations sont ainsi centralisées pour faciliter le suivi.',
+      'Depuis votre espace chauffeur, cliquez sur « Je récupère une tournée ». La liste des tournées disponibles s’affiche et vous pouvez en accepter une en un clic. Choisissez bien le/les bons types de colis.',
   },
   {
     question: 'Comment clôturer une tournée une fois terminée ?',
     answer:
       'Une fois la dernière étape validée, cliquez sur « Je clôture une tournée » pour confirmer la fin du parcours. Les informations sont immédiatement remontées à l’équipe.',
-  },
-  {
-    question: 'Puis-je revenir sur une tournée précédente ?',
-    answer:
-      'Oui, votre historique reste accessible depuis l’espace chauffeur. Consultez les tournées clôturées pour vérifier un détail ou confirmer une information.',
   },
 ]
 
