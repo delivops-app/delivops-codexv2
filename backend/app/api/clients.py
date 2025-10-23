@@ -97,7 +97,7 @@ def list_clients(
     include_inactive: bool = False,
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
-    user: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
+    user: dict = Depends(require_tenant_roles("ADMIN", "CHAUFFEUR")),  # noqa: B008
 ) -> List[ClientWithCategories]:
     """Return clients with their tariff categories.
 

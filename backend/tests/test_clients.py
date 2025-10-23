@@ -100,7 +100,7 @@ def test_admin_auto_provisioned_on_first_request(client):
         assert user.is_active is True
 
 
-def test_list_clients_requires_admin_role(client):
+def test_list_clients_allows_chauffeur_role(client):
     with TestingSessionLocal() as db:
         tenant = Tenant(name="Acme", slug="acme6")
         db.add(tenant)
@@ -108,13 +108,27 @@ def test_list_clients_requires_admin_role(client):
         db.refresh(tenant)
         tenant_id = tenant.id
         admin_sub = _create_admin_user(db, tenant_id)
+        driver_sub = "auth0|driver-acme"
+        driver = User(
+            tenant_id=tenant_id,
+            auth0_sub=driver_sub,
+            email="driver@example.com",
+            role="CHAUFFEUR",
+            is_active=True,
+        )
+        db.add(driver)
+        db.commit()
 
     headers_admin = {
         "X-Tenant-Id": str(tenant_id),
         "X-Dev-Role": "ADMIN",
         "X-Dev-Sub": admin_sub,
     }
-    headers_driver = {"X-Tenant-Id": str(tenant_id), "X-Dev-Role": "CHAUFFEUR"}
+    headers_driver = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "CHAUFFEUR",
+        "X-Dev-Sub": driver_sub,
+    }
 
     resp = client.post("/clients/", json={"name": "Client X"}, headers=headers_admin)
     assert resp.status_code == 201
@@ -159,7 +173,15 @@ def test_list_clients_requires_admin_role(client):
     )
 
     resp = client.get("/clients/", headers=headers_driver)
-    assert resp.status_code == 403
+    assert resp.status_code == 200
+    driver_data = resp.json()
+    assert any(
+        c["name"] == "Client X"
+        and c["isActive"] is True
+        and c["categories"]
+        and c["categories"][0]["name"] == "Cat A"
+        for c in driver_data
+    )
 
 
 def test_client_routes_accept_tenant_slug(client):
