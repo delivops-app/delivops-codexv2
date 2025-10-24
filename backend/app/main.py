@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -19,7 +21,17 @@ from app.db.migrations import run_migrations
 from app.core.logging import setup_logging
 
 setup_logging()
-app = FastAPI()
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """Run startup tasks before the application begins serving traffic."""
+
+    run_migrations()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,25 +43,21 @@ app.add_middleware(
 )
 app.add_middleware(AuditMiddleware)
 
-
-@app.on_event("startup")
-def apply_migrations() -> None:
-    """Ensure the database schema is up to date before handling requests."""
-
-    run_migrations()
-
-app.include_router(admin_router)
-app.include_router(chauffeurs_router)
-app.include_router(tarifs_router)
-app.include_router(tournees_router)
-app.include_router(saisies_router)
-app.include_router(tours_router)
-app.include_router(reports_router)
-app.include_router(clients_router)
-app.include_router(monitoring_router)
-app.include_router(shopify_router)
-app.include_router(billing_router)
-app.include_router(stripe_webhook_router)
+for router in (
+    admin_router,
+    chauffeurs_router,
+    tarifs_router,
+    tournees_router,
+    saisies_router,
+    tours_router,
+    reports_router,
+    clients_router,
+    monitoring_router,
+    shopify_router,
+    billing_router,
+    stripe_webhook_router,
+):
+    app.include_router(router)
 
 
 @app.get("/auth/me")
