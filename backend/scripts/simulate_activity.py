@@ -1,33 +1,21 @@
 """Seed the database with a demo tenant, users and chauffeurs.
 
-This script is meant to be executed from the repository root without any
-additional environment configuration. It ensures the backend code is on the
-``PYTHONPATH`` and that a reasonable default ``DATABASE_URL`` is provided when
-none is defined.
+Run this script from within the Docker ``api`` service so that it shares the
+same dependencies and configuration as the backend container.
 """
 
+from __future__ import annotations
+
 import json
-import os
 import random
-import sys
-from pathlib import Path
 from typing import Iterable
 
-# Allow running the script without manually setting PYTHONPATH
-ROOT = Path(__file__).resolve().parent
-sys.path.append(str(ROOT / "backend"))
-
-# Default to connecting to the local database if DATABASE_URL isn't set
-os.environ.setdefault(
-    "DATABASE_URL", "postgresql+psycopg://delivops:changeme@localhost:5432/delivops"
-)
-
-from app.db.session import SessionLocal  # noqa: E402
-from app.models.audit import AuditLog  # noqa: E402
-from app.models.chauffeur import Chauffeur  # noqa: E402
-from app.models.tenant import Tenant  # noqa: E402
-from app.models.user import User  # noqa: E402
-from sqlalchemy.orm import Session  # noqa: E402
+from app.db.session import SessionLocal
+from app.models.audit import AuditLog
+from app.models.chauffeur import Chauffeur
+from app.models.tenant import Tenant
+from app.models.user import User
+from sqlalchemy.orm import Session
 
 DEMO_USERS: tuple[dict[str, str], ...] = (
     {"auth0_sub": "auth0|0", "email": "user0@example.com", "role": "ADMIN"},

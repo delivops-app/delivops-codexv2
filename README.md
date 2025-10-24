@@ -175,10 +175,10 @@ make seed
 Injecte un tenant de démonstration, des utilisateurs et plusieurs chauffeurs pour tester rapidement l'application.
 
 ```bash
-python simulate_activity.py
+docker compose run --rm api python scripts/simulate_activity.py
 ```
 
-Le script ajoute automatiquement `backend` au `PYTHONPATH` et se connecte par défaut à la base locale (`localhost:5432`) si `DATABASE_URL` n'est pas défini.
+Le script doit être exécuté depuis le conteneur `api` afin de réutiliser la configuration `DATABASE_URL` fournie par `backend/.env`.
 
 ### Export Excel des déclarations
 
