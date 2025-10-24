@@ -1,23 +1,18 @@
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
+import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.api.deps import auth_dependency
 from app.core.config import settings
 from app.db.session import get_db
+
 from app.main import app
 from app.models.base import Base
 from app.models.tenant import Tenant
 from app.models.user import User
-
-
-def override_get_db():
-    try:
-        db = TestingSessionLocal()
-        yield db
-    finally:
-        db.close()
 
 
 engine = create_engine(
@@ -30,8 +25,30 @@ TestingSessionLocal = sessionmaker(
     bind=engine, autocommit=False, autoflush=False, future=True
 )
 Base.metadata.create_all(bind=engine)
-app.dependency_overrides[get_db] = override_get_db
 settings.dev_fake_auth = True
+
+
+@pytest.fixture()
+def client():
+    previous_override = app.dependency_overrides.get(get_db)
+
+    def override_get_db():
+        db = TestingSessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    try:
+        with TestClient(app) as test_client:
+            yield test_client
+    finally:
+        if previous_override is not None:
+            app.dependency_overrides[get_db] = previous_override
+        else:
+            app.dependency_overrides.pop(get_db, None)
 
 
 
@@ -65,9 +82,8 @@ def create_user(db, tenant_id: int, email: str, role: str, is_active: bool = Tru
     return user
 
 
-def test_user_tenant_links_visible_for_global_supervision():
+def test_user_tenant_links_visible_for_global_supervision(client):
     reset_database()
-    client = TestClient(app)
 
     with TestingSessionLocal() as db:
         tenant_alpha = create_tenant(db, "Alpha", "alpha")
@@ -114,18 +130,16 @@ def test_user_tenant_links_visible_for_global_supervision():
     ]
 
 
-def test_user_tenant_links_forbidden_for_non_supervision():
+def test_user_tenant_links_forbidden_for_non_supervision(client):
     reset_database()
-    client = TestClient(app)
 
     response = client.get("/admin/user-tenants", headers={"X-Dev-Role": "ADMIN"})
 
     assert response.status_code == 403
 
 
-def test_user_tenant_links_visible_with_namespaced_roles_claim():
+def test_user_tenant_links_visible_with_namespaced_roles_claim(client):
     reset_database()
-    client = TestClient(app)
 
     with TestingSessionLocal() as db:
         tenant_alpha = create_tenant(db, "Alpha", "alpha")

@@ -1,3 +1,20 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+[data-billing-mode='read-only'] button:not([data-billing-allow='true']),
+[data-billing-mode='read-only'] input:not([data-billing-allow='true']),
+[data-billing-mode='read-only'] select:not([data-billing-allow='true']),
+[data-billing-mode='read-only'] textarea:not([data-billing-allow='true']) {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+[data-billing-mode='suspended'] button:not([data-billing-allow='true']),
+[data-billing-mode='suspended'] input:not([data-billing-allow='true']),
+[data-billing-mode='suspended'] select:not([data-billing-allow='true']),
+[data-billing-mode='suspended'] textarea:not([data-billing-allow='true']),
+[data-billing-mode='suspended'] [role='button']:not([data-billing-allow='true']) {
+  pointer-events: none;
+  opacity: 0.4;
+}

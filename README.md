@@ -32,6 +32,21 @@ LOKI_URL=http://loki:3100/loki/api/v1/push
 
 `DEV_FAKE_AUTH` active un mode de développement sans Auth0 : les appels doivent alors renseigner les en-têtes `X-Dev-Role` et `X-Dev-Sub`.
 
+#### Stripe & facturation
+
+- Dupliquez `.env.example` vers la racine de vos environnements (`cp .env.example .env`) pour centraliser la configuration Stripe commune.
+- Renseignez au minimum `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_EARLY_PARTNER` et `STRIPE_CUSTOMER_PORTAL_RETURN_URL`.
+- Facultatif : surchargez `STRIPE_CHECKOUT_SUCCESS_URL` et `STRIPE_CHECKOUT_CANCEL_URL` si la redirection post-Checkout diffère de la page de facturation.
+
+L'API expose désormais :
+
+- `POST /billing/create-checkout-session` pour initier l'abonnement Early Partner (mode subscription Stripe) ;
+- `POST /billing/portal` pour ouvrir le portail client Stripe ;
+- `GET /billing/state` pour récupérer plan, statut, entitlements et état du paywall ;
+- `POST /stripe/webhook` (payload brut) pour synchroniser les événements `checkout.session.completed`, `invoice.payment_failed` et `customer.subscription.deleted`.
+
+Les entitlements suivants sont automatiquement provisionnés pour le plan **EARLY_PARTNER** : `saisie_chauffeur`, `export_excel`, `multi_client`, `score_fiabilite`, `alertes_oublis`, `users_max=50`, `chauffeurs_max=150`.
+
 ### Configuration frontend
 
 Dupliquez `frontend/.env.example` vers `frontend/.env.local` et complétez :
@@ -176,3 +191,7 @@ make test
 ```
 
 Les exports générés par les tests sont disponibles dans `backend/storage/exports`.
+
+- Les flux Stripe (Checkout, portail client et webhooks) disposent de tests d'intégration dédiés dans
+  `backend/tests/test_billing.py`. Exécutez `pytest backend/tests/test_billing.py` pour cibler uniquement cette
+  couverture.

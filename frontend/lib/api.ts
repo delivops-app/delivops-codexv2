@@ -456,3 +456,163 @@ export async function apiFetch(
 
   return performRequest()
 }
+
+export type PlanTier =
+  | 'START'
+  | 'PRO'
+  | 'BUSINESS'
+  | 'ENTERPRISE'
+  | 'EARLY_PARTNER'
+
+export type SubscriptionStatus =
+  | 'TRIALING'
+  | 'ACTIVE'
+  | 'PAST_DUE'
+  | 'CANCELED'
+  | 'PAUSED'
+
+export type BillingAccessLevel = 'active' | 'read_only' | 'suspended'
+
+export interface BillingGate {
+  access: BillingAccessLevel
+  graceDays?: number | null
+}
+
+export interface BillingState {
+  plan: PlanTier
+  subscriptionStatus: SubscriptionStatus
+  entitlements: Record<string, boolean | number | string>
+  gate: BillingGate
+  stripePortalReturnUrl?: string | null
+}
+
+export interface BillingActionResponse {
+  url: string
+}
+
+function coerceOrganizationId(
+  organizationId?: number | string | null,
+): number {
+  const candidate = organizationId ?? resolveTenantId()
+  if (candidate === undefined || candidate === null) {
+    throw new Error('Impossible de déterminer l’organisation courante')
+  }
+
+  const normalized =
+    typeof candidate === 'number' ? candidate : Number.parseInt(candidate, 10)
+  if (!Number.isFinite(normalized)) {
+    throw new Error('Identifiant d’organisation invalide')
+  }
+
+  return normalized
+}
+
+async function extractErrorMessage(
+  response: ApiFetchResponse,
+  fallback: string,
+): Promise<string> {
+  if (isApiFetchError(response)) {
+    return response.error.message || fallback
+  }
+
+  try {
+    const data = await response.json()
+    if (data && typeof data.detail === 'string') {
+      return data.detail
+    }
+  } catch {
+    try {
+      const rawText = await response.text()
+      if (rawText) {
+        return rawText
+      }
+    } catch {
+      // Ignore parsing errors; fall back to default message.
+    }
+  }
+
+  if ('status' in response && typeof response.status === 'number') {
+    return `${fallback} (code ${response.status})`
+  }
+
+  return fallback
+}
+
+export async function fetchBillingState(): Promise<BillingState> {
+  const response = await apiFetch('/billing/state', {
+    method: 'GET',
+  })
+
+  if (!response.ok) {
+    throw new Error(
+      await extractErrorMessage(
+        response,
+        'Impossible de récupérer la facturation',
+      ),
+    )
+  }
+
+  return (await response.json()) as BillingState
+}
+
+export async function createBillingCheckoutSession(
+  organizationId?: number | string,
+): Promise<string> {
+  const body = JSON.stringify({
+    organizationId: coerceOrganizationId(organizationId),
+  })
+
+  const response = await apiFetch('/billing/create-checkout-session', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body,
+  })
+
+  if (!response.ok) {
+    throw new Error(
+      await extractErrorMessage(
+        response,
+        'Impossible de lancer la session de paiement',
+      ),
+    )
+  }
+
+  const payload = (await response.json()) as BillingActionResponse
+  if (!payload?.url) {
+    throw new Error('Réponse Stripe inattendue')
+  }
+  return payload.url
+}
+
+export async function createBillingPortalSession(
+  organizationId?: number | string,
+): Promise<string> {
+  const body = JSON.stringify({
+    organizationId: coerceOrganizationId(organizationId),
+  })
+
+  const response = await apiFetch('/billing/portal', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body,
+  })
+
+  if (!response.ok) {
+    throw new Error(
+      await extractErrorMessage(
+        response,
+        'Impossible d’ouvrir le portail client',
+      ),
+    )
+  }
+
+  const payload = (await response.json()) as BillingActionResponse
+  if (!payload?.url) {
+    throw new Error('Réponse Stripe inattendue')
+  }
+  return payload.url
+}
