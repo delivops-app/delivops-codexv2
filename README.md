@@ -175,7 +175,7 @@ make seed
 Injecte un tenant de démonstration, des utilisateurs et plusieurs chauffeurs pour tester rapidement l'application.
 
 ```bash
-docker compose run --rm api python scripts/simulate_activity.py
+docker compose run --rm api python -m scripts.simulate_activity
 ```
 
 Le script doit être exécuté depuis le conteneur `api` afin de réutiliser la configuration `DATABASE_URL` fournie par `backend/.env`.
