@@ -8,7 +8,12 @@ from __future__ import annotations
 
 import json
 import random
+import sys
+from pathlib import Path
 from typing import Iterable
+
+if __package__ in {None, ""}:
+    sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.db.session import SessionLocal
 from app.models.audit import AuditLog
