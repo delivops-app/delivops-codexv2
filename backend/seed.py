@@ -8,6 +8,7 @@ from app.models.chauffeur import Chauffeur
 from app.models.client import Client
 from app.models.tariff_group import TariffGroup
 from app.models.tariff import Tariff
+from app.services.billing import ensure_early_partner_seed
 
 
 def run():
@@ -35,6 +36,8 @@ def run():
     db.add(subscription)
     db.commit()
     db.refresh(tenant)
+
+    ensure_early_partner_seed(db, tenant)
 
     admin_user = User(
         tenant_id=tenant.id,

@@ -11,4 +11,5 @@ name = "delivops-backend"
 version = "0.0.0"
 dependencies = [
     "openpyxl",
+    "stripe",
 ]

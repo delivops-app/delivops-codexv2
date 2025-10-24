@@ -62,6 +62,26 @@ class Settings(BaseSettings):
     shopify_shop_domain: str | None = Field(
         default=None, validation_alias="SHOPIFY_SHOP_DOMAIN"
     )
+    stripe_secret_key: str | None = Field(
+        default=None, validation_alias="STRIPE_SECRET_KEY"
+    )
+    stripe_webhook_secret: str | None = Field(
+        default=None, validation_alias="STRIPE_WEBHOOK_SECRET"
+    )
+    stripe_price_early_partner: str | None = Field(
+        default=None, validation_alias="STRIPE_PRICE_EARLY_PARTNER"
+    )
+    stripe_customer_portal_return_url: str | None = Field(
+        default=None, validation_alias="STRIPE_CUSTOMER_PORTAL_RETURN_URL"
+    )
+    stripe_checkout_success_url: str | None = Field(
+        default=None, validation_alias="STRIPE_CHECKOUT_SUCCESS_URL"
+    )
+    stripe_checkout_cancel_url: str | None = Field(
+        default=None, validation_alias="STRIPE_CHECKOUT_CANCEL_URL"
+    )
+    billing_read_only_after_days: int = Field(default=10)
+    billing_strict_suspension_after_days: int = Field(default=20)
 
     @field_validator("cors_allow_origins", mode="before")
     @classmethod
@@ -81,6 +101,22 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             return [value]
         return list(value)
+
+    @model_validator(mode="after")
+    def _apply_stripe_defaults(self):
+        if self.stripe_checkout_success_url is None:
+            object.__setattr__(
+                self,
+                "stripe_checkout_success_url",
+                self.stripe_customer_portal_return_url,
+            )
+        if self.stripe_checkout_cancel_url is None:
+            object.__setattr__(
+                self,
+                "stripe_checkout_cancel_url",
+                self.stripe_customer_portal_return_url,
+            )
+        return self
 
     @model_validator(mode="after")
     def _assemble_database_url(self):

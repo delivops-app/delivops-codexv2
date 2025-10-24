@@ -3,13 +3,14 @@ from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.core.auth import get_current_user, dev_fake_auth
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.tenant import Tenant
 from app.models.user import User
+from app.services import billing
 
 
 ROLE_ALIASES = {
@@ -181,6 +182,54 @@ def require_tenant_roles(*required_roles: str):
         return user
 
     return _tenant_role_dependency
+
+
+def has_entitlement(
+    db: Session,
+    tenant_id: int,
+    key: str,
+) -> bool:
+    tenant = (
+        db.query(Tenant)
+        .options(selectinload(Tenant.entitlements))
+        .filter(Tenant.id == tenant_id)
+        .one_or_none()
+    )
+    if tenant is None:
+        return False
+    return billing.has_entitlement(tenant, key)
+
+
+def require_entitlement(key: str, allow_read_only: bool = False):
+    def _dependency(
+        tenant_id: int = Depends(get_tenant_id),
+        db: Session = Depends(get_db),
+    ) -> bool:
+        tenant = (
+            db.query(Tenant)
+            .options(selectinload(Tenant.entitlements))
+            .filter(Tenant.id == tenant_id)
+            .one_or_none()
+        )
+        if tenant is None:
+            raise HTTPException(status_code=404, detail="Tenant not found")
+
+        gate = billing.compute_billing_gate_status(tenant)
+        access = gate.get("access")
+        if access == "suspended" or (access == "read_only" and not allow_read_only):
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail="Subscription inactive",
+            )
+
+        if not billing.has_entitlement(tenant, key):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Missing entitlement",
+            )
+        return True
+
+    return _dependency
 AUTO_PROVISION_EMAIL_DOMAIN = "autoprovision.delivops"
 
 
