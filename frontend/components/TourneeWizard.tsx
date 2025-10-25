@@ -330,12 +330,14 @@ function PickupWizard() {
           <p className="mb-4 text-center text-xl font-semibold">
             La récupération de votre tournée a été enregistrée avec succès.
           </p>
-          <Link
-            href="/"
-            className="rounded bg-blue-600 px-4 py-2 text-white"
-          >
-            Retour à l&apos;accueil
-          </Link>
+          <div className="flex flex-col items-center gap-3 sm:flex-row">
+            <Link
+              href="/"
+              className="rounded bg-blue-600 px-4 py-2 text-white"
+            >
+              Retour à l&apos;accueil
+            </Link>
+          </div>
         </>
       )}
 
@@ -549,8 +551,11 @@ function DeliveryWizard() {
           <ul className="mb-4">
             {selectedTour.items.map((item) => (
               <li key={item.tariffGroupId}>
-                {item.displayName} : récupérés {item.pickupQuantity} – livrés{' '}
-                {deliveryQuantities[item.tariffGroupId] ?? 0}
+                {item.displayName} : retours{' '}
+                {Math.max(
+                  item.pickupQuantity - (deliveryQuantities[item.tariffGroupId] ?? 0),
+                  0,
+                )}
               </li>
             ))}
           </ul>
@@ -578,24 +583,25 @@ function DeliveryWizard() {
           <p className="mb-4 text-center text-xl font-semibold">
             La clôture de votre tournée a été enregistrée avec succès.
           </p>
-          {pendingTours.length > 0 ? (
-            <button
-              onClick={() => {
-                setStep(1)
-                setSelectedTour(null)
-              }}
-              className="rounded bg-blue-600 px-4 py-2 text-white"
-            >
-              Clôturer une autre tournée
-            </button>
-          ) : (
+          <div className="flex flex-col items-center gap-3 sm:flex-row">
+            {pendingTours.length > 0 && (
+              <button
+                onClick={() => {
+                  setStep(1)
+                  setSelectedTour(null)
+                }}
+                className="rounded bg-blue-600 px-4 py-2 text-white"
+              >
+                Clôturer une autre tournée
+              </button>
+            )}
             <Link
               href="/"
               className="rounded bg-blue-600 px-4 py-2 text-white"
             >
               Retour à l&apos;accueil
             </Link>
-          )}
+          </div>
         </>
       )}
 
