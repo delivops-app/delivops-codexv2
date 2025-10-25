@@ -26,7 +26,7 @@ export function PageLayout({
   return (
     <main
       className={classNames(
-        'flex min-h-screen w-full flex-col items-stretch bg-slate-50 px-4 py-6 sm:px-8 sm:py-10',
+        'flex min-h-screen w-full flex-col items-stretch bg-slate-50 px-6 py-8 sm:px-12 sm:py-14 lg:px-16 lg:py-16',
         containerClassName,
       )}
     >
