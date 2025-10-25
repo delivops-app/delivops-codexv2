@@ -20,6 +20,27 @@ class TourPickupCreate(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class TourActivityInProgress(BaseModel):
+    tour_id: int = Field(alias="tourId")
+    date: date
+    driver_name: str = Field(alias="driverName")
+    client_name: str = Field(alias="clientName")
+    total_pickup: int = Field(alias="totalPickup", ge=0)
+    total_delivery: int = Field(alias="totalDelivery", ge=0)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class TourActivitySummary(BaseModel):
+    in_progress: List[TourActivityInProgress] = Field(
+        default_factory=list, alias="inProgressTours"
+    )
+    closed_count: int = Field(alias="closedToursCount", ge=0)
+    return_count: int = Field(alias="returnCount", ge=0)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class TourItemDeliveryUpdate(BaseModel):
     tariff_group_id: int = Field(alias="tariffGroupId")
     delivery_quantity: conint(ge=0) = Field(alias="deliveryQuantity")

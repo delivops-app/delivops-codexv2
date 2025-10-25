@@ -2,9 +2,9 @@ from datetime import datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 
-from app.api.deps import get_tenant_id, require_roles
+from app.api.deps import get_tenant_id, require_roles, require_tenant_roles
 from app.db.session import get_db
 from app.models.chauffeur import Chauffeur
 from app.models.client import Client
@@ -14,6 +14,8 @@ from app.models.tour import Tour
 from app.models.tour_item import TourItem
 from app.models.user import User
 from app.schemas.tour import (
+    TourActivityInProgress,
+    TourActivitySummary,
     TourDeliveryUpdate,
     TourItemRead,
     TourPickupCreate,
@@ -22,6 +24,56 @@ from app.schemas.tour import (
 )
 
 router = APIRouter(prefix="/tours", tags=["tours"])
+
+
+@router.get("/activity-summary", response_model=TourActivitySummary)
+def list_tour_activity_summary(
+    db: Session = Depends(get_db),  # noqa: B008
+    tenant_id: int = Depends(get_tenant_id),  # noqa: B008
+    _: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
+):
+    tours = (
+        db.query(Tour)
+        .filter(Tour.tenant_id == tenant_id)
+        .options(
+            joinedload(Tour.driver),
+            joinedload(Tour.client),
+            selectinload(Tour.items),
+        )
+        .all()
+    )
+
+    in_progress: list[TourActivityInProgress] = []
+    closed_count = 0
+    return_total = 0
+
+    for tour in tours:
+        pickup_total = sum((item.pickup_quantity or 0) for item in tour.items)
+        delivery_total = sum((item.delivery_quantity or 0) for item in tour.items)
+
+        if tour.status == Tour.STATUS_IN_PROGRESS:
+            in_progress.append(
+                TourActivityInProgress(
+                    tour_id=tour.id,
+                    date=tour.date,
+                    driver_name=(tour.driver.display_name if tour.driver else "—"),
+                    client_name=(tour.client.name if tour.client else "—"),
+                    total_pickup=pickup_total,
+                    total_delivery=delivery_total,
+                )
+            )
+        elif tour.status == Tour.STATUS_COMPLETED:
+            closed_count += 1
+            if pickup_total > delivery_total:
+                return_total += pickup_total - delivery_total
+
+    in_progress.sort(key=lambda tour_summary: (tour_summary.date, tour_summary.tour_id))
+
+    return TourActivitySummary(
+        in_progress=in_progress,
+        closed_count=closed_count,
+        return_count=return_total,
+    )
 
 
 def _get_driver_from_user(db: Session, tenant_id: int, user_sub: str) -> Chauffeur:
