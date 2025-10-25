@@ -1,0 +1,56 @@
+import { ReactNode } from 'react'
+
+interface PageLayoutProps {
+  title: string
+  description?: ReactNode
+  actions?: ReactNode
+  children?: ReactNode
+  containerClassName?: string
+  contentClassName?: string
+  headerClassName?: string
+}
+
+function classNames(...values: (string | undefined | false)[]) {
+  return values.filter(Boolean).join(' ')
+}
+
+export function PageLayout({
+  title,
+  description,
+  actions,
+  children,
+  containerClassName,
+  contentClassName,
+  headerClassName,
+}: PageLayoutProps) {
+  return (
+    <main
+      className={classNames(
+        'flex min-h-screen w-full flex-col items-center bg-slate-50 px-4 py-6 sm:px-8 sm:py-10',
+        containerClassName,
+      )}
+    >
+      <div className={classNames('w-full max-w-6xl space-y-6', contentClassName)}>
+        <header
+          className={classNames(
+            'flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between',
+            headerClassName,
+          )}
+        >
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">{title}</h1>
+            {description ? (
+              <div className="mt-2 text-base text-slate-700">
+                {typeof description === 'string' ? <p>{description}</p> : description}
+              </div>
+            ) : null}
+          </div>
+          {actions ? (
+            <div className="flex flex-wrap items-center gap-2 sm:justify-end">{actions}</div>
+          ) : null}
+        </header>
+        {children}
+      </div>
+    </main>
+  )
+}

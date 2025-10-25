@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useUser } from '@auth0/nextjs-auth0/client'
+import { PageLayout } from '../../../components/PageLayout'
 import { apiFetch, isApiFetchError } from '../../../lib/api'
 import { normalizeRoles } from '../../../lib/roles'
 
@@ -1040,38 +1041,52 @@ export default function SyntheseChauffeursPage() {
 
   if (!isAdmin) {
     return (
-      <main className="flex min-h-screen flex-col items-center p-8">
-        <p className="mb-4">Accès refusé</p>
-        <Link href="/" className="rounded bg-gray-600 px-4 py-2 text-white">
-          Retour
-        </Link>
-      </main>
+      <PageLayout
+        title="Accès restreint"
+        description="Cette page est réservée aux administrateurs Delivops autorisés."
+        actions={
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center rounded border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+          >
+            Retour à l&apos;accueil
+          </Link>
+        }
+      >
+        <p className="text-sm text-slate-600">
+          Veuillez contacter un administrateur Delivops si vous pensez qu&apos;il s&apos;agit d&apos;une erreur.
+        </p>
+      </PageLayout>
     )
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-8">
-      <h1 className="mb-6 text-3xl font-bold">Synthèse des chauffeurs</h1>
-      <div className="mb-4 flex flex-wrap justify-center gap-2">
-        <Link
-          href="/clients"
-          className="rounded bg-emerald-600 px-4 py-2 text-sm font-medium text-white"
-        >
-          Paramétrage &amp; récapitulatif clients
-        </Link>
-        <Link
-          href="/"
-          className="rounded bg-gray-600 px-4 py-2 text-sm font-medium text-white"
-        >
-          Retour à l&apos;accueil
-        </Link>
-      </div>
+    <PageLayout
+      title="Synthèse des chauffeurs"
+      description="Analysez les déclarations de tournées, suivez les marges et exportez vos données en quelques clics."
+      actions={
+        <>
+          <Link
+            href="/clients"
+            className="inline-flex items-center justify-center rounded border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+          >
+            Paramétrage clients
+          </Link>
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center rounded border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+          >
+            Retour à l&apos;accueil
+          </Link>
+        </>
+      }
+    >
       {error && (
-        <p className="mb-4 text-red-600" role="alert">
+        <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
           {error}
-        </p>
+        </div>
       )}
-      <div className="mb-6 w-full rounded border border-gray-300 bg-white p-4">
+      <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="mb-4 text-xl font-semibold">Filtres</h2>
         <div className="mb-4 flex justify-end">
           <button
@@ -1263,27 +1278,28 @@ export default function SyntheseChauffeursPage() {
             </p>
           </div>
         </div>
-      </div>
-      <div className="mb-4 flex w-full flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <button
-          type="button"
-          className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
-          onClick={handleExport}
-          disabled={filteredRows.length === 0}
-        >
-          Exporter au format Excel
-        </button>
-        <button
-          type="button"
-          className="rounded bg-green-600 px-4 py-2 text-white disabled:opacity-50"
-          onClick={startCreating}
-          disabled={isCreating || isEditingRow}
-        >
-          Ajouter une déclaration
-        </button>
-      </div>
-      <div className="overflow-x-auto" ref={tableContainerRef}>
-        <table className="min-w-full table-auto border-collapse text-sm">
+      </section>
+      <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="flex w-full flex-col items-stretch gap-2 border-b border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <button
+            type="button"
+            className="inline-flex items-center justify-center rounded bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={handleExport}
+            disabled={filteredRows.length === 0}
+          >
+            Exporter au format Excel
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center justify-center rounded bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={startCreating}
+            disabled={isCreating || isEditingRow}
+          >
+            Ajouter une déclaration
+          </button>
+        </div>
+        <div className="overflow-x-auto" ref={tableContainerRef}>
+          <table className="min-w-full table-auto border-collapse text-sm">
           <thead>
             <tr>
               <th className="border px-2 py-2">Date</th>
@@ -1596,10 +1612,8 @@ export default function SyntheseChauffeursPage() {
           </tr>
         </tfoot>
       </table>
-      </div>
-      <Link href="/" className="mt-4 rounded bg-gray-600 px-4 py-2 text-white">
-        Retour
-      </Link>
+        </div>
+      </section>
       {showClientHistory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-3xl rounded bg-white p-6 shadow-lg">
@@ -1698,6 +1712,6 @@ export default function SyntheseChauffeursPage() {
           </div>
         </div>
       )}
-    </main>
+    </PageLayout>
   )
 }

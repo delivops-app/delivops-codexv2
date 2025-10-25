@@ -8,7 +8,7 @@ import { BillingContent, BillingProvider } from '../components/BillingProvider'
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="fr">
-      <body>
+      <body className="bg-slate-100 text-slate-900">
         <UserProvider>
           <BillingProvider>
             <BillingBanner />
