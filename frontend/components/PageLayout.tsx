@@ -26,11 +26,11 @@ export function PageLayout({
   return (
     <main
       className={classNames(
-        'flex min-h-screen w-full flex-col items-center bg-slate-50 px-4 py-6 sm:px-8 sm:py-10',
+        'flex min-h-screen w-full flex-col items-stretch bg-slate-50 px-4 py-6 sm:px-8 sm:py-10',
         containerClassName,
       )}
     >
-      <div className={classNames('w-full max-w-6xl space-y-6', contentClassName)}>
+      <div className={classNames('w-full space-y-6', contentClassName)}>
         <header
           className={classNames(
             'flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between',
