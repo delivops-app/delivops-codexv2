@@ -9,6 +9,8 @@ type AdminDashboardProps = {
 
 export default function AdminDashboard({ onInvite, roles }: AdminDashboardProps) {
   const hasSupervisionAccess = roles.includes('GLOBAL_SUPERVISION')
+  const hasDriverActivityAccess =
+    hasSupervisionAccess || roles.includes('ADMIN')
 
   return (
     <section className="mt-6 flex w-full max-w-4xl flex-col items-center gap-6">
@@ -44,6 +46,14 @@ export default function AdminDashboard({ onInvite, roles }: AdminDashboardProps)
             className="rounded bg-slate-700 px-4 py-2 text-center text-white"
           >
             Espace Delivops
+          </Link>
+        )}
+        {hasDriverActivityAccess && (
+          <Link
+            href="/admin/chauffeurs-activite"
+            className="rounded bg-blue-700 px-4 py-2 text-center text-white"
+          >
+            Activité des chauffeurs
           </Link>
         )}
         {hasSupervisionAccess && (
