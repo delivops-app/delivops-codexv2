@@ -12,6 +12,10 @@ import {
 } from './types'
 import { apiFetch, isApiFetchError } from '../lib/api'
 
+type ClientManagerProps = {
+  refreshToken?: number
+}
+
 const COLORS = [
   'bg-red-100',
   'bg-blue-100',
@@ -64,7 +68,7 @@ const mapClientFromApi = (client: ClientApiPayload): Client => ({
   ),
 })
 
-export default function ClientManager() {
+export default function ClientManager({ refreshToken = 0 }: ClientManagerProps) {
   const [clients, setClients] = useState<Client[]>([])
   const [showClientForm, setShowClientForm] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
@@ -93,7 +97,7 @@ export default function ClientManager() {
       }
     }
     load()
-  }, [])
+  }, [refreshToken])
 
   const handleClientSubmit = async (name: string) => {
     if (editingClient) {

@@ -1052,6 +1052,20 @@ export default function SyntheseChauffeursPage() {
   return (
     <main className="flex min-h-screen flex-col items-center p-8">
       <h1 className="mb-6 text-3xl font-bold">Synthèse des chauffeurs</h1>
+      <div className="mb-4 flex flex-wrap justify-center gap-2">
+        <Link
+          href="/clients"
+          className="rounded bg-emerald-600 px-4 py-2 text-sm font-medium text-white"
+        >
+          Paramétrage &amp; récapitulatif clients
+        </Link>
+        <Link
+          href="/"
+          className="rounded bg-gray-600 px-4 py-2 text-sm font-medium text-white"
+        >
+          Retour à l&apos;accueil
+        </Link>
+      </div>
       {error && (
         <p className="mb-4 text-red-600" role="alert">
           {error}

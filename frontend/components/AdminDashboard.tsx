@@ -2,8 +2,6 @@
 
 import Link from 'next/link'
 
-import ClientManager from './ClientManager'
-
 type AdminDashboardProps = {
   onInvite: () => void
   roles: string[]
@@ -14,7 +12,7 @@ export default function AdminDashboard({ onInvite, roles }: AdminDashboardProps)
 
   return (
     <section className="mt-6 flex w-full max-w-4xl flex-col items-center gap-6">
-      <div className="flex flex-col items-center">
+      <div className="grid w-full gap-2 sm:grid-cols-2">
         <button
           type="button"
           onClick={onInvite}
@@ -24,20 +22,26 @@ export default function AdminDashboard({ onInvite, roles }: AdminDashboardProps)
         </button>
         <Link
           href="/chauffeurs"
-          className="mt-2 rounded bg-blue-600 px-4 py-2 text-white"
+          className="rounded bg-blue-600 px-4 py-2 text-center text-white"
         >
           Liste des chauffeurs
         </Link>
         <Link
           href="/chauffeurs/synthese"
-          className="mt-2 rounded bg-purple-600 px-4 py-2 text-white"
+          className="rounded bg-purple-600 px-4 py-2 text-center text-white"
         >
           Synthèse des chauffeurs
+        </Link>
+        <Link
+          href="/clients"
+          className="rounded bg-emerald-600 px-4 py-2 text-center text-white"
+        >
+          Paramétrage &amp; récapitulatif clients
         </Link>
         {hasSupervisionAccess && (
           <Link
             href="/admin"
-            className="mt-2 rounded bg-slate-700 px-4 py-2 text-white"
+            className="rounded bg-slate-700 px-4 py-2 text-center text-white"
           >
             Espace Delivops
           </Link>
@@ -45,7 +49,7 @@ export default function AdminDashboard({ onInvite, roles }: AdminDashboardProps)
         {hasSupervisionAccess && (
           <Link
             href="/monitoring"
-            className="mt-2 rounded bg-indigo-600 px-4 py-2 text-white"
+            className="rounded bg-indigo-600 px-4 py-2 text-center text-white"
           >
             Supervision globale
           </Link>
@@ -53,19 +57,18 @@ export default function AdminDashboard({ onInvite, roles }: AdminDashboardProps)
         {hasSupervisionAccess && (
           <Link
             href="/admin/tenants-users"
-            className="mt-2 rounded bg-teal-600 px-4 py-2 text-white"
+            className="rounded bg-teal-600 px-4 py-2 text-center text-white"
           >
             Correspondance utilisateurs/tenants
           </Link>
         )}
         <Link
           href="/aide/admin"
-          className="mt-2 rounded bg-amber-500 px-4 py-2 text-white"
+          className="rounded bg-amber-500 px-4 py-2 text-center text-white"
         >
           Guide administrateur
         </Link>
       </div>
-      <ClientManager />
     </section>
   )
 }
