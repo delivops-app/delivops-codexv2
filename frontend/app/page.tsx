@@ -1,8 +1,6 @@
 'use client'
 
 import { useUser } from '@auth0/nextjs-auth0/client'
-import Link from 'next/link'
-
 import AuthButton from '../components/AuthButton'
 import AdminDashboard from '../components/AdminDashboard'
 import DriverActions from '../components/DriverActions'
@@ -131,39 +129,9 @@ export default function Home() {
       </section>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        {isAdmin ? (
-          <AdminDashboard onInvite={openInviteForm} roles={roles} />
-        ) : (
-          <section className="rounded-lg border border-indigo-200 bg-indigo-50 p-5 shadow-sm text-indigo-900">
-            <h2 className="text-lg font-semibold">Module administrateur</h2>
-            <p className="mt-2 text-sm">
-              Vous n&apos;avez pas encore accès aux fonctionnalités administrateur. Pour devenir gestionnaire, adressez-vous à l&apos;équipe support Delivops.
-            </p>
-            <Link
-              href="/aide/admin"
-              className="mt-4 inline-flex items-center justify-center rounded-md border border-indigo-200 bg-white px-4 py-2 text-sm font-medium text-indigo-700 shadow-sm transition hover:bg-indigo-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
-            >
-              Consulter le guide administrateur
-            </Link>
-          </section>
-        )}
+        {isAdmin ? <AdminDashboard onInvite={openInviteForm} roles={roles} /> : null}
 
-        {isDriver ? (
-          <DriverActions />
-        ) : (
-          <section className="rounded-lg border border-emerald-200 bg-emerald-50 p-5 shadow-sm text-emerald-900">
-            <h2 className="text-lg font-semibold">Module chauffeur</h2>
-            <p className="mt-2 text-sm">
-              Votre compte n&apos;est pas encore associé à un profil chauffeur. Un administrateur peut vous inviter depuis la gestion des chauffeurs.
-            </p>
-            <Link
-              href="/aide/chauffeur"
-              className="mt-4 inline-flex items-center justify-center rounded-md border border-emerald-200 bg-white px-4 py-2 text-sm font-medium text-emerald-700 shadow-sm transition hover:bg-emerald-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500"
-            >
-              Consulter la FAQ chauffeur
-            </Link>
-          </section>
-        )}
+        {isDriver ? <DriverActions /> : null}
       </div>
     </PageLayout>
   )
