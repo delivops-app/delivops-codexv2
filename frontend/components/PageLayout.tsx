@@ -30,7 +30,12 @@ export function PageLayout({
         containerClassName,
       )}
     >
-      <div className={classNames('w-full space-y-6', contentClassName)}>
+      <div
+        className={classNames(
+          'mx-auto w-full max-w-6xl space-y-6',
+          contentClassName,
+        )}
+      >
         <header
           className={classNames(
             'flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between',
