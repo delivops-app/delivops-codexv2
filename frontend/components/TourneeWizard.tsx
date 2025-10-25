@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { apiFetch, isApiFetchError } from '../lib/api'
+import { PageLayout } from './PageLayout'
 
 interface Category {
   id: number
@@ -63,6 +64,20 @@ const formatDateForDisplay = (date: string | null | undefined) => {
   return date
 }
 
+const cardClass = 'rounded-lg border border-slate-200 bg-white p-5 shadow-sm'
+const alertClass = 'rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700'
+const infoCardClass = 'rounded-lg border border-indigo-200 bg-indigo-50 px-5 py-4 text-sm text-indigo-900'
+const successCardClass = 'rounded-lg border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-900'
+const inputClass =
+  'w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-70'
+const selectClass = inputClass
+const primaryButtonClass =
+  'inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-60'
+const secondaryButtonClass =
+  'inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-60'
+const mutedButtonClass =
+  'inline-flex items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-60'
+
 function PickupWizard() {
   const [step, setStep] = useState(1)
   const [clients, setClients] = useState<Client[]>([])
@@ -91,13 +106,14 @@ function PickupWizard() {
         setError('Erreur lors du chargement des clients.')
       }
     }
-    fetchClients()
+    void fetchClients()
   }, [])
 
-  const selectClient = (c: Client) => {
-    setClient(c)
+  const selectClient = (selectedClient: Client) => {
+    setClient(selectedClient)
     setSelectedCats([])
     setQuantities({})
+    setError('')
     setStep(2)
   }
 
@@ -133,7 +149,7 @@ function PickupWizard() {
   const nextFromQuantities = () => {
     for (const cat of selectedCats) {
       const val = quantities[cat.id]
-      if (val === undefined || isNaN(val)) {
+      if (val === undefined || Number.isNaN(val)) {
         setError('Veuillez remplir tous les champs')
         return
       }
@@ -144,6 +160,14 @@ function PickupWizard() {
     }
     setError('')
     setStep(4)
+  }
+
+  const resetWizard = () => {
+    setStep(1)
+    setClient(null)
+    setSelectedCats([])
+    setQuantities({})
+    setError('')
   }
 
   const validate = async () => {
@@ -181,175 +205,250 @@ function PickupWizard() {
     }
   }
 
-  return (
-    <main className="flex min-h-screen flex-col items-center p-8">
-      {step < 5 && (
-        <div className="mb-6 flex flex-col items-center">
-          <label
-            htmlFor="tour-date-pickup"
-            className="mb-2 text-lg font-semibold text-gray-800"
-          >
-            Date de récupération
-          </label>
-          <input
-            id="tour-date-pickup"
-            type="date"
-            value={tourDate}
-            onChange={(e) => {
-              setTourDate(e.target.value)
-              if (error === 'Veuillez sélectionner une date pour la tournée') {
-                setError('')
-              }
-            }}
-            className="rounded border px-3 py-2"
-          />
-        </div>
-      )}
-      {step === 1 && (
-        <>
-          <h1 className="mb-6 text-3xl font-bold">Choisissez un client</h1>
-          {error && <p className="mb-4 text-red-600">{error}</p>}
-          {clients.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => selectClient(c)}
-              className="mb-2 rounded bg-blue-600 px-4 py-2 text-white"
-            >
-              {c.name}
-            </button>
-          ))}
-        </>
-      )}
+  let content: JSX.Element
 
-      {step === 2 && client && (
-        <>
-          <h1 className="mb-4 text-2xl font-semibold">
-            Sélectionnez des catégories
-          </h1>
-          {client.categories.map((cat) => (
-            <label key={cat.id} className="mb-2 flex items-center gap-2">
+  if (step === 1) {
+    content = (
+      <section className={cardClass}>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">
+                Choisissez un donneur d&apos;ordre
+              </h2>
+              <p className="text-sm text-slate-600">
+                Sélectionnez le client pour lequel vous allez récupérer des colis.
+              </p>
+            </div>
+            <div className="w-full sm:w-60">
+              <label
+                htmlFor="tour-date-pickup"
+                className="mb-1 block text-sm font-medium text-slate-700"
+              >
+                Date de récupération
+              </label>
               <input
-                type="checkbox"
-                checked={selectedCats.some((c) => c.id === cat.id)}
-                onChange={() => toggleCategory(cat)}
+                id="tour-date-pickup"
+                type="date"
+                value={tourDate}
+                onChange={(e) => {
+                  setTourDate(e.target.value)
+                  if (error === 'Veuillez sélectionner une date pour la tournée') {
+                    setError('')
+                  }
+                }}
+                className={inputClass}
               />
-              {cat.name}
-            </label>
-          ))}
-          {error && <p className="mb-2 text-red-600">{error}</p>}
-          <div className="mt-4 flex gap-2">
-            <button
-              onClick={() => setStep(1)}
-              className="rounded bg-gray-600 px-4 py-2 text-white"
-            >
-              Retour
-            </button>
-            <button
-              onClick={nextFromCategories}
-              className="rounded bg-blue-600 px-4 py-2 text-white"
-            >
-              Suivant
-            </button>
+            </div>
           </div>
-        </>
-      )}
-
-      {step === 3 && (
-        <>
-          <h1 className="mb-4 text-2xl font-semibold">
-            Nombre de colis récupérés
-          </h1>
+          {clients.length === 0 ? (
+            <div className={infoCardClass}>
+              Aucun donneur d&apos;ordre disponible pour le moment. Vérifiez auprès d&apos;un administrateur que des clients vous ont été attribués.
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {clients.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => selectClient(c)}
+                  className="group flex h-full flex-col items-start rounded-md border border-slate-200 bg-slate-50 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-white hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+                >
+                  <span className="text-base font-semibold text-slate-900">{c.name}</span>
+                  <span className="mt-2 inline-flex items-center text-sm font-medium text-indigo-600 transition group-hover:text-indigo-700">
+                    Choisir ce client
+                    <span className="ml-1" aria-hidden>
+                      →
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+          {error && <div className={alertClass}>{error}</div>}
+        </div>
+      </section>
+    )
+  } else if (step === 2 && client) {
+    content = (
+      <section className={cardClass}>
+        <h2 className="text-lg font-semibold text-slate-900">Catégories de colis</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Sélectionnez toutes les catégories que vous allez récupérer pour {client.name}.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {client.categories.map((cat) => {
+            const checked = selectedCats.some((c) => c.id === cat.id)
+            return (
+              <label
+                key={cat.id}
+                className="flex cursor-pointer items-start gap-3 rounded-md border border-slate-200 bg-slate-50 p-4 shadow-sm transition hover:border-indigo-300 hover:bg-white"
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggleCategory(cat)}
+                  className="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <span className="text-sm font-medium text-slate-700">{cat.name}</span>
+              </label>
+            )
+          })}
+        </div>
+        {error && <div className={`${alertClass} mt-4`}>{error}</div>}
+        <div className="mt-6 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              setStep(1)
+              setError('')
+            }}
+            className={secondaryButtonClass}
+          >
+            Retour
+          </button>
+          <button
+            type="button"
+            onClick={nextFromCategories}
+            className={primaryButtonClass}
+          >
+            Continuer
+          </button>
+        </div>
+      </section>
+    )
+  } else if (step === 3) {
+    content = (
+      <section className={cardClass}>
+        <h2 className="text-lg font-semibold text-slate-900">Quantités à récupérer</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Indiquez le nombre de colis récupérés pour chaque catégorie.
+        </p>
+        <div className="mt-4 space-y-4">
           {selectedCats.map((cat) => (
-            <div key={cat.id} className="mb-2 flex flex-col">
-              <label className="mb-1">{cat.name}</label>
+            <div
+              key={cat.id}
+              className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+            >
+              <div>
+                <p className="text-sm font-medium text-slate-700">{cat.name}</p>
+              </div>
               <input
                 type="number"
-                min="0"
+                min={0}
                 value={quantities[cat.id] ?? ''}
                 onChange={(e) => changeQty(cat.id, e.target.value)}
-                className="w-48 rounded border px-2 py-1"
+                className={`${inputClass} sm:w-32`}
               />
             </div>
           ))}
-          {error && <p className="mb-2 text-red-600">{error}</p>}
-          <div className="mt-4 flex gap-2">
-            <button
-              onClick={() => setStep(2)}
-              className="rounded bg-gray-600 px-4 py-2 text-white"
-            >
-              Retour
-            </button>
-            <button
-              onClick={nextFromQuantities}
-              className="rounded bg-blue-600 px-4 py-2 text-white"
-            >
-              Suivant
-            </button>
+        </div>
+        {error && <div className={`${alertClass} mt-4`}>{error}</div>}
+        <div className="mt-6 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              setStep(2)
+              setError('')
+            }}
+            className={secondaryButtonClass}
+          >
+            Retour
+          </button>
+          <button
+            type="button"
+            onClick={nextFromQuantities}
+            className={primaryButtonClass}
+          >
+            Continuer
+          </button>
+        </div>
+      </section>
+    )
+  } else if (step === 4 && client) {
+    content = (
+      <section className={cardClass}>
+        <h2 className="text-lg font-semibold text-slate-900">Récapitulatif</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Vérifiez les informations de la tournée avant validation.
+        </p>
+        <dl className="mt-4 space-y-2 text-sm text-slate-700">
+          <div className="flex flex-wrap gap-2">
+            <dt className="font-semibold text-slate-900">Client :</dt>
+            <dd>{client.name}</dd>
           </div>
-        </>
-      )}
-
-      {step === 4 && (
-        <>
-          <h1 className="mb-4 text-2xl font-semibold">Récapitulatif</h1>
-          <p className="mb-2">
-            <span className="font-semibold">Client :</span> {client?.name ?? ''}
-          </p>
-          <p className="mb-4">
-            <span className="font-semibold">Date :</span>{' '}
-            {tourDate ? formatDateForDisplay(tourDate) : 'Non définie'}
-          </p>
-          <ul className="mb-4">
-            {selectedCats.map((cat) => (
-              <li key={cat.id}>
-                {cat.name}: {quantities[cat.id]}
-              </li>
-            ))}
-          </ul>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setStep(3)}
-              className="rounded bg-gray-600 px-4 py-2 text-white"
-            >
-              Modifier
-            </button>
-            <button
-              onClick={validate}
-              disabled={saving}
-              className="rounded bg-green-600 px-4 py-2 text-white disabled:opacity-50"
-            >
-              {saving ? 'Enregistrement...' : 'Valider'}
-            </button>
+          <div className="flex flex-wrap gap-2">
+            <dt className="font-semibold text-slate-900">Date :</dt>
+            <dd>{tourDate ? formatDateForDisplay(tourDate) : 'Non définie'}</dd>
           </div>
-          {error && <p className="mt-2 text-red-600">{error}</p>}
-        </>
-      )}
-
-      {step === 5 && (
-        <>
-          <p className="mb-4 text-center text-xl font-semibold">
-            La récupération de votre tournée a été enregistrée avec succès.
-          </p>
-          <div className="flex flex-col items-center gap-3 sm:flex-row">
-            <Link
-              href="/"
-              className="rounded bg-blue-600 px-4 py-2 text-white"
+        </dl>
+        <ul className="mt-4 space-y-2">
+          {selectedCats.map((cat) => (
+            <li
+              key={cat.id}
+              className="flex items-center justify-between rounded-md border border-slate-100 bg-slate-50 px-3 py-2 text-sm text-slate-700"
             >
-              Retour à l&apos;accueil
-            </Link>
-          </div>
-        </>
-      )}
+              <span>{cat.name}</span>
+              <span className="font-semibold text-slate-900">
+                {quantities[cat.id] ?? 0} colis
+              </span>
+            </li>
+          ))}
+        </ul>
+        {error && <div className={`${alertClass} mt-4`}>{error}</div>}
+        <div className="mt-6 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              setStep(3)
+              setError('')
+            }}
+            className={secondaryButtonClass}
+          >
+            Modifier
+          </button>
+          <button
+            type="button"
+            onClick={validate}
+            disabled={saving}
+            className={primaryButtonClass}
+          >
+            {saving ? 'Enregistrement…' : 'Valider la récupération'}
+          </button>
+        </div>
+      </section>
+    )
+  } else {
+    content = (
+      <div className={successCardClass}>
+        <h2 className="text-lg font-semibold">Récupération enregistrée</h2>
+        <p className="mt-2">
+          La récupération de votre tournée a été enregistrée avec succès. Vous pouvez dès maintenant clôturer la tournée ou en récupérer une nouvelle.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button type="button" onClick={resetWizard} className={primaryButtonClass}>
+            Nouvelle récupération
+          </button>
+          <Link href="/cloturer" className={secondaryButtonClass}>
+            Clôturer une tournée
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
-      {step >= 1 && step < 5 && (
-        <Link
-          href="/"
-          className="mt-6 rounded bg-blue-600 px-4 py-2 text-white"
-        >
+  return (
+    <PageLayout
+      title="Récupérer une tournée"
+      description="Acceptez une tournée, saisissez les quantités récupérées et validez en quelques étapes."
+      actions={
+        <Link href="/" className={secondaryButtonClass}>
           Retour à l&apos;accueil
         </Link>
-      )}
-    </main>
+      }
+    >
+      <div className="space-y-5">{content}</div>
+    </PageLayout>
   )
 }
 
@@ -365,6 +464,7 @@ function DeliveryWizard() {
   const fetchTours = useMemo(
     () =>
       async function loadTours() {
+        setLoading(true)
         const res = await apiFetch('/tours/pending', {
           headers: DEV_DRIVER_HEADERS,
         })
@@ -392,6 +492,7 @@ function DeliveryWizard() {
   const resetSelection = () => {
     setSelectedTour(null)
     setDeliveryQuantities({})
+    setError('')
     setStep(1)
   }
 
@@ -422,7 +523,7 @@ function DeliveryWizard() {
     if (!selectedTour) return
     for (const item of selectedTour.items) {
       const value = deliveryQuantities[item.tariffGroupId]
-      if (value === undefined || isNaN(value)) {
+      if (value === undefined || Number.isNaN(value)) {
         setError('Veuillez remplir tous les champs')
         return
       }
@@ -472,148 +573,199 @@ function DeliveryWizard() {
     }
   }
 
-  return (
-    <main className="flex min-h-screen flex-col items-center p-8">
-      {step === 1 && (
-        <>
-          <h1 className="mb-6 text-3xl font-bold">
-            Sélectionnez une tournée à clôturer
-          </h1>
-          {loading && <p>Chargement...</p>}
-          {!loading && pendingTours.length === 0 && (
-            <p className="mb-4 text-center">
-              Aucune tournée en attente de clôture pour le moment.
+  const handleCloseAnother = () => {
+    resetSelection()
+    void fetchTours()
+  }
+
+  let content: JSX.Element
+
+  if (step === 1) {
+    content = (
+      <section className={cardClass}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">
+              Tournées en attente de clôture
+            </h2>
+            <p className="text-sm text-slate-600">
+              Sélectionnez la tournée à clôturer puis indiquez les colis livrés.
             </p>
-          )}
-          {error && <p className="mb-4 text-red-600">{error}</p>}
-          <div className="flex flex-col items-stretch gap-2">
+          </div>
+          <button
+            type="button"
+            onClick={() => void fetchTours()}
+            className={mutedButtonClass}
+            disabled={loading}
+          >
+            {loading ? 'Actualisation…' : 'Actualiser'}
+          </button>
+        </div>
+        {loading ? (
+          <div className={`${infoCardClass} mt-4`}>
+            Chargement des tournées en cours…
+          </div>
+        ) : pendingTours.length === 0 ? (
+          <div className={`${infoCardClass} mt-4`}>
+            Aucune tournée en attente de clôture pour le moment. Revenez plus tard ou contactez votre administrateur.
+          </div>
+        ) : (
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {pendingTours.map((tour) => (
               <button
                 key={tour.tourId}
+                type="button"
                 onClick={() => selectTour(tour)}
-                className="rounded bg-blue-600 px-4 py-2 text-white"
+                className="group flex h-full flex-col items-start rounded-md border border-slate-200 bg-slate-50 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-white hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
               >
-                {tour.client.name} – {tour.date}
+                <span className="text-base font-semibold text-slate-900">
+                  {tour.client.name}
+                </span>
+                <span className="mt-1 text-sm text-slate-600">
+                  Récupérée le {formatDateForDisplay(tour.date)}
+                </span>
+                <span className="mt-3 inline-flex items-center text-sm font-medium text-indigo-600 transition group-hover:text-indigo-700">
+                  Clôturer cette tournée
+                  <span className="ml-1" aria-hidden>
+                    →
+                  </span>
+                </span>
               </button>
             ))}
           </div>
-        </>
-      )}
-
-      {step === 2 && selectedTour && (
-        <>
-          <h1 className="mb-4 text-2xl font-semibold">
-            Colis livrés pour {selectedTour.client.name}
-          </h1>
-          <p className="mb-2">
-            Date de récupération : {formatDateForDisplay(selectedTour.date)}
-          </p>
+        )}
+        {error && <div className={`${alertClass} mt-4`}>{error}</div>}
+      </section>
+    )
+  } else if (step === 2 && selectedTour) {
+    content = (
+      <section className={cardClass}>
+        <h2 className="text-lg font-semibold text-slate-900">
+          Colis livrés pour {selectedTour.client.name}
+        </h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Date de récupération : {formatDateForDisplay(selectedTour.date)}
+        </p>
+        <div className="mt-4 space-y-4">
           {selectedTour.items.map((item) => (
-            <div key={item.tariffGroupId} className="mb-2 flex flex-col">
-              <label className="mb-1">
-                {item.displayName} (récupérés : {item.pickupQuantity})
-              </label>
+            <div
+              key={item.tariffGroupId}
+              className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+            >
+              <div>
+                <p className="text-sm font-medium text-slate-700">
+                  {item.displayName}
+                </p>
+                <p className="text-xs text-slate-500">
+                  Récupérés : {item.pickupQuantity}
+                </p>
+              </div>
               <input
                 type="number"
-                min="0"
+                min={0}
                 max={item.pickupQuantity}
                 value={deliveryQuantities[item.tariffGroupId] ?? ''}
                 onChange={(e) => changeQty(item.tariffGroupId, e.target.value)}
-                className="w-48 rounded border px-2 py-1"
+                className={`${inputClass} sm:w-32`}
               />
             </div>
           ))}
-          {error && <p className="mb-2 text-red-600">{error}</p>}
-          <div className="mt-4 flex gap-2">
-            <button
-              onClick={resetSelection}
-              className="rounded bg-gray-600 px-4 py-2 text-white"
-            >
-              Retour
-            </button>
-            <button
-              onClick={nextFromQuantities}
-              className="rounded bg-blue-600 px-4 py-2 text-white"
-            >
-              Suivant
-            </button>
+        </div>
+        {error && <div className={`${alertClass} mt-4`}>{error}</div>}
+        <div className="mt-6 flex flex-wrap gap-3">
+          <button type="button" onClick={resetSelection} className={secondaryButtonClass}>
+            Retour
+          </button>
+          <button type="button" onClick={nextFromQuantities} className={primaryButtonClass}>
+            Continuer
+          </button>
+        </div>
+      </section>
+    )
+  } else if (step === 3 && selectedTour) {
+    content = (
+      <section className={cardClass}>
+        <h2 className="text-lg font-semibold text-slate-900">Récapitulatif</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Vérifiez les informations avant de valider la clôture de la tournée.
+        </p>
+        <dl className="mt-4 space-y-2 text-sm text-slate-700">
+          <div className="flex flex-wrap gap-2">
+            <dt className="font-semibold text-slate-900">Client :</dt>
+            <dd>{selectedTour.client.name}</dd>
           </div>
-        </>
-      )}
-
-      {step === 3 && selectedTour && (
-        <>
-          <h1 className="mb-4 text-2xl font-semibold">Récapitulatif</h1>
-          <p className="mb-2">Client : {selectedTour.client.name}</p>
-          <p className="mb-4">
-            Date de récupération : {formatDateForDisplay(selectedTour.date)}
-          </p>
-          <ul className="mb-4">
-            {selectedTour.items.map((item) => (
-              <li key={item.tariffGroupId}>
-                {item.displayName} : retours{' '}
-                {Math.max(
-                  item.pickupQuantity - (deliveryQuantities[item.tariffGroupId] ?? 0),
-                  0,
-                )}
-              </li>
-            ))}
-          </ul>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setStep(2)}
-              className="rounded bg-gray-600 px-4 py-2 text-white"
-            >
-              Modifier
-            </button>
-            <button
-              onClick={submitDelivery}
-              disabled={saving}
-              className="rounded bg-green-600 px-4 py-2 text-white disabled:opacity-50"
-            >
-              {saving ? 'Enregistrement...' : 'Valider'}
-            </button>
+          <div className="flex flex-wrap gap-2">
+            <dt className="font-semibold text-slate-900">Date :</dt>
+            <dd>{formatDateForDisplay(selectedTour.date)}</dd>
           </div>
-          {error && <p className="mt-2 text-red-600">{error}</p>}
-        </>
-      )}
-
-      {step === 4 && (
-        <>
-          <p className="mb-4 text-center text-xl font-semibold">
-            La clôture de votre tournée a été enregistrée avec succès.
-          </p>
-          <div className="flex flex-col items-center gap-3 sm:flex-row">
-            {pendingTours.length > 0 && (
-              <button
-                onClick={() => {
-                  setStep(1)
-                  setSelectedTour(null)
-                }}
-                className="rounded bg-blue-600 px-4 py-2 text-white"
+        </dl>
+        <ul className="mt-4 space-y-2">
+          {selectedTour.items.map((item) => {
+            const delivered = deliveryQuantities[item.tariffGroupId] ?? 0
+            const returns = Math.max(item.pickupQuantity - delivered, 0)
+            return (
+              <li
+                key={item.tariffGroupId}
+                className="rounded-md border border-slate-100 bg-slate-50 px-3 py-2 text-sm text-slate-700"
               >
-                Clôturer une autre tournée
-              </button>
-            )}
-            <Link
-              href="/"
-              className="rounded bg-blue-600 px-4 py-2 text-white"
-            >
-              Retour à l&apos;accueil
-            </Link>
-          </div>
-        </>
-      )}
+                <div className="flex items-center justify-between">
+                  <span>{item.displayName}</span>
+                  <span className="font-semibold text-slate-900">{delivered} livrés</span>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">Retours : {returns}</p>
+              </li>
+            )
+          })}
+        </ul>
+        {error && <div className={`${alertClass} mt-4`}>{error}</div>}
+        <div className="mt-6 flex flex-wrap gap-3">
+          <button type="button" onClick={() => setStep(2)} className={secondaryButtonClass}>
+            Modifier
+          </button>
+          <button
+            type="button"
+            onClick={submitDelivery}
+            disabled={saving}
+            className={primaryButtonClass}
+          >
+            {saving ? 'Enregistrement…' : 'Valider la clôture'}
+          </button>
+        </div>
+      </section>
+    )
+  } else {
+    content = (
+      <div className={successCardClass}>
+        <h2 className="text-lg font-semibold">Clôture enregistrée</h2>
+        <p className="mt-2">
+          La tournée a été clôturée avec succès. Les informations ont été transmises à l&apos;administration.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          {pendingTours.length > 0 ? (
+            <button type="button" onClick={handleCloseAnother} className={primaryButtonClass}>
+              Clôturer une autre tournée
+            </button>
+          ) : null}
+          <Link href="/recuperer" className={secondaryButtonClass}>
+            Récupérer une nouvelle tournée
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
-      {step < 4 && (
-        <Link
-          href="/"
-          className="mt-6 rounded bg-blue-600 px-4 py-2 text-white"
-        >
+  return (
+    <PageLayout
+      title="Clôturer une tournée"
+      description="Déclarez les colis livrés, signalez les retours et finalisez votre tournée."
+      actions={
+        <Link href="/" className={secondaryButtonClass}>
           Retour à l&apos;accueil
         </Link>
-      )}
-    </main>
+      }
+    >
+      <div className="space-y-5">{content}</div>
+    </PageLayout>
   )
 }
 

@@ -3,7 +3,15 @@
 import Link from 'next/link'
 import { useUser } from '@auth0/nextjs-auth0/client'
 
-export default function AuthButton() {
+interface AuthButtonProps {
+  className?: string
+}
+
+function classNames(...values: (string | false | null | undefined)[]) {
+  return values.filter(Boolean).join(' ')
+}
+
+export default function AuthButton({ className }: AuthButtonProps) {
   const { user, isLoading } = useUser()
 
   if (isLoading) {
@@ -14,7 +22,10 @@ export default function AuthButton() {
     return (
       <Link
         href="/login"
-        className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+        className={classNames(
+          'inline-flex items-center justify-center rounded-md border border-indigo-200 bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500',
+          className,
+        )}
       >
         Se connecter
       </Link>
@@ -24,7 +35,10 @@ export default function AuthButton() {
   return (
     <Link
       href="/api/auth/logout"
-      className="rounded bg-gray-600 px-4 py-2 text-white hover:bg-gray-700"
+      className={classNames(
+        'inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500',
+        className,
+      )}
     >
       Se déconnecter
     </Link>
