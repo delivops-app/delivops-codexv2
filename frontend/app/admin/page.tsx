@@ -38,7 +38,7 @@ export default function AdminHomePage() {
           Cette section est réservée à l&apos;équipe Delivops en charge de la
           supervision globale.
         </p>
-        <Link href="/" className="rounded bg-gray-600 px-4 py-2 text-white">
+        <Link href="/" target="_self" className="rounded bg-gray-600 px-4 py-2 text-white">
           Retour à l&apos;accueil
         </Link>
       </main>
@@ -93,6 +93,7 @@ export default function AdminHomePage() {
             <Link
               key={link.href}
               href={link.href}
+              target="_self"
               className="rounded bg-indigo-600 px-6 py-4 text-center text-lg font-semibold text-white transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
             >
               {link.label}

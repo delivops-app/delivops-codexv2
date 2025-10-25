@@ -52,15 +52,41 @@ export default function ChauffeurActivityPage() {
   const [summary, setSummary] = useState<TourActivitySummary | null>(null)
   const [fetchState, setFetchState] = useState<FetchState>('idle')
   const [errorMessage, setErrorMessage] = useState('')
+  const [startDate, setStartDate] = useState<string>(() => {
+    const today = new Date()
+    return today.toISOString().slice(0, 10)
+  })
+  const [endDate, setEndDate] = useState<string>(() => {
+    const today = new Date()
+    return today.toISOString().slice(0, 10)
+  })
 
   useEffect(() => {
     if (!hasAdminPrivileges) {
       return
     }
 
+    if (!startDate || !endDate) {
+      setSummary(null)
+      setFetchState('error')
+      setErrorMessage('Veuillez sélectionner une période valide.')
+      return
+    }
+
+    if (startDate > endDate) {
+      setSummary(null)
+      setFetchState('error')
+      setErrorMessage('La date de début ne peut pas être postérieure à la date de fin.')
+      return
+    }
+
     const loadSummary = async () => {
       setFetchState('loading')
-      const response = await apiFetch('/tours/activity-summary')
+      const params = new URLSearchParams({
+        startDate,
+        endDate,
+      })
+      const response = await apiFetch(`/tours/activity-summary?${params.toString()}`)
       if (response.ok) {
         const data = (await response.json()) as TourActivitySummary
         setSummary(data)
@@ -79,7 +105,7 @@ export default function ChauffeurActivityPage() {
     }
 
     void loadSummary()
-  }, [hasAdminPrivileges])
+  }, [endDate, hasAdminPrivileges, startDate])
 
   const metrics = useMemo(
     () => [
@@ -127,7 +153,7 @@ export default function ChauffeurActivityPage() {
         <p className="mb-4 max-w-xl text-center">
           Cette page est réservée aux administrateurs Delivops autorisés.
         </p>
-        <Link href="/" className="rounded bg-gray-600 px-4 py-2 text-white">
+        <Link href="/" target="_self" className="rounded bg-gray-600 px-4 py-2 text-white">
           Retour à l&apos;accueil
         </Link>
       </main>
@@ -146,11 +172,44 @@ export default function ChauffeurActivityPage() {
           </div>
           <Link
             href="/admin"
+            target="_self"
             className="inline-flex items-center justify-center rounded border border-indigo-200 px-4 py-2 text-indigo-700 transition hover:bg-indigo-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
           >
             ← Retour à l&apos;espace admin
           </Link>
         </header>
+
+        <section className="mb-6 rounded border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="text-lg font-semibold text-gray-800">Période analysée</h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Les indicateurs affichent les données comprises entre le {formatDate(startDate)} et le {formatDate(endDate)} inclus.
+          </p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="flex flex-col text-sm font-medium text-gray-700">
+              Date de début
+              <input
+                type="date"
+                value={startDate}
+                onChange={(event) => setStartDate(event.target.value)}
+                className="mt-2 rounded border border-slate-300 px-3 py-2 text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </label>
+            <label className="flex flex-col text-sm font-medium text-gray-700">
+              Date de fin
+              <input
+                type="date"
+                value={endDate}
+                onChange={(event) => setEndDate(event.target.value)}
+                className="mt-2 rounded border border-slate-300 px-3 py-2 text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </label>
+          </div>
+          {startDate > endDate && (
+            <p className="mt-3 text-sm text-red-600" role="alert">
+              La date de début doit être antérieure ou égale à la date de fin.
+            </p>
+          )}
+        </section>
 
         {fetchState === 'loading' && (
           <div className="mb-6 rounded border border-blue-200 bg-blue-50 p-4 text-blue-900">

@@ -432,6 +432,83 @@ def test_activity_summary_returns_expected_metrics(client):
     assert card["totalDelivery"] == 0
 
 
+def test_activity_summary_respects_date_filters(client):
+    with TestingSessionLocal() as db:
+        tenant_id, chauffeur_id, client_id, tg_id, admin_sub = _seed(db)
+
+        today = date.today()
+        earlier = today - timedelta(days=3)
+
+        current_tour = Tour(
+            tenant_id=tenant_id,
+            driver_id=chauffeur_id,
+            client_id=client_id,
+            date=today,
+            status=Tour.STATUS_IN_PROGRESS,
+        )
+        older_tour = Tour(
+            tenant_id=tenant_id,
+            driver_id=chauffeur_id,
+            client_id=client_id,
+            date=earlier,
+            status=Tour.STATUS_COMPLETED,
+        )
+        db.add_all([current_tour, older_tour])
+        db.flush()
+
+        db.add_all(
+            [
+                TourItem(
+                    tenant_id=tenant_id,
+                    tour_id=current_tour.id,
+                    tariff_group_id=tg_id,
+                    pickup_quantity=6,
+                    delivery_quantity=2,
+                ),
+                TourItem(
+                    tenant_id=tenant_id,
+                    tour_id=older_tour.id,
+                    tariff_group_id=tg_id,
+                    pickup_quantity=5,
+                    delivery_quantity=3,
+                ),
+            ]
+        )
+        db.commit()
+
+    headers_admin = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": admin_sub,
+    }
+
+    default_resp = client.get("/tours/activity-summary", headers=headers_admin)
+    assert default_resp.status_code == 200
+    default_payload = default_resp.json()
+    assert default_payload["closedToursCount"] == 0
+    assert default_payload["returnCount"] == 0
+    assert len(default_payload["inProgressTours"]) == 1
+
+    start_param = (today - timedelta(days=5)).isoformat()
+    end_param = today.isoformat()
+    filtered_resp = client.get(
+        f"/tours/activity-summary?startDate={start_param}&endDate={end_param}",
+        headers=headers_admin,
+    )
+    assert filtered_resp.status_code == 200
+    filtered_payload = filtered_resp.json()
+    assert filtered_payload["closedToursCount"] == 1
+    assert filtered_payload["returnCount"] == 2
+    assert len(filtered_payload["inProgressTours"]) == 1
+
+    invalid_resp = client.get(
+        f"/tours/activity-summary?startDate={today.isoformat()}&endDate={(today - timedelta(days=1)).isoformat()}",
+        headers=headers_admin,
+    )
+    assert invalid_resp.status_code == 400
+    assert invalid_resp.json()["detail"] == "Invalid date range"
+
+
 def test_admin_updates_declaration(client):
     with TestingSessionLocal() as db:
         tenant_id, chauffeur_id, client_id, tg_id, admin_sub = _seed(db)

@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.api.deps import get_tenant_id, require_roles, require_tenant_roles
@@ -28,13 +28,26 @@ router = APIRouter(prefix="/tours", tags=["tours"])
 
 @router.get("/activity-summary", response_model=TourActivitySummary)
 def list_tour_activity_summary(
+    start_date: date | None = Query(default=None, alias="startDate"),
+    end_date: date | None = Query(default=None, alias="endDate"),
     db: Session = Depends(get_db),  # noqa: B008
     tenant_id: int = Depends(get_tenant_id),  # noqa: B008
     _: dict = Depends(require_tenant_roles("ADMIN")),  # noqa: B008
 ):
+    today = date.today()
+    period_start = start_date or today
+    period_end = end_date or period_start
+
+    if period_start > period_end:
+        raise HTTPException(status_code=400, detail="Invalid date range")
+
     tours = (
         db.query(Tour)
-        .filter(Tour.tenant_id == tenant_id)
+        .filter(
+            Tour.tenant_id == tenant_id,
+            Tour.date >= period_start,
+            Tour.date <= period_end,
+        )
         .options(
             joinedload(Tour.driver),
             joinedload(Tour.client),
