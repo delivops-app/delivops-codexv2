@@ -20,6 +20,7 @@ from app.models.client import Client
 from app.models.tariff import Tariff
 from app.models.tariff_group import TariffGroup
 from app.models.tour import Tour
+from app.models.tour_item import TourItem
 from app.models.tenant import Tenant
 from app.models.user import User
 
@@ -349,6 +350,86 @@ def test_report_declarations_includes_in_progress_without_items(client):
     assert data[0]["marginAmountEur"] == "0.00"
     assert data[0]["status"] == "IN_PROGRESS"
 
+
+def test_activity_summary_returns_expected_metrics(client):
+    with TestingSessionLocal() as db:
+        tenant_id, chauffeur_id, client_id, tg_id, admin_sub = _seed(db)
+
+        driver_user = User(
+            tenant_id=tenant_id,
+            auth0_sub="dev|driver-extra",
+            email="driver2@example.com",
+            role="CHAUFFEUR",
+        )
+        db.add(driver_user)
+        db.commit()
+        db.refresh(driver_user)
+
+        extra_driver = Chauffeur(
+            tenant_id=tenant_id,
+            user_id=driver_user.id,
+            email="driver2@example.com",
+            display_name="Zoé",
+        )
+        db.add(extra_driver)
+        db.commit()
+        db.refresh(extra_driver)
+
+        in_progress_tour = Tour(
+            tenant_id=tenant_id,
+            driver_id=chauffeur_id,
+            client_id=client_id,
+            date=date.today(),
+            status=Tour.STATUS_IN_PROGRESS,
+        )
+        completed_tour = Tour(
+            tenant_id=tenant_id,
+            driver_id=extra_driver.id,
+            client_id=client_id,
+            date=date.today(),
+            status=Tour.STATUS_COMPLETED,
+        )
+        db.add_all([in_progress_tour, completed_tour])
+        db.flush()
+
+        db.add_all(
+            [
+                TourItem(
+                    tenant_id=tenant_id,
+                    tour_id=in_progress_tour.id,
+                    tariff_group_id=tg_id,
+                    pickup_quantity=8,
+                    delivery_quantity=0,
+                ),
+                TourItem(
+                    tenant_id=tenant_id,
+                    tour_id=completed_tour.id,
+                    tariff_group_id=tg_id,
+                    pickup_quantity=12,
+                    delivery_quantity=9,
+                ),
+            ]
+        )
+        db.commit()
+
+    headers_admin = {
+        "X-Tenant-Id": str(tenant_id),
+        "X-Dev-Role": "ADMIN",
+        "X-Dev-Sub": admin_sub,
+    }
+
+    resp = client.get("/tours/activity-summary", headers=headers_admin)
+    assert resp.status_code == 200
+    payload = resp.json()
+
+    assert payload["closedToursCount"] == 1
+    assert payload["returnCount"] == 3
+    assert len(payload["inProgressTours"]) == 1
+    card = payload["inProgressTours"][0]
+    assert card["driverName"] == "Ali"
+    assert card["clientName"] == "Amazon"
+    assert card["totalPickup"] == 8
+    assert card["totalDelivery"] == 0
 
 
 def test_admin_updates_declaration(client):

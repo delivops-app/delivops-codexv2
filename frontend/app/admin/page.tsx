@@ -47,6 +47,10 @@ export default function AdminHomePage() {
 
   const navigationLinks = [
     {
+      href: '/admin/chauffeurs-activite',
+      label: 'Activité des chauffeurs',
+    },
+    {
       href: '/chauffeurs/synthese',
       label: 'Synthèse des tournées',
     },
