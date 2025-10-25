@@ -1,5 +1,6 @@
 'use client'
 
+import type { JSX } from 'react'
 import { useUser } from '@auth0/nextjs-auth0/client'
 import AuthButton from '../components/AuthButton'
 import AdminDashboard from '../components/AdminDashboard'
@@ -103,6 +104,15 @@ export default function Home() {
         </span>,
       ]
 
+  const sections = [
+    isAdmin ? (
+      <AdminDashboard key="admin" onInvite={openInviteForm} roles={roles} />
+    ) : null,
+    isDriver ? <DriverActions key="driver" /> : null,
+  ].filter(Boolean) as JSX.Element[]
+  const sectionsLayoutClass =
+    sections.length > 1 ? 'grid gap-5 lg:grid-cols-2' : 'grid gap-5'
+
   return (
     <PageLayout
       title={`Bonjour ${friendlyName}`}
@@ -128,10 +138,8 @@ export default function Home() {
         ) : null}
       </section>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        {isAdmin ? <AdminDashboard onInvite={openInviteForm} roles={roles} /> : null}
-
-        {isDriver ? <DriverActions /> : null}
+      <div className={sectionsLayoutClass}>
+        {sections}
       </div>
     </PageLayout>
   )
