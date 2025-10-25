@@ -45,42 +45,56 @@ export default function AdminHomePage() {
     )
   }
 
+  const navigationLinks = [
+    {
+      href: '/chauffeurs/synthese',
+      label: 'Synthèse des tournées',
+    },
+    {
+      href: '/chauffeurs/invite',
+      label: 'Ajouter un chauffeur',
+    },
+    {
+      href: '/chauffeurs',
+      label: 'Liste des chauffeurs',
+    },
+    {
+      href: '/aide/admin',
+      label: 'FAQ des administrateurs',
+    },
+    {
+      href: '/settings/billing',
+      label: 'Paramétrage',
+    },
+    {
+      href: '/clients',
+      label: 'Liste des clients',
+    },
+    {
+      href: '/monitoring',
+      label: 'Supervision globale',
+    },
+    {
+      href: '/admin/tenants-users',
+      label: 'Correspondance utilisateurs / tenants',
+    },
+  ] as const
+
   return (
     <main className="flex min-h-screen flex-col items-center p-8">
-      <div className="w-full max-w-4xl">
-        <header className="mb-8 text-center">
-          <h1 className="text-4xl font-bold">Espace Delivops</h1>
-          <p className="mt-2 text-lg text-gray-700">
-            Retrouvez les outils dédiés à la supervision globale.
-          </p>
-        </header>
-
-        <section className="grid gap-4 sm:grid-cols-2">
-          <Link
-            href="/monitoring"
-            className="rounded border border-indigo-100 bg-indigo-50 p-4 text-center text-indigo-900 transition hover:border-indigo-200 hover:bg-indigo-100"
-          >
-            <h2 className="text-xl font-semibold">Supervision globale</h2>
-            <p className="mt-2 text-sm">
-              Vue d&apos;ensemble sur l&apos;activité des administrateurs et des chauffeurs.
-            </p>
-          </Link>
-          <Link
-            href="/admin/tenants-users"
-            className="rounded border border-teal-100 bg-teal-50 p-4 text-center text-teal-900 transition hover:border-teal-200 hover:bg-teal-100"
-          >
-            <h2 className="text-xl font-semibold">Correspondance utilisateurs / tenants</h2>
-            <p className="mt-2 text-sm">
-              Consultez les administrateurs rattachés à chaque tenant.
-            </p>
-          </Link>
-        </section>
-
-        <div className="mt-10 text-center">
-          <Link href="/" className="rounded bg-gray-600 px-4 py-2 text-white">
-            Retour à l&apos;accueil
-          </Link>
-        </div>
+      <div className="w-full max-w-xl">
+        <h1 className="mb-8 text-center text-4xl font-bold">Espace Delivops</h1>
+        <nav aria-label="Navigation administrateur" className="flex flex-col gap-4">
+          {navigationLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="rounded bg-indigo-600 px-6 py-4 text-center text-lg font-semibold text-white transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
       </div>
     </main>
   )
