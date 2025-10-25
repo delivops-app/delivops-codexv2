@@ -292,6 +292,9 @@ function PickupWizard() {
       {step === 4 && (
         <>
           <h1 className="mb-4 text-2xl font-semibold">Récapitulatif</h1>
+          <p className="mb-2">
+            <span className="font-semibold">Client :</span> {client?.name ?? ''}
+          </p>
           <p className="mb-4">
             <span className="font-semibold">Date :</span>{' '}
             {tourDate ? formatDateForDisplay(tourDate) : 'Non définie'}
