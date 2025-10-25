@@ -1,5 +1,14 @@
 # Delivops
 
+## Démarrage rapide Docker
+
+1. **Cloner le dépôt** : `git clone <url>` puis `cd delivops-codexv2`.
+2. **Installer les prérequis** : assurez-vous que Docker, Docker Compose et `make` sont disponibles sur votre machine.
+3. **Configurer le backend** : créez `backend/.env` en y recopiant les variables requises listées dans la section de configuration backend ci-après.
+4. **Configurer le frontend** : dupliquez `frontend/.env.example` vers `frontend/.env.local` et complétez les valeurs nécessaires.
+5. **Lancer la stack** : exécutez `make dev` pour démarrer tous les services Docker ; attendez que les conteneurs terminent leur phase de build et de démarrage.
+6. **Vérifier l’accès** : ouvrez http://localhost:3000 (frontend), http://localhost:8000 (API) et, si besoin, http://localhost:5050 (pgAdmin).
+
 Monorepo FastAPI + Next.js pour gestion multi-tenant.
 
 ## Aperçu de l'architecture
