@@ -134,6 +134,18 @@ const parseAmountForExport = (value: string) => {
   return parsed
 }
 
+const inputClass =
+  'block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-60'
+const selectClass = inputClass
+const badgeClass =
+  'inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600'
+const primaryButtonClass =
+  'inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-60'
+const secondaryButtonClass =
+  'inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-60'
+const tableButtonClass =
+  'inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-60'
+
 export default function SyntheseChauffeursPage() {
   const { user } = useUser()
   const roles = normalizeRoles(
@@ -1081,634 +1093,638 @@ export default function SyntheseChauffeursPage() {
         </>
       }
     >
-      {error && (
-        <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-          {error}
-        </div>
-      )}
-      <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="mb-4 text-xl font-semibold">Filtres</h2>
-        <div className="mb-4 flex justify-end">
+      <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Filtres et indicateurs</h2>
+            <p className="text-sm text-slate-600">
+              Ajustez les données affichées et consultez les totaux en temps réel.
+            </p>
+          </div>
           <button
             type="button"
-            className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="inline-flex items-center justify-center rounded-md border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 shadow-sm transition hover:bg-indigo-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
             onClick={handleOpenClientHistory}
           >
             Historique des donneurs d&apos;ordres
           </button>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="flex flex-col">
-            <label
-              htmlFor="filter-date-mode"
-              className="mb-1 text-sm font-semibold text-gray-700"
-            >
-              Type de période
-            </label>
-            <select
-              id="filter-date-mode"
-              className="rounded border px-2 py-1"
-              value={filters.dateMode}
-              onChange={(e) => handleFilterChange('dateMode', e.target.value)}
-            >
-              <option value="day">Jour</option>
-              <option value="month">Mois</option>
-              <option value="range">Période</option>
-            </select>
-          </div>
-          {filters.dateMode === 'day' && (
-            <div className="flex flex-col">
-              <label
-                htmlFor="filter-date-day"
-                className="mb-1 text-sm font-semibold text-gray-700"
-              >
-                Date
+        <div className="space-y-5 p-5">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="filter-date-mode" className="text-sm font-medium text-slate-700">
+                Type de période
               </label>
-              <input
-                id="filter-date-day"
-                type="date"
-                className="rounded border px-2 py-1"
-                value={filters.day}
-                onChange={(e) => handleFilterChange('day', e.target.value)}
-              />
-            </div>
-          )}
-          {filters.dateMode === 'month' && (
-            <div className="flex flex-col">
-              <label
-                htmlFor="filter-date-month"
-                className="mb-1 text-sm font-semibold text-gray-700"
+              <select
+                id="filter-date-mode"
+                className={selectClass}
+                value={filters.dateMode}
+                onChange={(e) => handleFilterChange('dateMode', e.target.value)}
               >
-                Mois
-              </label>
-              <input
-                id="filter-date-month"
-                type="month"
-                className="rounded border px-2 py-1"
-                value={filters.month}
-                onChange={(e) => handleFilterChange('month', e.target.value)}
-              />
+                <option value="day">Jour</option>
+                <option value="month">Mois</option>
+                <option value="range">Période</option>
+              </select>
             </div>
-          )}
-          {filters.dateMode === 'range' && (
-            <>
-              <div className="flex flex-col">
-                <label
-                  htmlFor="filter-date-from"
-                  className="mb-1 text-sm font-semibold text-gray-700"
-                >
-                  Du
+            {filters.dateMode === 'day' && (
+              <div className="flex flex-col gap-1">
+                <label htmlFor="filter-date-day" className="text-sm font-medium text-slate-700">
+                  Date
                 </label>
                 <input
-                  id="filter-date-from"
+                  id="filter-date-day"
                   type="date"
-                  className="rounded border px-2 py-1"
-                  value={filters.dateFrom}
-                  onChange={(e) =>
-                    handleFilterChange('dateFrom', e.target.value)
-                  }
+                  className={inputClass}
+                  value={filters.day}
+                  onChange={(e) => handleFilterChange('day', e.target.value)}
                 />
               </div>
-              <div className="flex flex-col">
-                <label
-                  htmlFor="filter-date-to"
-                  className="mb-1 text-sm font-semibold text-gray-700"
-                >
-                  Au
+            )}
+            {filters.dateMode === 'month' && (
+              <div className="flex flex-col gap-1">
+                <label htmlFor="filter-date-month" className="text-sm font-medium text-slate-700">
+                  Mois
                 </label>
                 <input
-                  id="filter-date-to"
-                  type="date"
-                  className="rounded border px-2 py-1"
-                  value={filters.dateTo}
-                  onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+                  id="filter-date-month"
+                  type="month"
+                  className={inputClass}
+                  value={filters.month}
+                  onChange={(e) => handleFilterChange('month', e.target.value)}
                 />
               </div>
-            </>
-          )}
-          <div className="flex flex-col">
-            <label
-              htmlFor="filter-driver"
-              className="mb-1 text-sm font-semibold text-gray-700"
-            >
-              Chauffeur
-            </label>
-            <select
-              id="filter-driver"
-              className="rounded border px-2 py-1"
-              value={filters.driverId}
-              onChange={(e) => handleFilterChange('driverId', e.target.value)}
-            >
-              <option value="">Tous les chauffeurs</option>
-              {driverFilterOptions.map((driver) => (
-                <option key={driver.id} value={driver.id}>
-                  {driver.displayName}
-                  {!driver.isActive ? ' (inactif)' : ''}
-                </option>
-              ))}
-            </select>
+            )}
+            {filters.dateMode === 'range' && (
+              <>
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="filter-date-from" className="text-sm font-medium text-slate-700">
+                    Du
+                  </label>
+                  <input
+                    id="filter-date-from"
+                    type="date"
+                    className={inputClass}
+                    value={filters.dateFrom}
+                    onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="filter-date-to" className="text-sm font-medium text-slate-700">
+                    Au
+                  </label>
+                  <input
+                    id="filter-date-to"
+                    type="date"
+                    className={inputClass}
+                    value={filters.dateTo}
+                    onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+                  />
+                </div>
+              </>
+            )}
+            <div className="flex flex-col gap-1">
+              <label htmlFor="filter-driver" className="text-sm font-medium text-slate-700">
+                Chauffeur
+              </label>
+              <select
+                id="filter-driver"
+                className={selectClass}
+                value={filters.driverId}
+                onChange={(e) => handleFilterChange('driverId', e.target.value)}
+              >
+                <option value="">Tous les chauffeurs</option>
+                {driverFilterOptions.map((driver) => (
+                  <option key={driver.id} value={driver.id}>
+                    {driver.displayName}
+                    {!driver.isActive ? ' (inactif)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="filter-client" className="text-sm font-medium text-slate-700">
+                Client donneur d&apos;ordre
+              </label>
+              <select
+                id="filter-client"
+                className={selectClass}
+                value={filters.clientId}
+                onChange={(e) => handleFilterChange('clientId', e.target.value)}
+              >
+                <option value="">Tous les clients</option>
+                {clientFilterOptions.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.name}
+                    {!client.isActive ? ' (inactif)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="filter-tariff-group" className="text-sm font-medium text-slate-700">
+                Catégorie de groupe tarifaire
+              </label>
+              <select
+                id="filter-tariff-group"
+                className={selectClass}
+                value={filters.tariffGroupName}
+                onChange={(e) => handleFilterChange('tariffGroupName', e.target.value)}
+              >
+                <option value="">Toutes les catégories</option>
+                {tariffGroupFilterOptions.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div className="flex flex-col">
-            <label
-              htmlFor="filter-client"
-              className="mb-1 text-sm font-semibold text-gray-700"
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <button
+              type="button"
+              className={`${secondaryButtonClass} w-full sm:w-auto`}
+              onClick={resetFilters}
+              disabled={!hasActiveFilters}
             >
-              Client donneur d&apos;ordre
-            </label>
-            <select
-              id="filter-client"
-              className="rounded border px-2 py-1"
-              value={filters.clientId}
-              onChange={(e) => handleFilterChange('clientId', e.target.value)}
-            >
-              <option value="">Tous les clients</option>
-              {clientFilterOptions.map((client) => (
-                <option key={client.id} value={client.id}>
-                  {client.name}
-                  {!client.isActive ? ' (inactif)' : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col">
-            <label
-              htmlFor="filter-tariff-group"
-              className="mb-1 text-sm font-semibold text-gray-700"
-            >
-              Catégorie de groupe tarifaire
-            </label>
-            <select
-              id="filter-tariff-group"
-              className="rounded border px-2 py-1"
-              value={filters.tariffGroupName}
-              onChange={(e) =>
-                handleFilterChange('tariffGroupName', e.target.value)
-              }
-            >
-              <option value="">Toutes les catégories</option>
-              {tariffGroupFilterOptions.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <button
-            type="button"
-            className="w-full rounded bg-gray-500 px-4 py-2 text-white disabled:opacity-50 sm:w-auto"
-            onClick={resetFilters}
-            disabled={!hasActiveFilters}
-          >
-            Réinitialiser les filtres
-          </button>
-          <div className="text-base sm:text-lg sm:text-right">
-            <p>
-              Montant estimé total :{' '}
-              <span className="font-semibold">
-                {formattedTotalEstimatedAmount} €
-              </span>
-            </p>
-            <p>
-              Marge totale :{' '}
-              <span className="font-semibold">
-                {formattedTotalMarginAmount} €
-              </span>
-            </p>
+              Réinitialiser les filtres
+            </button>
+            <div className="space-y-1 text-sm text-slate-600 sm:text-right">
+              <p>
+                Montant estimé total :{' '}
+                <span className="text-base font-semibold text-slate-900">
+                  {formattedTotalEstimatedAmount} €
+                </span>
+              </p>
+              <p>
+                Marge totale :{' '}
+                <span className="text-base font-semibold text-slate-900">
+                  {formattedTotalMarginAmount} €
+                </span>
+              </p>
+            </div>
           </div>
         </div>
       </section>
       <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div className="flex w-full flex-col items-stretch gap-2 border-b border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <button
-            type="button"
-            className="inline-flex items-center justify-center rounded bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
-            onClick={handleExport}
-            disabled={filteredRows.length === 0}
-          >
-            Exporter au format Excel
-          </button>
-          <button
-            type="button"
-            className="inline-flex items-center justify-center rounded bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
-            onClick={startCreating}
-            disabled={isCreating || isEditingRow}
-          >
-            Ajouter une déclaration
-          </button>
-        </div>
-        <div className="overflow-x-auto" ref={tableContainerRef}>
-          <table className="min-w-full table-auto border-collapse text-sm">
-          <thead>
-            <tr>
-              <th className="border px-2 py-2">Date</th>
-              <th className="border px-2 py-2">Chauffeur</th>
-              <th className="border px-2 py-2">Client donneur d&apos;ordre</th>
-              <th className="border px-2 py-2">Catégorie de groupe tarifaire</th>
-              <th className="border px-2 py-2">Colis récupérés</th>
-              <th className="border px-2 py-2">Colis livrés</th>
-              <th className="border px-2 py-2">Écart</th>
-              <th className="border px-2 py-2">Montant estimé (€)</th>
-              <th className="border px-2 py-2">Marge (€)</th>
-              <th className="border px-2 py-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-          {isCreating && (
-            <tr>
-              <td className="border px-2 py-2">
-                <input
-                  ref={newDeclarationDateInputRef}
-                  type="date"
-                  className="w-28 rounded border px-2 py-1"
-                  value={newFormValues.date}
-                  onChange={(e) => handleNewFieldChange('date', e.target.value)}
-                  disabled={isSavingNewRow}
-                />
-              </td>
-              <td className="border px-2 py-2">
-                <select
-                  className="w-36 rounded border px-2 py-1"
-                  value={newFormValues.driverId}
-                  onChange={(e) => handleNewFieldChange('driverId', e.target.value)}
-                  disabled={isSavingNewRow}
-                >
-                  <option value="">Sélectionner</option>
-                  {drivers.map((driver) => (
-                    <option key={driver.id} value={driver.id}>
-                      {driver.displayName}
-                      {!driver.isActive ? ' (inactif)' : ''}
-                    </option>
-                  ))}
-                </select>
-              </td>
-              <td className="border px-2 py-2">
-                <select
-                  className="w-36 rounded border px-2 py-1"
-                  value={newFormValues.clientId}
-                  onChange={(e) => handleNewFieldChange('clientId', e.target.value)}
-                  disabled={isSavingNewRow}
-                >
-                  <option value="">Sélectionner</option>
-                  {clients.map((client) => (
-                    <option
-                      key={client.id}
-                      value={client.id}
-                      disabled={!client.isActive}
-                    >
-                      {client.name}
-                      {!client.isActive ? ' (inactif)' : ''}
-                    </option>
-                  ))}
-                </select>
-              </td>
-              <td className="border px-2 py-2">
-                <select
-                  className="w-40 rounded border px-2 py-1"
-                  value={newFormValues.tariffGroupId}
-                  onChange={(e) =>
-                    handleNewFieldChange('tariffGroupId', e.target.value)
-                  }
-                  disabled={isSavingNewRow || !newFormValues.clientId}
-                >
-                  <option value="">Sélectionner</option>
-                  {(selectedClientForNewRow?.categories ?? []).map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </td>
-              <td className="border px-2 py-2">
-                <input
-                  type="number"
-                  min={0}
-                  className="w-20 rounded border px-2 py-1"
-                  value={newFormValues.pickupQuantity}
-                  onChange={(e) =>
-                    handleNewFieldChange('pickupQuantity', e.target.value)
-                  }
-                  disabled={isSavingNewRow}
-                />
-              </td>
-              <td className="border px-2 py-2">
-                <input
-                  type="number"
-                  min={0}
-                  max={deliveryMax}
-                  className="w-20 rounded border px-2 py-1"
-                  value={newFormValues.deliveryQuantity}
-                  onChange={(e) =>
-                    handleNewFieldChange('deliveryQuantity', e.target.value)
-                  }
-                  disabled={isSavingNewRow}
-                />
-              </td>
-              <td className="border px-2 py-2">
-                {newDifference !== null ? newDifference : '—'}
-              </td>
-              <td className="border px-2 py-2">
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  className="w-24 rounded border px-2 py-1"
-                  value={newFormValues.estimatedAmountEur}
-                  onChange={(e) =>
-                    handleNewFieldChange('estimatedAmountEur', e.target.value)
-                  }
-                  disabled={isSavingNewRow}
-                />
-              </td>
-              <td className="border px-2 py-2">
-                {newMarginAmount !== null
-                  ? newMarginAmount.toFixed(2)
-                  : '—'}
-              </td>
-              <td className="border px-2 py-2">
-                <div className="flex flex-wrap gap-1">
-                  <button
-                    type="button"
-                    className="rounded bg-green-600 px-2 py-1 text-white disabled:opacity-50"
-                    onClick={handleCreateSave}
-                    disabled={isSavingNewRow}
-                  >
-                    Enregistrer
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded bg-gray-500 px-2 py-1 text-white disabled:opacity-50"
-                    onClick={cancelCreating}
-                    disabled={isSavingNewRow}
-                  >
-                    Annuler
-                  </button>
-                </div>
-              </td>
-            </tr>
-          )}
-          {filteredRows.map((row) => (
-            <tr
-              key={
-                row.tourItemId !== null
-                  ? `item-${row.tourItemId}`
-                  : `tour-${row.tourId}`
-              }
+        <div className="flex flex-col gap-3 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Déclarations de tournées</h2>
+            <p className="text-sm text-slate-600">
+              Modifiez les déclarations existantes, ajoutez des tournées manuelles ou exportez vos données.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className={`${secondaryButtonClass} border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100`}
+              onClick={handleExport}
+              disabled={filteredRows.length === 0}
             >
-              <td className="border px-2 py-2">{formatIsoDateToFr(row.date)}</td>
-              <td className="border px-2 py-2">{row.driverName}</td>
-              <td className="border px-2 py-2">{row.clientName}</td>
-              <td className="border px-2 py-2">{row.tariffGroupDisplayName}</td>
-              <td className="border px-2 py-2">
-                {editingId === row.tourItemId ? (
-                  <input
-                    type="number"
-                    min={0}
-                    className="w-20 rounded border px-2 py-1"
-                    value={formValues.pickupQuantity}
-                    onChange={(e) =>
-                      handleInputChange('pickupQuantity', e.target.value)
-                    }
-                  />
-                ) : (
-                  row.pickupQuantity
-                )}
-              </td>
-              <td className="border px-2 py-2">
-                {editingId === row.tourItemId ? (
-                  <input
-                    type="number"
-                    min={0}
-                    className="w-20 rounded border px-2 py-1"
-                    value={formValues.deliveryQuantity}
-                    onChange={(e) =>
-                      handleInputChange('deliveryQuantity', e.target.value)
-                    }
-                  />
-                ) : row.status === 'IN_PROGRESS' ? (
-                  'en cours de livraison'
-                ) : (
-                  row.deliveryQuantity
-                )}
-              </td>
-              <td className="border px-2 py-2">
-                {editingId === row.tourItemId
-                  ? (() => {
-                      const pickup = parseInt(formValues.pickupQuantity, 10)
-                      const delivery = parseInt(formValues.deliveryQuantity, 10)
-                      if (Number.isNaN(pickup) || Number.isNaN(delivery)) {
-                        return '—'
-                      }
-                      return pickup - delivery
-                    })()
-                  : row.differenceQuantity}
-              </td>
-              <td className="border px-2 py-2">
-                {editingId === row.tourItemId ? (
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    className="w-24 rounded border px-2 py-1"
-                    value={formValues.estimatedAmountEur}
-                    onChange={(e) =>
-                      handleInputChange('estimatedAmountEur', e.target.value)
-                    }
-                  />
-                ) : (
-                  Number(row.estimatedAmountEur || 0).toFixed(2)
-                )}
-              </td>
-              <td className="border px-2 py-2">
-                {editingId === row.tourItemId
-                  ? (() => {
-                      const delivery = parseInt(
-                        formValues.deliveryQuantity,
-                        10,
-                      )
-                      const unitMargin = parseFloat(editingUnitMargin || '')
-                      if (
-                        Number.isNaN(delivery) ||
-                        Number.isNaN(unitMargin)
-                      ) {
-                        return '—'
-                      }
-                      return (unitMargin * delivery).toFixed(2)
-                    })()
-                  : Number(row.marginAmountEur || 0).toFixed(2)}
-              </td>
-              <td className="border px-2 py-2">
-                {editingId === row.tourItemId ? (
-                  <div className="flex flex-wrap gap-1">
-                    <button
-                      type="button"
-                      className="rounded bg-green-600 px-2 py-1 text-white disabled:opacity-50"
-                      onClick={handleSave}
-                      disabled={isSaving}
-                    >
-                      Enregistrer
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded bg-gray-500 px-2 py-1 text-white disabled:opacity-50"
-                      onClick={cancelEditing}
-                      disabled={isSaving}
-                    >
-                      Annuler
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap gap-1">
-                    <button
-                      type="button"
-                      className="rounded bg-blue-600 px-2 py-1 text-white disabled:opacity-50"
-                      onClick={() => startEditing(row)}
-                      disabled={
-                        isCreating ||
-                        deletingId === row.tourItemId ||
-                        row.status === 'IN_PROGRESS' || row.tourItemId === null
-                      }
-                    >
-                      Modifier
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded bg-red-600 px-2 py-1 text-white disabled:opacity-50"
-                      onClick={() => handleDelete(row)}
-                      disabled={
-                        deletingId === row.tourItemId || row.tourItemId === null
-                      }
-                    >
-                      Supprimer
-                    </button>
-                  </div>
-                )}
-              </td>
-            </tr>
-          ))}
-          {filteredRows.length === 0 && !isCreating && (
-            <tr>
-              <td className="border px-2 py-6 text-center" colSpan={10}>
-                {rows.length === 0
-                  ? 'Aucune déclaration disponible.'
-                  : 'Aucune déclaration ne correspond aux filtres.'}
-              </td>
-            </tr>
+              Exporter au format Excel
+            </button>
+            <button
+              type="button"
+              className={primaryButtonClass}
+              onClick={startCreating}
+              disabled={isCreating || isEditingRow}
+            >
+              Ajouter une déclaration
+            </button>
+          </div>
+        </div>
+        <div className="p-5" ref={tableContainerRef}>
+          {error && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+              {error}
+            </div>
           )}
-        </tbody>
-        <tfoot>
-          <tr>
-            <td className="border px-2 py-2 font-semibold" colSpan={7}>
-              Totaux
-            </td>
-            <td className="border px-2 py-2 font-semibold">
-              {formattedTotalEstimatedAmount} €
-            </td>
-            <td className="border px-2 py-2 font-semibold">
-              {formattedTotalMarginAmount} €
-            </td>
-            <td className="border px-2 py-2" />
-          </tr>
-        </tfoot>
-      </table>
+          <div className="overflow-hidden rounded-lg border border-slate-200">
+            <div className="max-w-full overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Date</th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Chauffeur</th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                      Client donneur d&apos;ordre
+                    </th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                      Catégorie de groupe tarifaire
+                    </th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600 text-right">
+                      Colis récupérés
+                    </th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600 text-right">
+                      Colis livrés
+                    </th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600 text-right">
+                      Écart
+                    </th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600 text-right">
+                      Montant estimé (€)
+                    </th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600 text-right">
+                      Marge (€)
+                    </th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 bg-white">
+                  {isCreating && (
+                    <tr className="bg-slate-50">
+                      <td className="px-4 py-3">
+                        <input
+                          ref={newDeclarationDateInputRef}
+                          type="date"
+                          className={`${inputClass} w-32`}
+                          value={newFormValues.date}
+                          onChange={(e) => handleNewFieldChange('date', e.target.value)}
+                          disabled={isSavingNewRow}
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <select
+                          className={`${selectClass} w-48`}
+                          value={newFormValues.driverId}
+                          onChange={(e) => handleNewFieldChange('driverId', e.target.value)}
+                          disabled={isSavingNewRow}
+                        >
+                          <option value="">Sélectionner</option>
+                          {drivers.map((driver) => (
+                            <option key={driver.id} value={driver.id}>
+                              {driver.displayName}
+                              {!driver.isActive ? ' (inactif)' : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-4 py-3">
+                        <select
+                          className={`${selectClass} w-56`}
+                          value={newFormValues.clientId}
+                          onChange={(e) => handleNewFieldChange('clientId', e.target.value)}
+                          disabled={isSavingNewRow}
+                        >
+                          <option value="">Sélectionner</option>
+                          {clients.map((client) => (
+                            <option key={client.id} value={client.id} disabled={!client.isActive}>
+                              {client.name}
+                              {!client.isActive ? ' (inactif)' : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-4 py-3">
+                        <select
+                          className={`${selectClass} w-56`}
+                          value={newFormValues.tariffGroupId}
+                          onChange={(e) => handleNewFieldChange('tariffGroupId', e.target.value)}
+                          disabled={isSavingNewRow || !newFormValues.clientId}
+                        >
+                          <option value="">Sélectionner</option>
+                          {(selectedClientForNewRow?.categories ?? []).map((category) => (
+                            <option key={category.id} value={category.id}>
+                              {category.name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <input
+                          type="number"
+                          min={0}
+                          className={`${inputClass} w-28 text-right`}
+                          value={newFormValues.pickupQuantity}
+                          onChange={(e) => handleNewFieldChange('pickupQuantity', e.target.value)}
+                          disabled={isSavingNewRow}
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <input
+                          type="number"
+                          min={0}
+                          max={deliveryMax}
+                          className={`${inputClass} w-28 text-right`}
+                          value={newFormValues.deliveryQuantity}
+                          onChange={(e) => handleNewFieldChange('deliveryQuantity', e.target.value)}
+                          disabled={isSavingNewRow}
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-right text-slate-700">
+                        {newDifference !== null ? newDifference : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          className={`${inputClass} w-32 text-right`}
+                          value={newFormValues.estimatedAmountEur}
+                          onChange={(e) => handleNewFieldChange('estimatedAmountEur', e.target.value)}
+                          disabled={isSavingNewRow}
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-right text-slate-700">
+                        {newMarginAmount !== null ? newMarginAmount.toFixed(2) : '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            className={`${tableButtonClass} border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100`}
+                            onClick={handleCreateSave}
+                            disabled={isSavingNewRow}
+                          >
+                            Enregistrer
+                          </button>
+                          <button
+                            type="button"
+                            className={tableButtonClass}
+                            onClick={cancelCreating}
+                            disabled={isSavingNewRow}
+                          >
+                            Annuler
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  {filteredRows.map((row) => {
+                    const key =
+                      row.tourItemId !== null
+                        ? `item-${row.tourItemId}`
+                        : `tour-${row.tourId}`
+                    const isEditingCurrent = editingId === row.tourItemId
+                    const isPending = row.status === 'IN_PROGRESS'
+                    const deliveryCell = isPending ? (
+                      <span className={`${badgeClass} border-amber-200 bg-amber-50 text-amber-700`}>
+                        En cours de livraison
+                      </span>
+                    ) : (
+                      row.deliveryQuantity
+                    )
+
+                    return (
+                      <tr key={key} className="transition hover:bg-slate-50">
+                        <td className="px-4 py-3 text-sm text-slate-700">
+                          {formatIsoDateToFr(row.date)}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-700">{row.driverName}</td>
+                        <td className="px-4 py-3 text-sm text-slate-700">{row.clientName}</td>
+                        <td className="px-4 py-3 text-sm text-slate-700">
+                          {row.tariffGroupDisplayName}
+                        </td>
+                        <td className="px-4 py-3 text-right text-sm text-slate-700">
+                          {isEditingCurrent ? (
+                            <input
+                              type="number"
+                              min={0}
+                              className={`${inputClass} w-24 text-right`}
+                              value={formValues.pickupQuantity}
+                              onChange={(e) => handleInputChange('pickupQuantity', e.target.value)}
+                            />
+                          ) : (
+                            row.pickupQuantity
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right text-sm text-slate-700">
+                          {isEditingCurrent ? (
+                            <input
+                              type="number"
+                              min={0}
+                              className={`${inputClass} w-24 text-right`}
+                              value={formValues.deliveryQuantity}
+                              onChange={(e) => handleInputChange('deliveryQuantity', e.target.value)}
+                            />
+                          ) : (
+                            deliveryCell
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right text-sm text-slate-700">
+                          {isEditingCurrent
+                            ? (() => {
+                                const pickup = parseInt(formValues.pickupQuantity, 10)
+                                const delivery = parseInt(formValues.deliveryQuantity, 10)
+                                if (Number.isNaN(pickup) || Number.isNaN(delivery)) {
+                                  return '—'
+                                }
+                                return pickup - delivery
+                              })()
+                            : row.differenceQuantity}
+                        </td>
+                        <td className="px-4 py-3 text-right text-sm text-slate-700">
+                          {isEditingCurrent ? (
+                            <input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              className={`${inputClass} w-28 text-right`}
+                              value={formValues.estimatedAmountEur}
+                              onChange={(e) => handleInputChange('estimatedAmountEur', e.target.value)}
+                            />
+                          ) : (
+                            Number(row.estimatedAmountEur || 0).toFixed(2)
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right text-sm text-slate-700">
+                          {isEditingCurrent
+                            ? (() => {
+                                const delivery = parseInt(formValues.deliveryQuantity, 10)
+                                const unitMargin = parseFloat(editingUnitMargin || '')
+                                if (Number.isNaN(delivery) || Number.isNaN(unitMargin)) {
+                                  return '—'
+                                }
+                                return (unitMargin * delivery).toFixed(2)
+                              })()
+                            : Number(row.marginAmountEur || 0).toFixed(2)}
+                        </td>
+                        <td className="px-4 py-3">
+                          {isEditingCurrent ? (
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                className={`${tableButtonClass} border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100`}
+                                onClick={handleSave}
+                                disabled={isSaving}
+                              >
+                                Enregistrer
+                              </button>
+                              <button
+                                type="button"
+                                className={tableButtonClass}
+                                onClick={cancelEditing}
+                                disabled={isSaving}
+                              >
+                                Annuler
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                className={tableButtonClass}
+                                onClick={() => startEditing(row)}
+                                disabled={
+                                  isCreating ||
+                                  deletingId === row.tourItemId ||
+                                  isPending ||
+                                  row.tourItemId === null
+                                }
+                              >
+                                Modifier
+                              </button>
+                              <button
+                                type="button"
+                                className={`${tableButtonClass} border-red-200 text-red-700 hover:bg-red-50 focus-visible:outline-red-500`}
+                                onClick={() => handleDelete(row)}
+                                disabled={deletingId === row.tourItemId || row.tourItemId === null}
+                              >
+                                Supprimer
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                  {filteredRows.length === 0 && !isCreating && (
+                    <tr>
+                      <td className="px-4 py-6 text-center text-sm text-slate-600" colSpan={10}>
+                        {rows.length === 0
+                          ? 'Aucune déclaration disponible.'
+                          : 'Aucune déclaration ne correspond aux filtres.'}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+                <tfoot className="bg-slate-50">
+                  <tr>
+                    <td className="px-4 py-3 text-sm font-semibold text-slate-900" colSpan={7}>
+                      Totaux
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm font-semibold text-slate-900">
+                      {formattedTotalEstimatedAmount} €
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm font-semibold text-slate-900">
+                      {formattedTotalMarginAmount} €
+                    </td>
+                    <td className="px-4 py-3" />
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
         </div>
       </section>
       {showClientHistory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-3xl rounded bg-white p-6 shadow-lg">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-xl font-semibold">
-                Historique des donneurs d&apos;ordres
-              </h2>
-              <div className="flex items-center gap-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="w-full max-w-4xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
+            <div className="flex flex-col gap-3 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">Historique des donneurs d&apos;ordres</h2>
+                <p className="text-sm text-slate-600">
+                  Consultez la dernière déclaration enregistrée et réactivez un donneur d&apos;ordre inactif si nécessaire.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  className="rounded bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 disabled:opacity-60"
-                  onClick={fetchClientHistory}
-                  disabled={isLoadingClientHistory}
-                >
-                  Actualiser
-                </button>
-                <button
-                  type="button"
-                  className="rounded bg-gray-200 px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+                  className={secondaryButtonClass}
                   onClick={handleCloseClientHistory}
                 >
                   Fermer
                 </button>
+                <button
+                  type="button"
+                  className={`${secondaryButtonClass} border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100`}
+                  onClick={fetchClientHistory}
+                  disabled={isLoadingClientHistory}
+                >
+                  {isLoadingClientHistory ? 'Actualisation…' : 'Actualiser'}
+                </button>
               </div>
             </div>
-            {clientHistoryError && (
-              <p className="mb-4 text-sm text-red-600" role="alert">
-                {clientHistoryError}
-              </p>
-            )}
-            {isLoadingClientHistory ? (
-              <p className="text-sm text-gray-600">Chargement de l&apos;historique…</p>
-            ) : clientHistory.length === 0 ? (
-              <p className="text-sm text-gray-600">
-                Aucune déclaration enregistrée pour le moment.
-              </p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full border-collapse">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">
-                        Donneur d&apos;ordre
-                      </th>
-                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">
-                        Statut
-                      </th>
-                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">
-                        Dernière déclaration
-                      </th>
-                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">
-                        Déclarations
-                      </th>
-                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {clientHistory.map((entry) => {
-                      const isReactivating = reactivatingClientId === entry.id
-                      return (
-                        <tr key={entry.id} className="border-b last:border-b-0">
-                          <td className="px-4 py-2 text-sm text-gray-900">{entry.name}</td>
-                          <td className="px-4 py-2 text-sm text-gray-700">
-                            {entry.isActive ? 'Actif' : 'Inactif'}
-                          </td>
-                          <td className="px-4 py-2 text-sm text-gray-700">
-                            {formatIsoDateToFr(entry.lastDeclarationDate) ||
-                              entry.lastDeclarationDate}
-                          </td>
-                          <td className="px-4 py-2 text-sm text-gray-700">
-                            {entry.declarationCount}
-                          </td>
-                          <td className="px-4 py-2 text-sm text-gray-700">
-                            {entry.isActive ? (
-                              <span className="text-sm text-gray-500">Actif</span>
-                            ) : (
-                              <button
-                                type="button"
-                                className="rounded bg-blue-600 px-3 py-1 text-sm font-medium text-white shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-                                onClick={() => handleReactivateClient(entry.id)}
-                                disabled={isReactivating}
-                              >
-                                {isReactivating ? 'Réactivation…' : 'Réactiver'}
-                              </button>
-                            )}
-                          </td>
+            <div className="space-y-4 p-5">
+              {clientHistoryError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+                  {clientHistoryError}
+                </div>
+              )}
+              {isLoadingClientHistory ? (
+                <p className="text-sm text-slate-600">Chargement de l&apos;historique…</p>
+              ) : clientHistory.length === 0 ? (
+                <p className="text-sm text-slate-600">
+                  Aucune déclaration enregistrée pour le moment.
+                </p>
+              ) : (
+                <div className="overflow-hidden rounded-lg border border-slate-200">
+                  <div className="max-w-full overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
+                      <thead className="bg-slate-50">
+                        <tr>
+                          <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                            Donneur d&apos;ordre
+                          </th>
+                          <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                            Statut
+                          </th>
+                          <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                            Dernière déclaration
+                          </th>
+                          <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600 text-right">
+                            Déclarations
+                          </th>
+                          <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                            Actions
+                          </th>
                         </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 bg-white">
+                        {clientHistory.map((entry) => {
+                          const isReactivating = reactivatingClientId === entry.id
+                          return (
+                            <tr key={entry.id} className="transition hover:bg-slate-50">
+                              <td className="px-4 py-3 text-sm text-slate-900">{entry.name}</td>
+                              <td className="px-4 py-3">
+                                {entry.isActive ? (
+                                  <span className={`${badgeClass} border-emerald-200 bg-emerald-50 text-emerald-700`}>
+                                    Actif
+                                  </span>
+                                ) : (
+                                  <span className={`${badgeClass} border-amber-200 bg-amber-50 text-amber-700`}>
+                                    Inactif
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-slate-700">
+                                {formatIsoDateToFr(entry.lastDeclarationDate) || entry.lastDeclarationDate || '—'}
+                              </td>
+                              <td className="px-4 py-3 text-right text-sm text-slate-700">
+                                {entry.declarationCount}
+                              </td>
+                              <td className="px-4 py-3">
+                                {entry.isActive ? (
+                                  <span className="text-sm text-slate-500">Actif</span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className={`${tableButtonClass} border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100`}
+                                    onClick={() => handleReactivateClient(entry.id)}
+                                    disabled={isReactivating}
+                                  >
+                                    {isReactivating ? 'Réactivation…' : 'Réactiver'}
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
