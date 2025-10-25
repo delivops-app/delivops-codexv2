@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@auth0/nextjs-auth0/client'
 
+import { PageLayout } from '../../../components/PageLayout'
 import { apiFetch, isApiFetchError } from '../../../lib/api'
 import { normalizeRoles } from '../../../lib/roles'
 
@@ -40,7 +41,7 @@ export default function InviteChauffeurPage() {
   const router = useRouter()
   const { user } = useUser()
   const roles = normalizeRoles(
-    ((user?.['https://delivops/roles'] as string[]) || [])
+    ((user?.['https://delivops/roles'] as string[]) || []),
   )
   const isAdmin = roles.includes('ADMIN')
 
@@ -66,9 +67,7 @@ export default function InviteChauffeurPage() {
       } else if (isApiFetchError(res)) {
         console.error('Failed to load chauffeur quota', res.error)
         setQuota(null)
-        setQuotaError(
-          'Impossible de charger le quota. Vérifiez votre connexion et réessayez.',
-        )
+        setQuotaError('Impossible de charger le quota. Vérifiez votre connexion et réessayez.')
       } else {
         setQuota(null)
         const detail = await extractErrorDetail(res)
@@ -84,7 +83,7 @@ export default function InviteChauffeurPage() {
   }, [isAdmin])
 
   useEffect(() => {
-    refreshQuota()
+    void refreshQuota()
   }, [refreshQuota])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -113,9 +112,7 @@ export default function InviteChauffeurPage() {
         setDisplayName('')
       } else if (isApiFetchError(res)) {
         console.error('Failed to invite chauffeur', res.error)
-        setSubmitError(
-          'Impossible de contacter le serveur. Vérifiez votre connexion et réessayez.',
-        )
+        setSubmitError('Impossible de contacter le serveur. Vérifiez votre connexion et réessayez.')
       } else {
         const detail = await extractErrorDetail(res)
         setSubmitError(detail ?? "Erreur lors de l'invitation.")
@@ -132,83 +129,134 @@ export default function InviteChauffeurPage() {
 
   if (!isAdmin) {
     return (
-      <main className="flex min-h-screen flex-col items-center p-8">
-        <p className="mb-4">Accès refusé</p>
-        <Link href="/" className="rounded bg-gray-600 px-4 py-2 text-white">
-          Retour
-        </Link>
-      </main>
+      <PageLayout
+        title="Accès restreint"
+        description="Seuls les administrateurs Delivops peuvent inviter de nouveaux chauffeurs."
+        actions={
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center rounded border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+          >
+            Retour à l&apos;accueil
+          </Link>
+        }
+      />
     )
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-8">
-      <div className="w-full max-w-md">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="mb-4 rounded bg-gray-600 px-4 py-2 text-white"
-        >
-          Retour
-        </button>
-        <h1 className="mb-6 text-3xl font-bold">Ajouter un chauffeur</h1>
-        <div className="mb-6">
-          <p>
-            <span className="font-medium">Quota actuel:</span>{' '}
-            {isQuotaLoading
-              ? 'Chargement...'
-              : quota
-                ? `${quota.count}/${quota.subscribed}`
-                : 'Non disponible'}
-          </p>
+    <PageLayout
+      title="Ajouter un chauffeur"
+      description="Envoyez une invitation par email et suivez votre quota en temps réel."
+      actions={
+        <>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="inline-flex items-center justify-center rounded border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+          >
+            ← Retour
+          </button>
+          <Link
+            href="/chauffeurs"
+            className="inline-flex items-center justify-center rounded border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+          >
+            Voir la liste des chauffeurs
+          </Link>
+        </>
+      }
+    >
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Quota disponible</h2>
+              <p className="text-sm text-slate-600">
+                Surveillez le nombre de chauffeurs actifs par rapport à votre abonnement.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void refreshQuota()}
+              className="inline-flex items-center justify-center rounded border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isQuotaLoading}
+            >
+              {isQuotaLoading ? 'Actualisation…' : 'Actualiser'}
+            </button>
+          </header>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-3 text-center">
+              <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
+                Chauffeurs utilisés
+              </p>
+              <p className="mt-2 text-3xl font-bold text-indigo-700">
+                {quota ? quota.count : '—'}
+              </p>
+            </div>
+            <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-center">
+              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">
+                Capacité disponible
+              </p>
+              <p className="mt-2 text-3xl font-bold text-emerald-700">
+                {quota ? quota.subscribed : '—'}
+              </p>
+            </div>
+          </div>
           {quotaError && (
-            <p className="mt-2 text-sm text-red-600" role="alert">
+            <p className="mt-4 text-sm text-red-600" role="alert">
               {quotaError}
             </p>
           )}
-        </div>
-        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-          <label className="flex flex-col gap-2">
-            <span className="font-medium">Email</span>
-            <input
-              type="email"
-              name="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="rounded border border-gray-300 px-3 py-2"
-            />
-          </label>
-          <label className="flex flex-col gap-2">
-            <span className="font-medium">Nom affiché</span>
-            <input
-              type="text"
-              name="display_name"
-              required
-              value={displayName}
-              onChange={(event) => setDisplayName(event.target.value)}
-              className="rounded border border-gray-300 px-3 py-2"
-            />
-          </label>
-          <button
-            type="submit"
-            className="rounded bg-green-600 px-4 py-2 text-white disabled:opacity-50"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Envoi...' : 'Inviter'}
-          </button>
-        </form>
-        {submitMessage && (
-          <p className="mt-4 text-green-600" role="status">
-            {submitMessage}
+        </article>
+
+        <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-900">Envoyer une invitation</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Le chauffeur recevra un email contenant un lien d&apos;activation de son compte.
           </p>
-        )}
-        {submitError && (
-          <p className="mt-4 text-red-600" role="alert">
-            {submitError}
-          </p>
-        )}
-      </div>
-    </main>
+          <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
+            <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+              Email du chauffeur
+              <input
+                type="email"
+                name="email"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="rounded border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </label>
+            <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+              Nom affiché
+              <input
+                type="text"
+                name="display_name"
+                required
+                value={displayName}
+                onChange={(event) => setDisplayName(event.target.value)}
+                className="rounded border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </label>
+            <button
+              type="submit"
+              className="inline-flex w-full items-center justify-center rounded bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Envoi…' : 'Inviter le chauffeur'}
+            </button>
+          </form>
+          {submitMessage && (
+            <p className="mt-4 rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700" role="status">
+              {submitMessage}
+            </p>
+          )}
+          {submitError && (
+            <p className="mt-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+              {submitError}
+            </p>
+          )}
+        </article>
+      </section>
+    </PageLayout>
   )
 }

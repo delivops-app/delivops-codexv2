@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useUser } from '@auth0/nextjs-auth0/client'
 
+import { PageLayout } from '../../components/PageLayout'
 import { apiFetch, isApiFetchError } from '../../lib/api'
 import { normalizeRoles } from '../../lib/roles'
 
@@ -124,128 +125,161 @@ export default function MonitoringPage() {
 
   if (isLoading) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center p-8">
-        <p>Chargement…</p>
-      </main>
+      <PageLayout title="Chargement en cours">
+        <div className="flex items-center justify-center rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm text-slate-600">Ouverture de la supervision globale…</p>
+        </div>
+      </PageLayout>
     )
   }
 
   if (authError) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center p-8">
-        <p className="text-red-600" role="alert">
+      <PageLayout
+        title="Une erreur est survenue"
+        description="Impossible de vérifier vos droits de supervision."
+        actions={
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center rounded border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+          >
+            Retour à l&apos;accueil
+          </Link>
+        }
+      >
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
           {authError.message}
-        </p>
-      </main>
+        </div>
+      </PageLayout>
     )
   }
 
   if (!hasSupervisionAccess) {
     return (
-      <main className="flex min-h-screen flex-col items-center p-8">
-        <h1 className="mb-4 text-3xl font-bold">Accès restreint</h1>
-        <p className="mb-4 text-center">
-          Cette page est réservée à l&apos;équipe Delivops en charge de la supervision globale.
+      <PageLayout
+        title="Accès restreint"
+        description="Cette page est réservée à l&apos;équipe Delivops en charge de la supervision globale."
+        actions={
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center rounded border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+          >
+            Retour à l&apos;accueil
+          </Link>
+        }
+      >
+        <p className="text-sm text-slate-600">
+          Veuillez contacter l&apos;équipe Delivops si vous pensez qu&apos;il s&apos;agit d&apos;une erreur.
         </p>
-        <Link href="/" className="rounded bg-gray-600 px-4 py-2 text-white">
-          Retour à l&apos;accueil
-        </Link>
-      </main>
+      </PageLayout>
     )
   }
 
   return (
-    <main className="flex min-h-screen w-full flex-col items-center p-8">
-      <div className="w-full max-w-6xl">
-        <header className="mb-8 text-center">
-          <h1 className="text-4xl font-bold">Supervision Delivops</h1>
-          <p className="mt-2 text-lg text-gray-700">
-            Visualisez l&apos;activité agrégée des administrateurs et des chauffeurs sans exposer de données sensibles.
-          </p>
-        </header>
+    <PageLayout
+      title="Supervision Delivops"
+      description="Visualisez l&apos;activité agrégée des administrateurs et des chauffeurs sans exposer de données sensibles."
+      actions={
+        <Link
+          href="/"
+          className="inline-flex items-center justify-center rounded border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+        >
+          Retour au tableau de bord
+        </Link>
+      }
+    >
+      {state === 'loading' && (
+        <div className="rounded border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          Actualisation des indicateurs en cours…
+        </div>
+      )}
 
-        {state === 'loading' && (
-          <div className="mb-6 rounded border border-blue-200 bg-blue-50 p-4 text-blue-900">
-            Actualisation des indicateurs en cours…
-          </div>
-        )}
+      {state === 'error' && (
+        <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          {errorMessage}
+        </div>
+      )}
 
-        {state === 'error' && (
-          <div className="mb-6 rounded border border-red-200 bg-red-50 p-4 text-red-700" role="alert">
-            {errorMessage}
-          </div>
-        )}
+      <section className="grid gap-4 md:grid-cols-2">
+        {kpis.map((kpi) => (
+          <article
+            key={kpi.title}
+            className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
+          >
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              {kpi.title}
+            </h2>
+            <p className="mt-3 text-3xl font-bold text-slate-900">{kpi.value}</p>
+            <p className="mt-2 text-sm text-slate-600">{kpi.subtitle}</p>
+            <p className="mt-4 text-xs uppercase tracking-wide text-slate-500">
+              Dernière activité : {kpi.lastActivity}
+            </p>
+          </article>
+        ))}
+      </section>
 
-        <section className="mb-8 grid gap-4 md:grid-cols-2">
-          {kpis.map((kpi) => (
-            <article
-              key={kpi.title}
-              className="rounded border border-slate-200 bg-white p-6 shadow-sm"
-            >
-              <h2 className="text-xl font-semibold">{kpi.title}</h2>
-              <p className="mt-2 text-3xl font-bold text-green-700">{kpi.value}</p>
-              <p className="mt-1 text-sm text-gray-600">{kpi.subtitle}</p>
-              <p className="mt-4 text-sm text-gray-500">
-                Dernière activité&nbsp;: {kpi.lastActivity}
+      {overview && (
+        <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-2 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Flux récents</h2>
+              <p className="text-sm text-slate-600">
+                Dernières interactions enregistrées sur la plateforme.
               </p>
-            </article>
-          ))}
-        </section>
-
-        {overview && (
-          <section className="mb-8">
-            <h2 className="mb-3 text-2xl font-semibold">Flux récents</h2>
+            </div>
+          </div>
+          <div className="p-5">
             {overview.recent_events.length === 0 ? (
-              <p className="text-gray-600">Aucune activité enregistrée pour le moment.</p>
+              <p className="text-sm text-slate-600">Aucune activité enregistrée pour le moment.</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full table-auto border-collapse text-left">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border border-gray-200 px-4 py-2">Horodatage</th>
-                      <th className="border border-gray-200 px-4 py-2">Rôle</th>
-                      <th className="border border-gray-200 px-4 py-2">Action</th>
-                      <th className="border border-gray-200 px-4 py-2">Ressource</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {overview.recent_events.map((event, index) => (
-                      <tr key={`${event.timestamp}-${event.entity}-${index}`} className="odd:bg-white even:bg-gray-50">
-                        <td className="border border-gray-200 px-4 py-2">
-                          {formatEventTimestamp(event.timestamp)}
-                        </td>
-                        <td className="border border-gray-200 px-4 py-2">
-                          {event.actor_role}
-                          {!event.has_authenticated_actor && (
-                            <span className="ml-2 rounded bg-gray-200 px-2 py-0.5 text-xs uppercase text-gray-700">
-                              Anonyme
-                            </span>
-                          )}
-                        </td>
-                        <td className="border border-gray-200 px-4 py-2 uppercase">{event.action}</td>
-                        <td className="border border-gray-200 px-4 py-2 font-mono text-sm">{event.entity}</td>
+              <div className="overflow-hidden rounded-lg border border-slate-200">
+                <div className="max-w-full overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-200 text-left">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="px-4 py-3 text-sm font-semibold text-slate-700">Horodatage</th>
+                        <th className="px-4 py-3 text-sm font-semibold text-slate-700">Rôle</th>
+                        <th className="px-4 py-3 text-sm font-semibold text-slate-700">Action</th>
+                        <th className="px-4 py-3 text-sm font-semibold text-slate-700">Ressource</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 bg-white">
+                      {overview.recent_events.map((event, index) => (
+                        <tr key={`${event.timestamp}-${event.entity}-${index}`} className="transition hover:bg-slate-50">
+                          <td className="px-4 py-3 text-sm text-slate-700">
+                            {formatEventTimestamp(event.timestamp)}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-slate-700">
+                            {event.actor_role}
+                            {!event.has_authenticated_actor && (
+                              <span className="ml-2 inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs uppercase text-slate-600">
+                                Anonyme
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm font-semibold uppercase tracking-wide text-slate-600">
+                            {event.action}
+                          </td>
+                          <td className="px-4 py-3 text-sm font-mono text-slate-700">
+                            {event.entity}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
-          </section>
-        )}
+          </div>
+        </section>
+      )}
 
-        {overview && (
-          <section className="mb-8 rounded border border-blue-200 bg-blue-50 p-4 text-blue-900">
-            <h2 className="mb-2 text-xl font-semibold">Conformité RGPD</h2>
-            <p>{overview.gdpr_notice}</p>
-          </section>
-        )}
-
-        <div className="flex justify-end">
-          <Link href="/" className="rounded bg-gray-600 px-4 py-2 text-white">
-            Retour au tableau de bord
-          </Link>
-        </div>
-      </div>
-    </main>
+      {overview && (
+        <section className="rounded-lg border border-blue-200 bg-blue-50 px-5 py-4 text-sm text-blue-900">
+          <h2 className="text-base font-semibold">Conformité RGPD</h2>
+          <p className="mt-1">{overview.gdpr_notice}</p>
+        </section>
+      )}
+    </PageLayout>
   )
 }
