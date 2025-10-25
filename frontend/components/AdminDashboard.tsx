@@ -48,6 +48,14 @@ export default function AdminDashboard({ onInvite, roles }: AdminDashboardProps)
         )}
         {hasSupervisionAccess && (
           <Link
+            href="/admin/chauffeurs-activite"
+            className="rounded bg-blue-700 px-4 py-2 text-center text-white"
+          >
+            Activité des chauffeurs
+          </Link>
+        )}
+        {hasSupervisionAccess && (
+          <Link
             href="/monitoring"
             className="rounded bg-indigo-600 px-4 py-2 text-center text-white"
           >
